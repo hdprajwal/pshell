@@ -1,0 +1,17 @@
+# Quickshell
+*.qmlc
+*.jsc
+.qmlls.ini
+.qmllsc
+
+# Local config, keep config.example.json instead
+config.json
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store

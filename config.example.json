@@ -1,0 +1,23 @@
+{
+  "position": "top",
+  "size": 30,
+  "bg": "#1e1e2e",
+  "fg": "#cdd6f4",
+  "accent": "#89b4fa",
+  "font": "monospace",
+  "fontSize": 12,
+
+  "left": [
+    { "type": "workspaces" }
+  ],
+
+  "center": [
+    { "type": "clock", "format": "ddd dd MMM  HH:mm" }
+  ],
+
+  "right": [
+    { "exec": "uptime | sed 's/.*load average: /load /'", "interval": 10 },
+    { "exec": "free -h | awk '/^Mem:/ {print \"mem \" $3}'", "interval": 5 },
+    { "exec": "date +%H:%M:%S", "interval": 1, "onClick": "kitty" }
+  ]
+}
