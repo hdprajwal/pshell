@@ -3,8 +3,8 @@
 My own Wayland status bar, built on Quickshell. Inspired by Omarchy and
 DankMaterialShell.
 
-A widget is any program that prints a line to stdout. qsbar runs it and draws
-what it prints.
+A widget is either a program that prints a line to stdout, or a QML file. It
+also runs bar widgets built for Omarchy, unmodified.
 
 About 300 lines of QML.
 
@@ -103,6 +103,77 @@ A `class` of `urgent` or `critical` turns the text red.
 This is the same format Waybar uses, so most Waybar custom modules work here
 without changes.
 
+## QML widgets
+
+A stdout script cannot hold live state, so anything that needs a system
+connection is a QML file instead. Put it in its own directory under
+`~/.config/qsbar/widgets/` with a `manifest.json`:
+
+```
+~/.config/qsbar/widgets/gpu/
+  manifest.json
+  Widget.qml
+```
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "me.gpu",
+  "name": "GPU",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "Widget.qml" },
+  "barWidget": { "defaultSection": "right", "defaults": { "unit": "C" } }
+}
+```
+
+Reference it from `config.json` by id, and anything else on the entry becomes
+its settings:
+
+```json
+{ "id": "me.gpu", "unit": "F" }
+```
+
+The widget extends `BarWidget` and reads what the bar injects:
+
+```qml
+import QtQuick
+import qs.Ui
+
+BarWidget {
+  id: root
+  implicitWidth: label.implicitWidth + 12
+  implicitHeight: barSize
+
+  Text {
+    id: label
+    anchors.centerIn: parent
+    text: "gpu " + root.setting("unit", "C")
+    color: root.bar.foreground
+    font.family: root.bar.fontFamily
+  }
+}
+```
+
+## Omarchy widgets
+
+That manifest format is Omarchy's, and it is not a coincidence. qsbar ships
+`Commons` and `Ui` modules using the same type and token names, so an Omarchy
+bar widget resolves `import qs.Commons` and `import qs.Ui` against qsbar
+instead. Clone one in and it runs:
+
+```sh
+git clone https://github.com/ragnacron/omarchy-workspaces-per-monitor \
+  ~/.config/qsbar/widgets/omarchy-workspaces-per-monitor
+```
+
+Then add `{ "id": "ragnacron.workspaces-per-monitor" }` to a section.
+
+This covers widgets that draw in the bar. `BarWidget`, `WidgetButton`,
+`BarIconButton`, `BarIndicator`, and the `Color`, `Style`, `Border` and `Util`
+singletons are implemented. Widgets that open a popup panel import roughly ten
+more types from Omarchy's UI kit, and those do not load here. Reimplementing
+all of it would mean rebuilding their shell, which is not what this is for.
+
 ## A widget in Go
 
 Print and exit.
@@ -141,16 +212,24 @@ comes from them.
 Both are much bigger projects than this one, and both are worth reading if you
 are curious about Quickshell.
 
-## Why the widgets are programs
+## Why there are two kinds of widget
 
-DankMaterialShell ships a Go daemon. Omarchy ships a plugin system with
-manifests, entry points, a registry and a rescan command. Both are reasonable
-choices for projects that size. For something I maintain alone, I wanted adding
-a widget to not involve touching QML at all, so a widget became a program.
+DankMaterialShell ships a Go daemon that every widget talks to. I did not want
+to maintain a daemon, so most things here are a script instead. A clock, a load
+average, a disk check: none of those need anything more than a command and a
+number.
 
-There is a real cost to this. A polled widget runs on a timer whether anything
-changed or not, and each run starts a new process. Twenty widgets on a one
-second interval will show up in your process list. That is why streaming is
+That falls apart once a widget needs a live connection. A system tray has to
+speak DBus, and volume has to hold a Pipewire handle. Polling a script cannot
+do either, so those are QML.
+
+Rather than invent a format for the QML half, I used Omarchy's, which means
+their widgets work here too. Reusing a format costs me nothing and gets qsbar a
+widget ecosystem it did not have to grow.
+
+The script half has a real cost. A polled widget runs on a timer whether
+anything changed or not, and each run starts a new process. Twenty widgets on a
+one second interval will show up in your process list. That is why streaming is
 there, and I use it more often than polling.
 
 ## License

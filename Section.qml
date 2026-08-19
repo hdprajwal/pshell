@@ -1,9 +1,11 @@
 import QtQuick
+import Quickshell
 
 Row {
     id: root
 
     property var entries: []
+    property var bar: null
 
     spacing: Config.gap
     height: Config.size
@@ -11,21 +13,70 @@ Row {
     Repeater {
         model: root.entries
 
-        Loader {
+        Item {
+            id: slot
+
             required property var modelData
 
-            sourceComponent: {
-                switch (modelData.type) {
-                case "clock":
-                    return clockComponent;
-                case "workspaces":
-                    return workspacesComponent;
-                default:
-                    return procComponent;
-                }
+            readonly property string widgetId: String(modelData.id || "")
+            readonly property string kind: {
+                if (modelData.type === "clock" || modelData.type === "workspaces")
+                    return modelData.type;
+                if (WidgetRegistry.has(widgetId))
+                    return "qml";
+                return "proc";
             }
-            onLoaded: if (item)
-                item.cfg = modelData
+            readonly property var activeItem: builtinLoader.item || qmlLoader.item
+
+            implicitWidth: activeItem ? activeItem.implicitWidth : 0
+            implicitHeight: Config.size
+            width: implicitWidth
+            height: implicitHeight
+            visible: implicitWidth > 0
+
+
+            Loader {
+                id: builtinLoader
+                anchors.verticalCenter: parent.verticalCenter
+                active: slot.kind !== "qml"
+                sourceComponent: {
+                    switch (slot.kind) {
+                    case "clock":
+                        return clockComponent;
+                    case "workspaces":
+                        return workspacesComponent;
+                    default:
+                        return procComponent;
+                    }
+                }
+                onLoaded: if (item)
+                    item.cfg = slot.modelData
+            }
+
+            // A widget discovered on disk. Loading by path is what lets an
+            // Omarchy widget drop in without being compiled into qsbar.
+            Loader {
+                id: qmlLoader
+                anchors.verticalCenter: parent.verticalCenter
+                active: slot.kind === "qml"
+                source: slot.kind === "qml" ? WidgetRegistry.get(slot.widgetId).entry : ""
+
+                onLoaded: {
+                    if (!item)
+                        return;
+                    if ("bar" in item)
+                        item.bar = root.bar;
+                    if ("moduleName" in item)
+                        item.moduleName = slot.widgetId;
+                    if ("settings" in item)
+                        item.settings = WidgetRegistry.settingsFor(slot.widgetId, slot.modelData);
+                    if (root.bar)
+                        root.bar.registerModuleWidget(slot.widgetId, item);
+                }
+
+                Component.onDestruction: if (item && root.bar)
+                    root.bar.unregisterModuleWidget(slot.widgetId, item)
+            }
         }
     }
 

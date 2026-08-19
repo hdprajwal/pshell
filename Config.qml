@@ -17,7 +17,12 @@ Singleton {
     readonly property string dim: data.dim || "#6c7086"
     readonly property string fontFamily: data.font || "monospace"
     readonly property int fontSize: data.fontSize || 12
+    readonly property string urgent: data.urgent || "#f38ba8"
     readonly property int gap: data.gap !== undefined ? data.gap : 12
+    readonly property int cornerRadius: data.cornerRadius !== undefined ? data.cornerRadius : 0
+    readonly property int gapsOut: data.gapsOut !== undefined ? data.gapsOut : 5
+    readonly property real spacingScale: data.spacingScale || 1.0
+    readonly property bool scaleWithFont: data.scaleWithFont !== false
 
     readonly property var left: data.left || []
     readonly property var center: data.center || []
