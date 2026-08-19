@@ -50,13 +50,15 @@ updates. You do not need to restart it.
 
 ## Widgets
 
-Two are built in. Workspaces reads Hyprland's socket, and the clock needs to
-tick every minute. A separate program cannot do either of those cheaply.
+Three are built in. Workspaces reads Hyprland's socket, the clock needs to tick
+every minute, and the tray has to speak the Status Notifier protocol over DBus.
+None of those work as a polled command.
 
 | type | What it does |
 |---|---|
 | `workspaces` | Hyprland workspaces. Click one to switch. |
 | `clock` | `format` takes a Qt date format string. |
+| `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconSize` and `spacing` tune the layout. |
 
 Everything else is a program. Leave out `type` and give it an `exec`.
 

@@ -20,7 +20,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "workspaces")
+                if (modelData.type === "clock" || modelData.type === "workspaces" || modelData.type === "tray")
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
@@ -45,12 +45,19 @@ Row {
                         return clockComponent;
                     case "workspaces":
                         return workspacesComponent;
+                    case "tray":
+                        return trayComponent;
                     default:
                         return procComponent;
                     }
                 }
-                onLoaded: if (item)
-                    item.cfg = slot.modelData
+                onLoaded: {
+                    if (!item)
+                        return;
+                    item.cfg = slot.modelData;
+                    if ("bar" in item)
+                        item.bar = root.bar;
+                }
             }
 
             // A widget discovered on disk. Loading by path is what lets an
@@ -87,6 +94,10 @@ Row {
     Component {
         id: workspacesComponent
         Workspaces {}
+    }
+    Component {
+        id: trayComponent
+        Tray {}
     }
     Component {
         id: procComponent
