@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.Services
+import qs.Widgets.ActiveWindow
 import qs.Widgets.Battery
 import qs.Widgets.Bluetooth
 import qs.Widgets.Calendar
@@ -30,7 +31,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
+                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "activeWindow" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
@@ -55,6 +56,8 @@ Row {
                         return clockComponent;
                     case "calendar":
                         return calendarComponent;
+                    case "activeWindow":
+                        return activeWindowComponent;
                     case "workspaces":
                         return workspacesComponent;
                     case "tray":
@@ -114,6 +117,10 @@ Row {
     Component {
         id: calendarComponent
         Calendar {}
+    }
+    Component {
+        id: activeWindowComponent
+        ActiveWindow {}
     }
     Component {
         id: workspacesComponent

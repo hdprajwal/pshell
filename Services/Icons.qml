@@ -19,6 +19,18 @@ Singleton {
         return found.charAt(0) === "/" ? "file://" + found : found;
     }
 
+    // A desktop entry's icon is either a name to look up in the theme or an
+    // absolute path to a file on disk, and nothing in the entry distinguishes
+    // them. Zed ships the second kind, Helium the first.
+    function fromEntry(icon) {
+        const name = String(icon || "");
+        if (name === "")
+            return "";
+        if (name.charAt(0) === "/")
+            return "file://" + name;
+        return root.path(name);
+    }
+
     // First name that the current theme actually has.
     function first(names) {
         for (var i = 0; i < names.length; i++) {

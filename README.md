@@ -113,7 +113,7 @@ This is the shape Omarchy's own shell uses, which is not a coincidence either.
 
 ## Widgets
 
-Eight are built in. These hold something a polled command cannot: a live
+Nine are built in. These hold something a polled command cannot: a live
 connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
 single run.
 
@@ -122,6 +122,7 @@ single run.
 | `workspaces` | Hyprland workspaces. Click one to switch. |
 | `clock` | `format` takes a Qt date format string. |
 | `calendar` | The same clock, but clicking it opens the time and a full month. Page with the arrows or the scroll wheel, click the month name to come back to today. `timeFormat`, `dateFormat`, `firstDayOfWeek`. |
+| `activeWindow` | The focused window's icon, application name and title. `maxWidth` caps the title in pixels, default 400. `showIcon`, `showAppName`. Hides itself when nothing is focused. |
 | `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconScale`, `iconSize` and `spacing` tune the layout. |
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
@@ -271,6 +272,28 @@ locale if you leave it out.
 The grid is always six rows. A month that spills into a seventh week would
 otherwise make the panel taller than the one before it, and a panel that changes
 height as you page through it is worse than one mostly empty row.
+
+## Active window
+
+The window you are looking at, as an icon, an application name and a title.
+
+```json
+{ "type": "activeWindow", "maxWidth": 400 }
+```
+
+The title is whatever the window says it is, and a browser puts a whole page
+title in there, so `maxWidth` caps it in pixels and the rest is elided. Without
+a ceiling one tab pushes every other widget off the bar.
+
+The name comes from the application's `.desktop` file. Where there is not one,
+the last segment of a reverse-DNS app id is used instead, so `dev.zed.Zed` still
+reads as `Zed`. Icons are drawn in their own colours rather than tinted to the
+foreground, since an application logo is artwork and not a symbol.
+
+Nothing focused hides the widget rather than leaving a gap.
+
+Unlike `workspaces` this one is not tied to Hyprland. It reads the wlr
+foreign-toplevel protocol, which any wlroots compositor speaks.
 
 ## Control centre
 
