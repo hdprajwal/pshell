@@ -30,7 +30,17 @@ Singleton {
     // "manual" uses the colours above as written. "wallpaper" runs matugen on
     // `wallpaper` and fills in whatever you have not set yourself.
     readonly property string theme: data.theme || "manual"
-    readonly property string mode: data.mode === "light" ? "light" : "dark"
+    // Setting `mode` pins it. Leaving it out follows the desktop, so the
+    // control centre's Dark Mode tile — or GNOME settings, or anything else
+    // that writes the GTK colour-scheme — restyles the shell along with
+    // everything else, rather than only the GTK apps.
+    readonly property string mode: {
+        if (data.mode === "light")
+            return "light";
+        if (data.mode === "dark")
+            return "dark";
+        return SystemTheme.scheme;
+    }
     readonly property string wallpaper: data.wallpaper || ""
     readonly property string wallpaperPath: {
         const path = String(wallpaper);

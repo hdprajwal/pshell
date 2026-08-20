@@ -116,7 +116,14 @@ Because `config.json` reloads on save, a script that changes your wallpaper can
 rewrite the `wallpaper` field and the bar recolours itself. There is nothing to
 restart and no daemon watching anything.
 
-`mode` takes `dark` or `light`. `matugenScheme` picks the palette algorithm,
+`mode` takes `dark` or `light`. Leave it out and qsbar follows the desktop
+instead, reading the GTK `color-scheme` setting and re-deriving the palette
+whenever it changes — so the control centre's Dark Mode tile, GNOME settings or
+any script that writes that key restyles the shell as well as your apps.
+Setting `mode` pins it and the desktop is ignored. Needs `gsettings`; without
+it, or with a scheme of `default`, qsbar stays dark.
+
+`matugenScheme` picks the palette algorithm,
 defaulting to `scheme-tonal-spot`. `matugenPrefer` decides which source colour
 wins when an image has several candidates, defaulting to `saturation`; matugen
 refuses to guess without it when there is no terminal to ask.
