@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Services.UPower
-import qs.Components
 import qs.Services
 import qs.Commons
 import qs.Ui
@@ -149,33 +148,10 @@ Panel {
         id: button
         anchors.fill: parent
         bar: root.bar
-        // Percentage-in-the-bar widens the slot to fit the label; matched by
-        // opticalSize so the icon+label pair centers as one unit instead of
-        // the icon alone centering in the wider slot and stranding the text.
-        slotSize: root.showPercent && !vertical ? Style.bar.iconSlot + percentMetrics.width + Style.spacing.sm : Style.bar.iconSlot
-        opticalSize: root.showPercent && !vertical ? slotSize : Style.bar.iconCanvas
-        iconComponent: Component {
-            Row {
-                anchors.centerIn: parent
-                spacing: Style.spacing.sm
-
-                BarIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    iconSource: root.themedIcon
-                    size: Style.bar.iconCanvas
-                    color: root.low ? Color.urgent : Color.foreground
-                }
-
-                Text {
-                    visible: root.showPercent && !button.vertical
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.percent + "%"
-                    color: Color.foreground
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.body
-                }
-            }
-        }
+        iconSource: root.themedIcon
+        // Low reads as urgent, which is what `active` is for.
+        active: root.low
+        label: root.showPercent && !vertical ? root.percent + "%" : ""
 
         onPressed: b => {
             if (b === Qt.RightButton) {
@@ -184,16 +160,6 @@ Panel {
             }
             root.toggle();
         }
-    }
-
-    // Off-screen measurement of the percent label so slotSize/opticalSize
-    // can widen to fit it without depending on an id inside the Component
-    // above, whose scope is private to its own instance.
-    TextMetrics {
-        id: percentMetrics
-        font.family: Style.font.family
-        font.pixelSize: Style.font.body
-        text: root.percent + "%"
     }
 
     KeyboardPanel {

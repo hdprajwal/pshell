@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Networking
-import qs.Components
 import qs.Services
 import qs.Commons
 import qs.Ui
@@ -74,28 +73,9 @@ Panel {
         // No wired link and no connected wifi is the one state actually
         // worth flagging; a radio the user turned off on purpose is not.
         active: Networking.wifiEnabled && !root.wiredUp && !root.activeWifi
-        slotSize: root.showName ? Style.bar.iconSlot + nameLabel.implicitWidth + Style.spacing.xs : Style.bar.iconSlot
 
-        iconComponent: Component {
-            BarIcon {
-                anchors.fill: parent
-                iconSource: root.iconSource
-                size: Style.bar.iconCanvas
-                color: button.active ? button.activeColor : button.foreground
-            }
-        }
-
-        Text {
-            id: nameLabel
-            visible: root.showName
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-            anchors.rightMargin: Style.spacing.xs
-            text: root.activeWifi ? root.activeWifi.name : ""
-            color: button.foreground
-            font.family: button.fontFamily
-            font.pixelSize: button.fontSize
-        }
+        iconSource: root.iconSource
+        label: root.showName && root.activeWifi ? root.activeWifi.name : ""
 
         onPressed: b => {
             if (b === Qt.RightButton) {

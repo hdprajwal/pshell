@@ -4,7 +4,6 @@ import Quickshell.Services.SystemTray
 import qs.Services
 import qs.Commons
 import qs.Ui
-import qs.Components
 
 BarWidget {
     id: root

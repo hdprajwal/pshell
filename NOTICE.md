@@ -13,6 +13,19 @@ They are vendored from the `quattro` branch at commit
 written against. Everything is byte-identical to that commit except the two
 files below, which makes updating them a copy rather than a merge.
 
+`Ui/BarIconButton.qml` is modified. Omarchy's fits exactly one Nerd Font
+glyph in a square canvas, so a widget wanting anything else -- several themed
+icons, an icon beside a label -- had to compute its own slot width and widen
+that canvas to match, and several of qsbar's got it wrong in different
+directions. It now lays its content out as one centred row and takes its width
+from that, the way qsbar's own bar button did before this kit replaced it.
+`iconSources`, `iconSource`, `label` and `iconColor` are additions;
+`text` still means the glyph and still goes through the same optically
+centred canvas, so an Omarchy widget behaves exactly as before.
+`Ui/BarIcon.qml` is qsbar's own, not Omarchy's: it draws a recoloured icon
+from the icon theme, which Omarchy has no equivalent for because it uses
+glyphs throughout.
+
 `Ui/KeyboardPanel.qml` and `Ui/PopupCard.qml` are modified. Both placed their
 card by measuring down from the top of the output — `barH + gap` for a top bar
 — which assumes the bar's own surface starts at the screen edge. qsbar can sit

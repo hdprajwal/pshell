@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import qs.Services
-import qs.Components
 import qs.Commons
 import qs.Ui
 
@@ -28,17 +27,16 @@ BarWidget {
     implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
 
-    WidgetButton {
+    BarIconButton {
         id: button
         anchors.fill: parent
         bar: root.bar
-        labelVisible: false
-        hasVisualContent: true
         // Muted reads as urgent rather than dimmed. A hot mic you believe is
         // off is the expensive mistake here, not the other way round.
         active: Audio.micMuted
         tooltipText: Audio.micMuted ? "Microphone muted" : "Microphone live"
-        implicitWidth: content.implicitWidth + Style.spacing.lg * 2
+        iconSource: Icons.microphone(Audio.micMuted)
+        label: root.volumeText
 
         onPressed: b => {
             if (b === Qt.RightButton) {
@@ -52,28 +50,6 @@ BarWidget {
         onWheelMoved: delta => {
             const step = delta > 0 ? 0.05 : -0.05;
             Audio.setMicVolume(Audio.micVolume + step);
-        }
-
-        Row {
-            id: content
-            anchors.centerIn: parent
-            spacing: 4
-
-            BarIcon {
-                anchors.verticalCenter: parent.verticalCenter
-                iconSource: Icons.microphone(Audio.micMuted)
-                size: Style.bar.iconCanvas
-                color: button.active ? button.activeColor : button.foreground
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: root.volumeText !== ""
-                text: root.volumeText
-                color: button.active ? button.activeColor : button.foreground
-                font.family: Style.font.family
-                font.pixelSize: Style.font.body
-            }
         }
     }
 }

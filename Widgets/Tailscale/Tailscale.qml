@@ -4,7 +4,6 @@ import Quickshell.Io
 import qs.Services
 import qs.Commons
 import qs.Ui
-import qs.Components
 
 // Tailscale state, read straight off the CLI.
 //
@@ -190,10 +189,8 @@ Panel {
 
     // What the button paints, for Section's open-panel mark: the icon alone,
     // never the name label beside it.
-    readonly property real openPanelIndicatorWidth: button.implicitWidth
-    readonly property real openPanelIndicatorHeight: button.implicitHeight
 
-    implicitWidth: button.implicitWidth + (root.showLabel ? Style.spacing.sm + nameLabel.implicitWidth : 0)
+    implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
 
     function press(mouseButton) {
@@ -277,36 +274,13 @@ Panel {
     // colour: foreground connected, dimmed not, urgent when the CLI errored.
     BarIconButton {
         id: button
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.fill: parent
         bar: root.bar
-        iconComponent: Component {
-            BarIcon {
-                anchors.fill: parent
-                iconSource: Qt.resolvedUrl("tailscale.svg")
-                size: Style.bar.iconCanvas
-                color: root.failed ? Color.urgent : (root.running ? Color.foreground : Color.muted)
-            }
-        }
+        iconSource: Qt.resolvedUrl("tailscale.svg")
+        label: root.showLabel ? root.selfName : ""
+        iconColor: root.failed ? Color.urgent : (root.running ? Color.foreground : Color.muted)
+
         onPressed: b => root.press(b)
-    }
-
-    Text {
-        id: nameLabel
-        visible: root.showLabel
-        anchors.left: button.right
-        anchors.leftMargin: Style.spacing.sm
-        anchors.verticalCenter: button.verticalCenter
-        text: root.selfName
-        color: root.barForeground
-        font.family: Style.font.family
-        font.pixelSize: Style.font.body
-
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: mouse => root.press(mouse.button)
-        }
     }
 
     KeyboardPanel {

@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Networking
-import qs.Components
 import qs.Services
 import qs.Commons
 import qs.Ui

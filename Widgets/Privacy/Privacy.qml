@@ -3,7 +3,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.Services
-import qs.Components
 import qs.Commons
 import qs.Ui
 
@@ -54,16 +53,10 @@ BarIndicator {
     // them. Nothing capturing means nothing to show.
     indicatorBlock: "active"
 
-    iconComponent: Component {
-        BarIcon {
-            anchors.fill: parent
-            // The mic takes the glyph when both are live: it is the
-            // event-driven half, so it is the one worth not missing.
-            iconSource: root.micActive ? Icons.microphone(false) : Icons.first(["camera-web-symbolic", "camera-video-symbolic", "camera-photo-symbolic"])
-            size: Style.bar.iconCanvas
-            color: Color.urgent
-        }
-    }
+    // The mic takes the icon when both are live: it is the event-driven
+    // half, so it is the one worth not missing.
+    iconSource: root.micActive ? Icons.microphone(false) : Icons.first(["camera-web-symbolic", "camera-video-symbolic", "camera-photo-symbolic"])
+    iconColor: Color.urgent
 
     // The old panel listed every capturing program by name; that detail
     // lives on here as a tooltip rather than a click target, since a status

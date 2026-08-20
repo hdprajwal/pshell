@@ -3,7 +3,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Bluetooth
 import Quickshell.Networking
-import qs.Components
 import qs.Services
 import qs.Widgets.Bluetooth
 import qs.Widgets.Network
@@ -103,32 +102,7 @@ Panel {
         // Padded the same as a single-icon slot, so a widget carrying
         // three icons sits the same distance from its neighbour as one
         // carrying one.
-        readonly property int slotPadding: Style.bar.iconSlot - Style.bar.iconCanvas
-        slotSize: Style.bar.iconCanvas * root.iconSources.length + Style.spacing.sm * Math.max(0, root.iconSources.length - 1) + slotPadding
-        // The icon canvas defaults to one icon wide and the row is
-        // centred inside it, so without this a row of three overflows
-        // its canvas and lands off-centre in the slot.
-        opticalSize: slotSize
-
-        iconComponent: Component {
-            Row {
-                anchors.centerIn: parent
-                spacing: Style.spacing.sm
-
-                Repeater {
-                    model: root.iconSources
-
-                    BarIcon {
-                        required property string modelData
-
-                        anchors.verticalCenter: parent.verticalCenter
-                        iconSource: modelData
-                        size: Style.bar.iconCanvas
-                        color: button.foreground
-                    }
-                }
-            }
-        }
+        iconSources: root.iconSources
 
         onPressed: b => {
             if (b === Qt.RightButton) {

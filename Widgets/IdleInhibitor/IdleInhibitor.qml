@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.Services
-import qs.Components
 import qs.Commons
 import qs.Ui
 
@@ -30,14 +29,8 @@ BarIndicator {
     activeTooltipText: "Allow the screen to sleep"
     inactiveTooltipText: "Keep the screen awake"
 
-    iconComponent: Component {
-        BarIcon {
-            anchors.fill: parent
-            iconSource: Icons.first(root.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
-            size: Style.bar.iconCanvas
-            color: root.inhibited ? Color.accent : Color.foreground
-        }
-    }
+    iconSource: Icons.first(root.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
+    iconColor: root.inhibited ? Color.accent : Color.foreground
 
     onPressed: b => {
         if (b === Qt.LeftButton)

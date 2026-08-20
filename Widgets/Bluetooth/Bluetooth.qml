@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
-import qs.Components
 import qs.Services
 import qs.Commons
 import qs.Ui
@@ -44,28 +43,9 @@ Panel {
         bar: root.bar
         // An adapter sitting off is the one state actually worth flagging.
         active: root.adapter !== null && !root.enabled
-        slotSize: root.showCount ? Style.bar.iconSlot + countLabel.implicitWidth + Style.spacing.xs : Style.bar.iconSlot
 
-        iconComponent: Component {
-            BarIcon {
-                anchors.fill: parent
-                iconSource: Icons.bluetooth(root.enabled, root.connectedDevices.length > 0)
-                size: Style.bar.iconCanvas
-                color: button.active ? button.activeColor : button.foreground
-            }
-        }
-
-        Text {
-            id: countLabel
-            visible: root.showCount
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-            anchors.rightMargin: Style.spacing.xs
-            text: String(root.connectedDevices.length)
-            color: button.foreground
-            font.family: button.fontFamily
-            font.pixelSize: button.fontSize
-        }
+        iconSource: root.iconSource
+        label: root.showCount ? "" : ""
 
         onPressed: b => {
             if (b === Qt.RightButton) {

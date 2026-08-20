@@ -2,7 +2,6 @@ import QtQuick
 import qs.Services
 import qs.Commons
 import qs.Ui
-import qs.Components
 
 // One machine on the tailnet.
 //

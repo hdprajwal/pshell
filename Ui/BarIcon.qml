@@ -1,6 +1,5 @@
 import QtQuick
 import Qt5Compat.GraphicalEffects
-import qs.Services
 import qs.Commons
 
 // A themed icon tinted to the foreground colour. Symbolic icons ship in a
