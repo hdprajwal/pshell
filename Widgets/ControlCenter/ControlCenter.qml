@@ -41,6 +41,9 @@ Panel {
 
     // Which tile's detail list is showing, "" for none.
     property string detail: ""
+    // Which row of tiles owns the open list: the top pair or the bottom one.
+    readonly property int detailRow: detail === "sink" || detail === "source" ? 1 : 0
+    readonly property int detailHeight: detail === "" ? 0 : Math.min(Style.space(320), detailColumn.implicitHeight + Style.spacing.xxl)
 
     function showDetail(name) {
         detail = detail === name ? "" : name;
@@ -97,7 +100,11 @@ Panel {
         id: button
         anchors.fill: parent
         bar: root.bar
-        slotSize: Style.bar.iconCanvas * root.iconSources.length + Style.spacing.sm * Math.max(0, root.iconSources.length - 1) + Style.spacing.lg * 2
+        // Padded the same as a single-icon slot, so a widget carrying
+        // three icons sits the same distance from its neighbour as one
+        // carrying one.
+        readonly property int slotPadding: Style.bar.iconSlot - Style.bar.iconCanvas
+        slotSize: Style.bar.iconCanvas * root.iconSources.length + Style.spacing.sm * Math.max(0, root.iconSources.length - 1) + slotPadding
 
         iconComponent: Component {
             Row {
@@ -287,119 +294,87 @@ Panel {
                 }
 
                 // ---------- Wifi / bluetooth / output / input tiles ----------
-                Grid {
+                //
+                // Two rows of two, with the open list dropping in under the row
+                // that owns it rather than below all four. A list that appears
+                // three tiles away from the one you clicked does not read as
+                // belonging to it.
+                Column {
                     width: parent.width
-                    columns: 2
-                    columnSpacing: Style.spacing.lg
-                    rowSpacing: Style.spacing.lg
+                    spacing: Style.spacing.lg
 
-                    readonly property int cellWidth: (width - columnSpacing) / 2
+                    readonly property int cellWidth: (width - Style.spacing.lg) / 2
 
-                    ControlTile {
-                        width: parent.cellWidth
-                        iconSource: root.wifiOn ? Icons.wifi(root.activeWifi ? root.activeWifi.signalStrength : 0) : Icons.wifiOff()
-                        title: root.wifiOn ? (root.activeWifi ? root.activeWifi.name : "Not connected") : "Wi-Fi"
-                        subtitle: root.wifiOn ? (root.activeWifi ? Math.round(root.activeWifi.signalStrength * 100) + "%" : "On") : "Off"
-                        active: root.wifiOn
-                        expanded: root.detail === "wifi"
-                        onToggled: Networking.wifiEnabled = !Networking.wifiEnabled
-                        onDetailRequested: root.showDetail("wifi")
-                    }
+                    Row {
+                        width: parent.width
+                        spacing: Style.spacing.lg
 
-                    ControlTile {
-                        width: parent.cellWidth
-                        iconSource: Icons.bluetooth(root.btOn, root.btConnected.length > 0)
-                        title: root.btOn ? (root.btConnected.length > 0 ? root.btConnected[0].deviceName || root.btConnected[0].name : "Bluetooth") : "Disabled"
-                        subtitle: root.btOn ? (root.btConnected.length > 0 ? "Connected" : "On") : "Off"
-                        active: root.btOn
-                        expanded: root.detail === "bluetooth"
-                        onToggled: if (Bluetooth.defaultAdapter)
-                            Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled
-                        onDetailRequested: root.showDetail("bluetooth")
-                    }
-
-                    ControlTile {
-                        width: parent.cellWidth
-                        iconSource: Icons.first(Audio.muted ? ["audio-volume-muted-symbolic"] : ["audio-volume-high-symbolic", "audio-speakers-symbolic"])
-                        title: Audio.sinkName
-                        subtitle: Math.round(Audio.volume * 100) + "%"
-                        active: !Audio.muted
-                        expanded: root.detail === "sink"
-                        onToggled: Audio.toggleMute()
-                        onDetailRequested: root.showDetail("sink")
-                    }
-
-                    ControlTile {
-                        width: parent.cellWidth
-                        iconSource: Icons.microphone(Audio.micMuted)
-                        title: Audio.sourceName
-                        subtitle: Math.round(Audio.micVolume * 100) + "%"
-                        active: !Audio.micMuted
-                        expanded: root.detail === "source"
-                        onToggled: Audio.toggleMicMute()
-                        onDetailRequested: root.showDetail("source")
-                    }
-                }
-
-                // Detail list for whichever tile is open.
-                Rectangle {
-                    width: parent.width
-                    visible: root.detail !== ""
-                    height: visible ? Math.min(Style.space(320), detailColumn.implicitHeight + Style.spacing.xxl) : 0
-                    radius: Style.cornerRadius
-                    color: Style.normalFill
-
-                    Flickable {
-                        anchors.fill: parent
-                        anchors.margins: Style.spacing.lg
-                        contentWidth: width
-                        contentHeight: detailColumn.implicitHeight
-                        clip: true
-                        interactive: contentHeight > height
-                        boundsBehavior: Flickable.StopAtBounds
-
-                        Item {
-                            id: detailColumn
-                            width: parent.width
-                            implicitHeight: netList.visible ? netList.implicitHeight : (btList.visible ? btList.implicitHeight : (sinkList.visible ? sinkList.implicitHeight : sourceList.implicitHeight))
-
-                            NetworkList {
-                                id: netList
-                                visible: root.detail === "wifi"
-                                rowWidth: detailColumn.width
-                            }
-
-                            BluetoothList {
-                                id: btList
-                                visible: root.detail === "bluetooth"
-                                rowWidth: detailColumn.width
-                            }
-
-                            AudioDeviceList {
-                                id: sinkList
-                                visible: root.detail === "sink"
-                                bar: root.bar
-                                rowWidth: detailColumn.width
-                                settingsCommand: root.cfg.audioSettings || ""
-                                onRunRequested: command => {
-                                    root.run(command);
-                                    root.close();
-                                }
-                            }
-
-                            AudioDeviceList {
-                                id: sourceList
-                                visible: root.detail === "source"
-                                input: true
-                                bar: root.bar
-                                rowWidth: detailColumn.width
-                                settingsCommand: root.cfg.audioSettings || ""
-                                onRunRequested: command => {
-                                    root.run(command);
-                                    root.close();
-                                }
-                            }
+                        ControlTile {
+                            width: parent.parent.cellWidth
+                            iconSource: root.wifiOn ? Icons.wifi(root.activeWifi ? root.activeWifi.signalStrength : 0) : Icons.wifiOff()
+                            title: root.wifiOn ? (root.activeWifi ? root.activeWifi.name : "Not connected") : "Wi-Fi"
+                            subtitle: root.wifiOn ? (root.activeWifi ? Math.round(root.activeWifi.signalStrength * 100) + "%" : "On") : "Off"
+                            active: root.wifiOn
+                            expanded: root.detail === "wifi"
+                            onToggled: Networking.wifiEnabled = !Networking.wifiEnabled
+                            onDetailRequested: root.showDetail("wifi")
                         }
+
+                        ControlTile {
+                            width: parent.parent.cellWidth
+                            iconSource: Icons.bluetooth(root.btOn, root.btConnected.length > 0)
+                            title: root.btOn ? (root.btConnected.length > 0 ? root.btConnected[0].deviceName || root.btConnected[0].name : "Bluetooth") : "Disabled"
+                            subtitle: root.btOn ? (root.btConnected.length > 0 ? "Connected" : "On") : "Off"
+                            active: root.btOn
+                            expanded: root.detail === "bluetooth"
+                            onToggled: if (Bluetooth.defaultAdapter)
+                                Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled
+                            onDetailRequested: root.showDetail("bluetooth")
+                        }
+                    }
+
+                    // Where the list goes when the row above owns it. The list
+                    // itself is built once and moves between these, so opening
+                    // one does not tear down the scan running in another.
+                    Item {
+                        id: topSlot
+                        width: parent.width
+                        height: root.detailRow === 0 ? root.detailHeight : 0
+                        visible: height > 0
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Style.spacing.lg
+
+                        ControlTile {
+                            width: parent.parent.cellWidth
+                            iconSource: Icons.first(Audio.muted ? ["audio-volume-muted-symbolic"] : ["audio-volume-high-symbolic", "audio-speakers-symbolic"])
+                            title: Audio.sinkName
+                            subtitle: Math.round(Audio.volume * 100) + "%"
+                            active: !Audio.muted
+                            expanded: root.detail === "sink"
+                            onToggled: Audio.toggleMute()
+                            onDetailRequested: root.showDetail("sink")
+                        }
+
+                        ControlTile {
+                            width: parent.parent.cellWidth
+                            iconSource: Icons.microphone(Audio.micMuted)
+                            title: Audio.sourceName
+                            subtitle: Math.round(Audio.micVolume * 100) + "%"
+                            active: !Audio.micMuted
+                            expanded: root.detail === "source"
+                            onToggled: Audio.toggleMicMute()
+                            onDetailRequested: root.showDetail("source")
+                        }
+                    }
+
+                    Item {
+                        id: bottomSlot
+                        width: parent.width
+                        height: root.detailRow === 1 ? root.detailHeight : 0
+                        visible: height > 0
                     }
                 }
 
@@ -435,6 +410,71 @@ Panel {
         }
     }
 
+    // The open list. One instance, reparented into the slot under whichever
+    // row owns it, so switching tiles moves the panel rather than rebuilding
+    // it and restarting whatever scan is running inside.
+    Rectangle {
+        parent: root.detailRow === 1 ? bottomSlot : topSlot
+        anchors.fill: parent
+        visible: root.detail !== ""
+        radius: Style.cornerRadius
+        color: Style.normalFill
+        clip: true
+
+        Flickable {
+            anchors.fill: parent
+            anchors.margins: Style.spacing.lg
+            contentWidth: width
+            contentHeight: detailColumn.implicitHeight
+            clip: true
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
+
+            Item {
+                id: detailColumn
+                width: parent.width
+                implicitHeight: netList.visible ? netList.implicitHeight : (btList.visible ? btList.implicitHeight : (sinkList.visible ? sinkList.implicitHeight : sourceList.implicitHeight))
+
+                NetworkList {
+                    id: netList
+                    visible: root.detail === "wifi"
+                    rowWidth: detailColumn.width
+                }
+
+                BluetoothList {
+                    id: btList
+                    visible: root.detail === "bluetooth"
+                    rowWidth: detailColumn.width
+                }
+
+                AudioDeviceList {
+                    id: sinkList
+                    visible: root.detail === "sink"
+                    bar: root.bar
+                    rowWidth: detailColumn.width
+                    settingsCommand: root.cfg.audioSettings || ""
+                    onRunRequested: command => {
+                        root.run(command);
+                        root.close();
+                    }
+                }
+
+                AudioDeviceList {
+                    id: sourceList
+                    visible: root.detail === "source"
+                    input: true
+                    bar: root.bar
+                    rowWidth: detailColumn.width
+                    settingsCommand: root.cfg.audioSettings || ""
+                    onRunRequested: command => {
+                        root.run(command);
+                        root.close();
+                    }
+                }
+            }
+        }
+    }
+
     // ---- Reusable inline component ----
 
     // A control centre tile. The icon square toggles the thing on and off; the
@@ -458,8 +498,11 @@ Panel {
 
         implicitHeight: Math.round(Style.font.body * 4.2)
         radius: Style.cornerRadius
-        color: Style.controlFill(false, tile.expanded || tile.hot, Color.popups.text, Color.accent)
-        borderSpec: Border.controlSpec(tile.expanded ? "selected" : (tile.hot ? "hover-cursor" : "normal"), Color.popups.text, Color.accent)
+        // Fill alone, no outline. A tile is a filled surface rather than a
+        // form control, and four outlined boxes stacked two deep turn the
+        // panel into a grid of frames instead of a row of things to press.
+        color: tile.expanded ? Style.selectedFill : (tile.hot ? Style.hoverFill : Style.normalFill)
+        borderSpec: Border.none()
 
         Behavior on color {
             ColorAnimation {

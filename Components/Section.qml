@@ -84,7 +84,21 @@ Row {
             }
             readonly property var activeItem: builtinLoader.item || qmlLoader.item
 
-            readonly property bool slotWanted: !activeItem || !("belongsInBlock" in activeItem) || activeItem.belongsInBlock
+            // An indicator keeps its slot width while concealed so the row
+            // does not jump when it lights up. That leaves a hole in the bar
+            // for something that is not there, so the slot collapses instead
+            // and reopens when a hover over the section reveals it.
+            //
+            // Both flags are state, never visibility: `visible` on a child is
+            // inherited from this slot, and this slot hides on zero width, so
+            // reading it here would feed straight back into itself.
+            readonly property bool slotWanted: {
+                if (!activeItem)
+                    return false;
+                if ("concealed" in activeItem && activeItem.concealed)
+                    return false;
+                return !("belongsInBlock" in activeItem) || activeItem.belongsInBlock;
+            }
             implicitWidth: activeItem && slotWanted ? activeItem.implicitWidth : 0
             implicitHeight: Style.bar.sizeHorizontal
             width: implicitWidth
