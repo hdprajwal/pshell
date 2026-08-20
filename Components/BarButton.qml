@@ -17,6 +17,8 @@ Item {
     property string text: ""
     property color iconColor: Config.fg
     property bool active: false
+    // Whether this widget has anything to say right now.
+    property bool shown: true
 
     signal clicked(int button)
     signal wheel(int delta)
@@ -25,7 +27,16 @@ Item {
     readonly property bool usingImage: iconSource !== ""
     readonly property int iconSize: Config.barIconSize
 
-    implicitWidth: content.implicitWidth + 10
+    // A hidden button takes no width. Section drops a zero-width slot, and a
+    // dropped slot costs no spacing either, so a widget that hides itself
+    // closes the gap instead of leaving a hole its neighbours space around.
+    //
+    // Widgets set `shown` rather than `visible` for this. An item's `visible`
+    // also reflects its parent's, and Section hides a slot with no width, so
+    // deriving the width from `visible` would feed straight back into itself
+    // and collapse every button to nothing.
+    visible: root.shown
+    implicitWidth: root.shown ? content.implicitWidth + 10 : 0
     implicitHeight: Config.size
 
     Rectangle {

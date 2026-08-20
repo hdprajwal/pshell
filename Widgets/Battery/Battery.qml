@@ -82,7 +82,7 @@ BarButton {
         return (charging ? "Time until full: " : "Time remaining: ") + rest;
     }
 
-    visible: present
+    shown: present
     iconSource: themedIcon
     text: cfg.showPercent === false ? "" : percent + "%"
     iconColor: low ? Config.urgent : Config.fg

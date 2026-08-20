@@ -35,7 +35,7 @@ BarButton {
         return all.slice(0, cfg.maxDevices || 8);
     }
 
-    visible: adapter !== null
+    shown: adapter !== null
     iconSource: Icons.bluetooth(enabled, connectedDevices.length > 0)
     text: cfg.showCount === true && connectedDevices.length > 0 ? String(connectedDevices.length) : ""
     // Derived from the coordinator rather than this panel's own flag, so
