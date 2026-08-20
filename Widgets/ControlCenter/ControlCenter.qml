@@ -392,6 +392,11 @@ Panel {
                         iconName: Glyphs.darkMode
                         title: "Dark Mode"
                         hasDetail: false
+                        // Lit from the setting the default command writes. A
+                        // custom darkModeCommand that writes somewhere else
+                        // leaves the tile dark, which is honest: the state is
+                        // then something qsbar cannot see.
+                        active: SystemTheme.available && SystemTheme.scheme === "dark"
                         onToggled: root.run(root.cfg.darkModeCommand || "gsettings set org.gnome.desktop.interface color-scheme \"$(test \"$(gsettings get org.gnome.desktop.interface color-scheme)\" = \"'prefer-dark'\" && echo prefer-light || echo prefer-dark)\"")
                     }
                 }
@@ -469,7 +474,8 @@ Panel {
     // A control centre tile. The icon square toggles the thing on and off; the
     // rest of the tile opens its detail list, which is how DMS splits it too.
     // One tile, two targets, so a mis-click never toggles your wifi off when
-    // you meant to pick a network.
+    // you meant to pick a network. A tile with no detail list has nothing to
+    // split, so the whole surface toggles instead of just the icon.
     component ControlTile: BorderSurface {
         id: tile
 
@@ -483,14 +489,25 @@ Panel {
         signal toggled
         signal detailRequested
 
-        readonly property bool hot: bodyHover.containsMouse
+        readonly property bool hot: bodyHover.containsMouse || (!tile.hasDetail && iconHover.containsMouse)
+
+        // A tile with no detail list is one button, so the whole surface shows
+        // the state that the icon square shows on the tiles that are two.
+        // Nesting a lit square inside a lit tile would only say it twice.
+        readonly property bool solid: tile.active && !tile.hasDetail
+        readonly property color onColor: Style.selectedStateColor(Color.popups.text, Color.accent)
+        readonly property color ink: tile.solid ? Color.popups.background : Color.popups.text
 
         implicitHeight: Math.round(Style.font.body * 4.2)
         radius: Style.cornerRadius
         // Fill alone, no outline. A tile is a filled surface rather than a
         // form control, and four outlined boxes stacked two deep turn the
         // panel into a grid of frames instead of a row of things to press.
-        color: tile.expanded ? Style.selectedFill : (tile.hot ? Style.hoverFill : Style.normalFill)
+        //
+        // Hovering a lit tile thins its fill towards the panel rather than
+        // darkening it, which reads the same way whether the palette is light
+        // or dark.
+        color: tile.solid ? Util.alpha(tile.onColor, tile.hot ? 0.86 : 1.0) : (tile.expanded ? Style.selectedFill : (tile.hot ? Style.hoverFill : Style.normalFill))
         borderSpec: Border.none()
 
         Behavior on color {
@@ -503,9 +520,8 @@ Panel {
             id: bodyHover
             anchors.fill: parent
             hoverEnabled: true
-            enabled: tile.hasDetail
             cursorShape: Qt.PointingHandCursor
-            onClicked: tile.detailRequested()
+            onClicked: tile.hasDetail ? tile.detailRequested() : tile.toggled()
         }
 
         Row {
@@ -522,7 +538,7 @@ Panel {
                 width: Math.round(Style.font.body * 2.8)
                 height: width
                 radius: Style.cornerRadius
-                color: tile.active ? Style.selectedStateColor(Color.popups.text, Color.accent) : (iconHover.containsMouse ? Style.selectedFillFor(Color.popups.text, Color.accent) : Style.hoverFillFor(Color.popups.text, Color.accent))
+                color: tile.solid ? "transparent" : (tile.active ? tile.onColor : (iconHover.containsMouse ? Style.selectedFillFor(Color.popups.text, Color.accent) : Style.hoverFillFor(Color.popups.text, Color.accent)))
                 borderSpec: Border.none()
 
                 // Material Symbols carry a solid cut of most icons, so "on"
@@ -532,7 +548,7 @@ Panel {
                     name: tile.iconName
                     filled: tile.active
                     size: Math.round(Style.font.body * 1.4)
-                    color: tile.active ? Color.background : Color.popups.text
+                    color: tile.solid ? tile.ink : (tile.active ? Color.background : Color.popups.text)
                 }
 
                 MouseArea {
@@ -552,7 +568,7 @@ Panel {
                 Text {
                     width: parent.width
                     text: tile.title
-                    color: Color.popups.text
+                    color: tile.ink
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
                     elide: Text.ElideRight
@@ -562,7 +578,7 @@ Panel {
                     width: parent.width
                     visible: tile.subtitle !== ""
                     text: tile.subtitle
-                    color: Color.muted
+                    color: tile.solid ? Util.alpha(tile.ink, 0.7) : Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                     elide: Text.ElideRight

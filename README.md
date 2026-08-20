@@ -462,7 +462,11 @@ backlight, so a desktop shows one slider rather than a broken one.
 
 Night mode has no standard tool, so it is whatever command you give it and the
 tile is hidden until you set `nightMode`. Dark mode toggles the GTK
-`color-scheme` unless you override `darkModeCommand`.
+`color-scheme` unless you override `darkModeCommand`, and qsbar recolours with
+it unless you have pinned `mode`.
+
+Both tiles have no detail list, so the whole tile is the button rather than
+just its icon.
 
 ## Icons
 
