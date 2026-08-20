@@ -105,6 +105,10 @@ Panel {
         // carrying one.
         readonly property int slotPadding: Style.bar.iconSlot - Style.bar.iconCanvas
         slotSize: Style.bar.iconCanvas * root.iconSources.length + Style.spacing.sm * Math.max(0, root.iconSources.length - 1) + slotPadding
+        // The icon canvas defaults to one icon wide and the row is
+        // centred inside it, so without this a row of three overflows
+        // its canvas and lands off-centre in the slot.
+        opticalSize: slotSize
 
         iconComponent: Component {
             Row {
