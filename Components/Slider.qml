@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Services
 
 // Horizontal slider used by the control centre. Click or drag anywhere on
 // the track.

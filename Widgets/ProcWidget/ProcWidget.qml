@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.Services
 
 // The whole point of qsbar: a widget is a program.
 //

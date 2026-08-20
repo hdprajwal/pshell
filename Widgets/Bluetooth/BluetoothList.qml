@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
+import qs.Services
 
 // Connected devices first, then paired, then anything else in range, so the
 // list is not dominated by passing strangers.

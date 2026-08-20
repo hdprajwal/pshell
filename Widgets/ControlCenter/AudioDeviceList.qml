@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Services.Pipewire
+import qs.Components
+import qs.Services
 
 // Output or input device picker. `input` switches which list is shown.
 //

@@ -1,5 +1,15 @@
 import QtQuick
 import Quickshell
+import qs.Services
+import qs.Widgets.Battery
+import qs.Widgets.Bluetooth
+import qs.Widgets.Calendar
+import qs.Widgets.Clock
+import qs.Widgets.ControlCenter
+import qs.Widgets.Network
+import qs.Widgets.ProcWidget
+import qs.Widgets.Tray
+import qs.Widgets.Workspaces
 
 Row {
     id: root

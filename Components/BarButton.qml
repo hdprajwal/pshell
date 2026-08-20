@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Services
 
 // A bar entry made of one or more icons and optional text. Shared by the
 // widgets that open a panel, so they hover and space identically.

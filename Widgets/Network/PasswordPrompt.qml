@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import qs.Components
+import qs.Services
 
 // Password entry for a secured network qsbar has no saved secret for.
 //

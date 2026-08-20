@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
+import qs.Components
+import qs.Services
 
 BarButton {
     id: root

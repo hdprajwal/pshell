@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Services
 
 // A control centre tile. The icon square toggles the thing on and off; the
 // rest of the tile opens its detail list, which is how DMS splits it too.

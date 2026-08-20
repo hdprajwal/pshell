@@ -1,7 +1,7 @@
 pragma Singleton
 
 import QtQuick
-import qs
+import qs.Services
 
 // Sizing, type scale, and control state colors. Token names match Omarchy's
 // qs.Commons.Style so its widgets resolve here. qsbar reads them from

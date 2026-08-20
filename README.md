@@ -88,6 +88,29 @@ refuses to guess without it when there is no terminal to ask.
 Needs `matugen` installed. Without it the configured colours are used and a
 warning is logged.
 
+## Layout
+
+```
+shell.qml            the bar window, and the contract widgets read
+Services/            singletons: config, theme, icons, audio, brightness
+Components/          the shared chrome: sections, buttons, popouts, sliders
+Widgets/<Name>/      one directory per widget, holding its panels too
+Commons/  Ui/        the Omarchy compatibility modules
+```
+
+Quickshell exposes every directory as a module, so `Widgets/Network/` is
+`qs.Widgets.Network` and a file reaches its neighbours by importing it. No
+`qmldir` is needed for that; the two that exist are there to pin the names
+Omarchy widgets import.
+
+A widget owns the panels only it uses, so `Widgets/Network/` holds the list of
+networks and the password prompt alongside the widget itself. The control
+centre is the exception that proves the layout works: it imports
+`qs.Widgets.Network` and `qs.Widgets.Bluetooth` because it genuinely reuses
+their lists rather than keeping its own copies.
+
+This is the shape Omarchy's own shell uses, which is not a coincidence either.
+
 ## Widgets
 
 Eight are built in. These hold something a polled command cannot: a live

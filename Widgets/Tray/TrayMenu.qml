@@ -1,5 +1,7 @@
 import QtQuick
 import Quickshell
+import qs.Components
+import qs.Services
 
 // The menu a tray icon opens on right click, drawn by qsbar rather than
 // handed to QsMenuAnchor, so it picks up the bar's colours and font.

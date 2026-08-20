@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Services
 
 // One month: a header you can page through, a weekday row, and the days.
 //

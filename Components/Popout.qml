@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import qs.Services
 
 // The panel a bar widget opens beneath itself.
 //

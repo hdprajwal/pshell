@@ -1,7 +1,7 @@
 pragma Singleton
 
 import QtQuick
-import qs
+import qs.Services
 
 // Palette. Names match Omarchy's qs.Commons.Color so its widgets resolve here.
 // qsbar keeps one flat palette instead of Omarchy's per-surface roles, and the

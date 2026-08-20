@@ -1,5 +1,7 @@
 import QtQuick
 import Quickshell
+import qs.Components
+import qs.Services
 
 // A clock in the bar that opens a month. The plain `clock` widget stays for
 // anyone who wants text and nothing else.

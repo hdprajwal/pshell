@@ -1,5 +1,6 @@
 import QtQuick
 import Qt5Compat.GraphicalEffects
+import qs.Services
 
 // A themed icon tinted to the foreground colour. Symbolic icons ship in a
 // fixed dark colour, so they need recolouring to be visible on a dark bar.

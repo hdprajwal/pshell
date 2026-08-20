@@ -3,6 +3,10 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Bluetooth
 import Quickshell.Networking
+import qs.Components
+import qs.Services
+import qs.Widgets.Bluetooth
+import qs.Widgets.Network
 
 // One panel for the things you actually reach for: volume, brightness, wifi,
 // bluetooth, audio devices and the session buttons.

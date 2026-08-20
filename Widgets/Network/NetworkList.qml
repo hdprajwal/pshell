@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Networking
+import qs.Components
+import qs.Services
 
 // Wi-Fi networks, strongest first with the connected one pinned to the top.
 // Shared by the network widget and the control centre.
