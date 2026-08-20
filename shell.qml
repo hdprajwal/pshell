@@ -114,6 +114,23 @@ ShellRoot {
             WlrLayershell.namespace: "qsbar"
             WlrLayershell.layer: WlrLayer.Top
 
+            // Clicking the bar itself dismisses whatever panel is open.
+            //
+            // A popout covers the screen so a click anywhere lands on its
+            // own dismiss layer, but it honours exclusive zones, so it never
+            // covers the bar. That is what keeps the widgets clickable while
+            // a panel is open, and it leaves this as the handler for the one
+            // strip the dismiss layer cannot reach.
+            //
+            // Declared before the sections so they sit above it: a widget's
+            // own handler takes the press first and this only ever sees the
+            // gaps between them.
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                onClicked: PopoutManager.closeAll()
+            }
+
             Section {
                 entries: Config.left
                 bar: barWindow
