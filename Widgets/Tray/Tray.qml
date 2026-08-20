@@ -58,10 +58,6 @@ BarWidget {
         return resolved !== "" ? resolved : root.byId(item);
     }
 
-    // Which entry's menu is open, so the bar's open-panel mark can underline
-    // just that icon rather than the whole row.
-    readonly property real openPanelIndicatorWidth: trayMenu.activeAnchorWidth
-
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 

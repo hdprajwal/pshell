@@ -19,9 +19,6 @@ PopupCard {
     // Null until an icon is right-clicked; PopupCard falls back on its own
     // when it has nothing to anchor against.
     property Item activeAnchor: null
-    // Width of whichever tray icon owns the open menu, so the bar's
-    // open-panel mark can underline just that icon instead of the whole row.
-    readonly property real activeAnchorWidth: popup.open && popup.activeAnchor ? popup.activeAnchor.width : 0
 
     readonly property int rowHeight: Math.round(Style.font.body * 2.2)
     readonly property int menuWidth: Style.space(230)

@@ -105,55 +105,6 @@ Row {
             height: implicitHeight
             visible: implicitWidth > 0
 
-            // Which widget has a panel open is the bar's business, not the
-            // widget's: a widget that coloured itself would have to borrow a
-            // palette role that already means something else, and the urgent
-            // colour saying "open" reads as saying "wrong".
-            readonly property bool panelOpen: PopoutManager.current === activeItem
-
-            // A widget wider than the mark it wants — a text label in a padded
-            // slot — can say how long the mark should be, so it tracks what
-            // the widget paints rather than the slot it happens to fill.
-            readonly property real markExtent: {
-                const key = root.vertical ? "openPanelIndicatorHeight" : "openPanelIndicatorWidth";
-                const hint = activeItem && key in activeItem ? activeItem[key] : undefined;
-                if (hint !== undefined && hint !== null && hint > 0)
-                    return Math.round(hint);
-                // Otherwise the slot less the breathing room every bar button
-                // carries, which is what the widget actually paints. Omarchy
-                // takes a fixed fraction of the slot instead, which is right
-                // for the one glyph its buttons hold and too short for a slot
-                // sized to two icons or an icon beside a label.
-                const padding = Style.bar.iconSlot - Style.bar.iconCanvas;
-                const extent = (root.vertical ? slot.height : slot.width) - padding;
-                return Math.max(Style.space(10), Math.round(extent));
-            }
-
-            Rectangle {
-                readonly property int inset: Style.space(2)
-
-                visible: opacity > 0
-                opacity: slot.panelOpen ? 0.9 : 0
-                color: Color.accent
-                radius: Math.min(width, height) / 2
-                width: root.vertical ? Style.space(2) : slot.markExtent
-                height: root.vertical ? slot.markExtent : Style.space(2)
-                // On the edge facing the desktop, so it underlines a top bar
-                // and overlines a bottom one — pointing at the side the panel
-                // opens on.
-                x: root.vertical ? (Config.position === "left" ? parent.width - width - inset : inset) : Math.round((parent.width - width) / 2)
-                y: root.vertical ? Math.round((parent.height - height) / 2) : (Config.position === "top" ? parent.height - height - inset : inset)
-                z: 50
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 120
-                        easing.type: Easing.OutCubic
-                    }
-                }
-            }
-
-
             Loader {
                 id: builtinLoader
                 anchors.verticalCenter: parent.verticalCenter
