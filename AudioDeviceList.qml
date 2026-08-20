@@ -1,66 +1,256 @@
 import QtQuick
+import Quickshell
+import Quickshell.Services.Pipewire
 
 // Output or input device picker. `input` switches which list is shown.
+//
+// The active device is drawn as an outlined card rather than just tinted
+// text, so it stays obvious which one you are listening through when the
+// list is long.
 Column {
     id: root
 
     property int rowWidth: 260
     property bool input: false
+    property string settingsCommand: ""
 
-    readonly property var devices: input ? Audio.sources : Audio.sinks
+    signal runRequested(string command)
+
     readonly property var current: input ? Audio.source : Audio.sink
 
-    spacing: 1
+    // Pinned devices float to the top so a headset you keep switching back
+    // to does not sink under everything Pipewire happens to enumerate.
+    readonly property var devices: {
+        const all = (input ? Audio.sources : Audio.sinks).slice();
+        all.sort((a, b) => {
+            const pa = Prefs.isPinned(a.name, root.input);
+            const pb = Prefs.isPinned(b.name, root.input);
+            if (pa !== pb)
+                return pa ? -1 : 1;
+            return String(a.description || a.name).localeCompare(String(b.description || b.name));
+        });
+        return all;
+    }
 
-    Repeater {
-        model: root.devices
+    // Application streams, so you can see what is actually making noise.
+    readonly property var streams: Pipewire.nodes.values.filter(n => n.isStream && n.isSink === !root.input && n.audio)
+
+    spacing: 8
+
+    Item {
+        width: root.rowWidth
+        height: Math.round(Config.fontSize * 1.8)
+
+        Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.input ? "Input Devices" : "Audio Devices"
+            color: Config.fg
+            font.family: Config.fontFamily
+            font.pixelSize: Math.round(Config.fontSize * 1.25)
+        }
 
         Rectangle {
-            id: devRow
-
-            required property var modelData
-            readonly property bool selected: root.current === modelData
-
-            width: root.rowWidth
-            height: Math.round(Config.fontSize * 2.4)
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.round(Config.fontSize * 1.9)
+            height: width
             radius: 4
-            color: hover.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+            visible: root.settingsCommand !== ""
+            color: gearHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
 
-            Text {
-                anchors.left: parent.left
-                anchors.leftMargin: 6
-                anchors.right: parent.right
-                anchors.rightMargin: 24
-                anchors.verticalCenter: parent.verticalCenter
-                text: devRow.modelData.description || devRow.modelData.nickname || devRow.modelData.name
-                color: devRow.selected ? Config.accent : Config.fg
-                opacity: devRow.selected ? 1 : 0.8
-                font.family: Config.fontFamily
-                font.pixelSize: Config.fontSize
-                elide: Text.ElideRight
-            }
-
-            Text {
-                anchors.right: parent.right
-                anchors.rightMargin: 8
-                anchors.verticalCenter: parent.verticalCenter
-                visible: devRow.selected
-                text: "✓"
-                color: Config.accent
-                font.family: Config.fontFamily
-                font.pixelSize: Config.fontSize
+            BarIcon {
+                anchors.centerIn: parent
+                iconSource: Icons.first(["preferences-system-symbolic", "emblem-system-symbolic", "applications-system"])
+                size: Math.round(Config.fontSize * 1.1)
+                opacity: 0.7
             }
 
             MouseArea {
-                id: hover
+                id: gearHover
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (root.input)
-                        Audio.setSource(devRow.modelData);
-                    else
-                        Audio.setSink(devRow.modelData);
+                onClicked: root.runRequested(root.settingsCommand)
+            }
+        }
+    }
+
+    Slider {
+        width: root.rowWidth
+        visible: root.input
+        value: Audio.micVolume
+        dimmed: Audio.micMuted
+        iconSource: Icons.first(Audio.micMuted ? ["microphone-sensitivity-muted-symbolic", "audio-input-microphone-muted-symbolic"] : ["audio-input-microphone-symbolic", "audio-input-microphone"])
+        onMoved: v => Audio.setMicVolume(v)
+    }
+
+    Column {
+        spacing: 6
+
+        Repeater {
+            model: root.devices
+
+            Rectangle {
+                id: devRow
+
+                required property var modelData
+                readonly property bool selected: root.current === modelData
+                readonly property bool pinned: Prefs.isPinned(modelData.name, root.input)
+
+                width: root.rowWidth
+                height: Math.round(Config.fontSize * 3.4)
+                radius: 8
+                color: hover.containsMouse && !selected ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+                border.width: selected ? 1 : 0
+                border.color: Qt.rgba(1, 1, 1, 0.45)
+
+                MouseArea {
+                    id: hover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (root.input)
+                            Audio.setSource(devRow.modelData);
+                        else
+                            Audio.setSink(devRow.modelData);
+                    }
+                }
+
+                Row {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 8
+
+                    BarIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        iconSource: Icons.first(root.input ? ["audio-input-microphone-symbolic", "audio-input-microphone"] : ["audio-speakers-symbolic", "audio-volume-high-symbolic"])
+                        size: Math.round(Config.fontSize * 1.2)
+                        opacity: 0.85
+                    }
+
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 1
+
+                        Text {
+                            text: devRow.modelData.description || devRow.modelData.nickname || devRow.modelData.name
+                            color: Config.fg
+                            font.family: Config.fontFamily
+                            font.pixelSize: Config.fontSize
+                            width: root.rowWidth - 130
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            visible: devRow.selected
+                            text: "Active"
+                            color: Config.fg
+                            opacity: 0.55
+                            font.family: Config.fontFamily
+                            font.pixelSize: Math.round(Config.fontSize * 0.85)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: pinRow.implicitWidth + 14
+                    height: Math.round(Config.fontSize * 1.9)
+                    radius: height / 2
+                    color: devRow.pinned ? Qt.rgba(1, 1, 1, 0.2) : (pinHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+
+                    Row {
+                        id: pinRow
+                        anchors.centerIn: parent
+                        spacing: 4
+
+                        BarIcon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            iconSource: Icons.first(["pin-symbolic", "view-pin-symbolic", "gnome-panel-pin"])
+                            size: Math.round(Config.fontSize * 0.95)
+                            opacity: devRow.pinned ? 1 : 0.7
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: devRow.pinned ? "Pinned" : "Pin"
+                            color: Config.fg
+                            opacity: devRow.pinned ? 1 : 0.7
+                            font.family: Config.fontFamily
+                            font.pixelSize: Math.round(Config.fontSize * 0.85)
+                        }
+                    }
+
+                    MouseArea {
+                        id: pinHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Prefs.togglePin(devRow.modelData.name, root.input)
+                    }
+                }
+            }
+        }
+    }
+
+    Text {
+        text: root.input ? "Recording" : "Playback"
+        color: Config.fg
+        opacity: 0.55
+        font.family: Config.fontFamily
+        font.pixelSize: Math.round(Config.fontSize * 0.9)
+    }
+
+    Text {
+        visible: root.streams.length === 0
+        text: root.input ? "Nothing recording" : "Nothing playing"
+        color: Config.fg
+        opacity: 0.35
+        font.family: Config.fontFamily
+        font.pixelSize: Math.round(Config.fontSize * 0.85)
+    }
+
+    Column {
+        spacing: 4
+
+        Repeater {
+            model: root.streams
+
+            Item {
+                required property var modelData
+
+                width: root.rowWidth
+                height: Math.round(Config.fontSize * 2.2)
+
+                PwObjectTracker {
+                    objects: [parent.modelData]
+                }
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: parent.modelData.description || parent.modelData.name
+                    color: Config.fg
+                    opacity: 0.8
+                    font.family: Config.fontFamily
+                    font.pixelSize: Math.round(Config.fontSize * 0.9)
+                    width: root.rowWidth - 60
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: parent.modelData.audio ? Math.round(parent.modelData.audio.volume * 100) + "%" : ""
+                    color: Config.fg
+                    opacity: 0.55
+                    font.family: Config.fontFamily
+                    font.pixelSize: Math.round(Config.fontSize * 0.85)
                 }
             }
         }

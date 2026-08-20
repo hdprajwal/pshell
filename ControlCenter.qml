@@ -285,7 +285,7 @@ BarButton {
             Rectangle {
                 width: parent.width
                 visible: root.detail !== ""
-                height: visible ? Math.min(240, detailColumn.implicitHeight + 12) : 0
+                height: visible ? Math.min(320, detailColumn.implicitHeight + 12) : 0
                 radius: 8
                 color: Qt.rgba(1, 1, 1, 0.05)
 
@@ -319,6 +319,11 @@ BarButton {
                             id: sinkList
                             visible: root.detail === "sink"
                             rowWidth: detailColumn.width
+                            settingsCommand: root.cfg.audioSettings || ""
+                            onRunRequested: command => {
+                                root.run(command);
+                                panel.close();
+                            }
                         }
 
                         AudioDeviceList {
@@ -326,6 +331,11 @@ BarButton {
                             visible: root.detail === "source"
                             input: true
                             rowWidth: detailColumn.width
+                            settingsCommand: root.cfg.audioSettings || ""
+                            onRunRequested: command => {
+                                root.run(command);
+                                panel.close();
+                            }
                         }
                     }
                 }

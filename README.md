@@ -243,6 +243,17 @@ you meant to pick a network.
 }
 ```
 
+The audio and microphone tiles open a device picker with a header, the active
+device outlined and labelled, and a list of what is currently playing or
+recording. The input view carries its own microphone slider, since setting mic
+level is usually why you opened it. `audioSettings` puts a gear in the header
+that runs whatever you give it, for example `pavucontrol`.
+
+Pinning a device floats it to the top of the list, which keeps a headset you
+switch between from sinking under everything Pipewire enumerates. Pins persist
+in `~/.config/qsbar/state.json`, kept separate from `config.json` so the shell
+never rewrites a file you hand-edited.
+
 Brightness needs `brightnessctl`. The slider hides itself if there is no
 backlight, so a desktop shows one slider rather than a broken one.
 
