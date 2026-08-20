@@ -275,7 +275,7 @@ BarButton {
 
                 Tile {
                     width: parent.cellWidth
-                    iconSource: Icons.first(Audio.micMuted ? ["microphone-sensitivity-muted-symbolic", "audio-input-microphone-muted-symbolic"] : ["audio-input-microphone-symbolic", "audio-input-microphone"])
+                    iconSource: Icons.microphone(Audio.micMuted)
                     title: Audio.sourceName
                     subtitle: Math.round(Audio.micVolume * 100) + "%"
                     active: !Audio.micMuted

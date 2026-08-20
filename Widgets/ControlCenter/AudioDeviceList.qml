@@ -83,7 +83,7 @@ Column {
         visible: root.input
         value: Audio.micVolume
         dimmed: Audio.micMuted
-        iconSource: Icons.first(Audio.micMuted ? ["microphone-sensitivity-muted-symbolic", "audio-input-microphone-muted-symbolic"] : ["audio-input-microphone-symbolic", "audio-input-microphone"])
+        iconSource: Icons.microphone(Audio.micMuted)
         onMoved: v => Audio.setMicVolume(v)
     }
 
@@ -128,7 +128,7 @@ Column {
 
                     BarIcon {
                         anchors.verticalCenter: parent.verticalCenter
-                        iconSource: Icons.first(root.input ? ["audio-input-microphone-symbolic", "audio-input-microphone"] : ["audio-speakers-symbolic", "audio-volume-high-symbolic"])
+                        iconSource: root.input ? Icons.microphone(false) : Icons.first(["audio-speakers-symbolic", "audio-volume-high-symbolic"])
                         size: Math.round(Config.fontSize * 1.2)
                         opacity: 0.85
                     }

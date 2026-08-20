@@ -79,6 +79,12 @@ Singleton {
         return root.first(["network-wireless-offline-symbolic", "network-wireless-disabled-symbolic", "network-offline-symbolic"]);
     }
 
+    function microphone(muted) {
+        if (muted)
+            return root.first(["microphone-sensitivity-muted-symbolic", "audio-input-microphone-muted-symbolic"]);
+        return root.first(["audio-input-microphone-symbolic", "audio-input-microphone"]);
+    }
+
     function bluetooth(enabled, connected) {
         if (!enabled)
             return root.first(["bluetooth-disabled-symbolic", "bluetooth-inactive-symbolic", "bluetooth-symbolic"]);

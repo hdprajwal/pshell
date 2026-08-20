@@ -19,6 +19,7 @@ PanelWindow {
     property var bar: null
     property Item anchorItem: null
     property bool opened: false
+    property int keyboardFocus: WlrKeyboardFocus.None
 
     readonly property int padding: 12
     readonly property int gap: 6
@@ -77,7 +78,10 @@ PanelWindow {
     // a wifi password field closed this panel and never reached the field.
     // DMS defaults its popouts to Top for the same reason.
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    // None by default: a panel that only has things to click must never take
+    // the keyboard away from whatever you were typing in. A panel carrying a
+    // text field raises this for as long as that field is in use.
+    WlrLayershell.keyboardFocus: popup.opened ? popup.keyboardFocus : WlrKeyboardFocus.None
 
     // Anything not on the card dismisses.
     MouseArea {

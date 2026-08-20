@@ -113,7 +113,7 @@ This is the shape Omarchy's own shell uses, which is not a coincidence either.
 
 ## Widgets
 
-Nine are built in. These hold something a polled command cannot: a live
+Thirteen are built in. These hold something a polled command cannot: a live
 connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
 single run.
 
@@ -123,6 +123,10 @@ single run.
 | `clock` | `format` takes a Qt date format string. |
 | `calendar` | The same clock, but clicking it opens the time and a full month. Page with the arrows or the scroll wheel, click the month name to come back to today. `timeFormat`, `dateFormat`, `firstDayOfWeek`. |
 | `activeWindow` | The focused window's icon, application name and title. `maxWidth` caps the title in pixels, default 400. `showIcon`, `showAppName`. Hides itself when nothing is focused. |
+| `microphone` | Mute state for the default input. Left click mutes, scroll changes the level, right click runs `onRightClick`. `showVolume` puts the percentage in the bar. |
+| `privacy` | A red dot while something is using the microphone or the camera. Click it to see what. Hidden when nothing is. `showCamera`, `interval`. |
+| `idleInhibitor` | Keeps the screen awake while it is on. Off after every restart. |
+| `tailscale` | Tailnet state and the machines on it. Left click opens the panel to connect, disconnect and pick an exit node. `interval`, `showName`, `maxNodes`. |
 | `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconScale`, `iconSize` and `spacing` tune the layout. |
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
@@ -294,6 +298,77 @@ Nothing focused hides the widget rather than leaving a gap.
 
 Unlike `workspaces` this one is not tied to Hyprland. It reads the wlr
 foreign-toplevel protocol, which any wlroots compositor speaks.
+
+## Privacy, microphone and staying awake
+
+Three small widgets that each answer one question.
+
+`microphone` is the mute state of the default input, and nothing else. Picking
+an input device already lives in the control centre, and a second copy of that
+list is a second thing to keep right. Muted draws in the urgent colour rather
+than dimmed, because a hot microphone you believe is off is the expensive
+mistake, not the other way round.
+
+`privacy` shows a red dot while something is recording, and disappears when
+nothing is. The two halves are not found the same way and it is worth knowing
+which is which. A microphone capture is a real Pipewire stream, so it arrives
+as an event and the dot appears the instant a program opens the mic, with the
+program's own name in the panel. A camera is opened straight on `/dev/videoN`
+by most programs and that emits nothing at all, so that half is a poll and can
+be up to `interval` seconds late. It also only reports that the camera is
+held, not by whom, because naming the wrong program is worse than naming none.
+Set `showCamera` to `false` to drop the poll entirely.
+
+`idleInhibitor` keeps the screen on. Wayland attaches an idle inhibitor to a
+surface and only counts it while that surface is visible, so an inhibitor
+living on the bar dies the moment a fullscreen window covers it, which is
+exactly when you wanted it. So this one holds its own surface instead: a
+one-pixel transparent window on the overlay layer, above fullscreen windows and
+never occluded, created only while the toggle is on. It is off after every
+restart, because a machine that quietly refuses to sleep because of something
+you pressed last week is a bad surprise.
+
+It needs something that reads `zwp_idle_inhibit`, which is what hypridle and
+swayidle do. Nothing consumes it otherwise and the toggle will have no effect.
+
+## Tailscale
+
+The tailnet, its machines, and what you usually want to do with them.
+
+```json
+{ "type": "tailscale", "interval": 10, "showName": true, "maxNodes": 8 }
+```
+
+The panel is a header saying whether you are connected and as whom, a connect
+or disconnect button, an exit node picker, a search box, three filters and the
+machines themselves. Every machine shows whether it is reachable, its address
+with a button to copy it, its operating system and the DERP relay its traffic
+is bouncing through. The relay only means anything when there is no direct
+path, which is exactly when you are wondering why a machine feels slow.
+
+This machine is in the list like any other, marked `This device`, rather than
+being something the header mentions and the list leaves out. The counts on the
+filters include it, so `All (3)` on a tailnet of three is three.
+
+`My Online` is by owner, not by machine, because a tailnet can be shared. Two
+accounts can both have a laptop called `dev`, and only one of them is yours.
+
+The exit node list only offers machines that advertise themselves as one, and
+says so plainly when none do. An empty dropdown reads as a bug when the truth
+is that nobody is offering.
+
+`tailscale status --json` is polled every `interval` seconds and again when you
+open the panel, with a refresh button for when you have just changed something
+on another machine. DankMaterialShell asks its Go daemon for this over IPC.
+There is no daemon here and the CLI already prints all of it, and since
+Tailscale publishes no event stream worth holding open and its state moves on
+the order of minutes, a poll is the honest shape rather than a compromise.
+
+Actions run the CLI, and the CLI is where they fail: `up` may want a login and
+some setups want elevation. Whatever it prints to stderr is shown in the panel,
+because a click that silently does nothing is worse than an error.
+
+Copying needs `wl-copy`.
 
 ## Control centre
 

@@ -2,6 +2,10 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Widgets.ActiveWindow
+import qs.Widgets.Microphone
+import qs.Widgets.Privacy
+import qs.Widgets.IdleInhibitor
+import qs.Widgets.Tailscale
 import qs.Widgets.Battery
 import qs.Widgets.Bluetooth
 import qs.Widgets.Calendar
@@ -31,7 +35,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "activeWindow" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
+                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "activeWindow" || modelData.type === "microphone" || modelData.type === "privacy" || modelData.type === "idleInhibitor" || modelData.type === "tailscale" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
@@ -58,6 +62,14 @@ Row {
                         return calendarComponent;
                     case "activeWindow":
                         return activeWindowComponent;
+                    case "microphone":
+                        return microphoneComponent;
+                    case "privacy":
+                        return privacyComponent;
+                    case "idleInhibitor":
+                        return idleInhibitorComponent;
+                    case "tailscale":
+                        return tailscaleComponent;
                     case "workspaces":
                         return workspacesComponent;
                     case "tray":
@@ -121,6 +133,22 @@ Row {
     Component {
         id: activeWindowComponent
         ActiveWindow {}
+    }
+    Component {
+        id: microphoneComponent
+        Microphone {}
+    }
+    Component {
+        id: privacyComponent
+        Privacy {}
+    }
+    Component {
+        id: idleInhibitorComponent
+        IdleInhibitor {}
+    }
+    Component {
+        id: tailscaleComponent
+        Tailscale {}
     }
     Component {
         id: workspacesComponent
