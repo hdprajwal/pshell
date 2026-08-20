@@ -243,11 +243,19 @@ git clone https://github.com/ragnacron/omarchy-workspaces-per-monitor \
 
 Then add `{ "id": "ragnacron.workspaces-per-monitor" }` to a section.
 
-This covers widgets that draw in the bar. `BarWidget`, `WidgetButton`,
-`BarIconButton`, `BarIndicator`, and the `Color`, `Style`, `Border` and `Util`
-singletons are implemented. Widgets that open a popup panel import roughly ten
-more types from Omarchy's UI kit, and those do not load here. Reimplementing
-all of it would mean rebuilding their shell, which is not what this is for.
+Widgets that open a panel work too. Omarchy's whole `Ui` kit is vendored here
+rather than reimplemented: `Panel`, `KeyboardPanel`, `Button`, `TextField`,
+`Dropdown` and the rest, unmodified, so a widget written against them behaves
+the same. Copying is deliberate. A reimplementation drifts, and every drift is
+a widget that works there and not here.
+
+What is qsbar's own is the bridge underneath. `Color`, `Style` and `Util`
+implement the same interface Omarchy's do, but read `config.json` and the
+matugen palette instead of Omarchy's theme files, so a widget written for one
+shell is themed by the other. Omarchy names the readable colour `text` and
+qsbar named it `foreground`; both resolve.
+
+See [NOTICE.md](NOTICE.md) for what came from where.
 
 ## Calendar
 
@@ -484,3 +492,6 @@ there, and I use it more often than polling.
 ## License
 
 MIT.
+
+Parts of this are Omarchy's, MIT licensed and vendored unmodified. See
+[NOTICE.md](NOTICE.md).

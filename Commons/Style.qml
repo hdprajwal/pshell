@@ -9,6 +9,10 @@ import qs.Services
 QtObject {
     id: root
 
+    // Same shape as Color.shellValues: Omarchy's per-token style overrides
+    // from a theme file. Empty here, so the built-in defaults win.
+    readonly property var styleOverrides: ({})
+
     readonly property int cornerRadius: Config.cornerRadius
     readonly property int gapsOut: Config.gapsOut
 
@@ -80,6 +84,25 @@ QtObject {
         readonly property int panelGap: root.space(12)
         readonly property int panelPadding: root.space(16)
         readonly property int popupPadding: root.space(12)
+
+        // The t-shirt scale and the fixed control widths Omarchy's UI kit uses
+        // throughout. Same defaults as theirs, put through qsbar's own space()
+        // so they scale with the configured font like everything else here.
+        readonly property real scale: root.effectiveSpacingScale
+        readonly property int hairline: root.space(1)
+        readonly property int xxs: root.space(2)
+        readonly property int xs: root.space(3)
+        readonly property int sm: root.space(4)
+        readonly property int md: root.space(6)
+        readonly property int lg: root.space(8)
+        readonly property int xl: root.space(10)
+        readonly property int xxl: root.space(12)
+        readonly property int xxxl: root.space(14)
+        readonly property int huge: root.space(18)
+        readonly property int dropdownWidth: root.space(240)
+        readonly property int searchableDropdownWidth: root.space(260)
+        readonly property int numberFieldWidth: root.space(120)
+        readonly property int searchablePopupMinHeight: root.space(220)
     }
 
     // Control state chrome. Omarchy lets a theme retune every alpha; qsbar
@@ -110,6 +133,24 @@ QtObject {
     }
     function selectedFillFor(foreground, accent, urgent) {
         return Util.alpha(foreground, selectedFillAlpha);
+    }
+    // Omarchy resolves these through a configurable role token. qsbar has one
+    // flat palette and no such setting, so a state resolves to the foreground
+    // it was handed, which is the default those tokens carry anyway.
+    function normalStateColor(foreground, accent, urgent) {
+        return foreground;
+    }
+    function focusStateColor(foreground, accent, urgent) {
+        return accent || foreground;
+    }
+    function hoverStateColor(foreground, accent, urgent) {
+        return foreground;
+    }
+    function selectedStateColor(foreground, accent, urgent) {
+        return foreground;
+    }
+    function selectionFillFor(foreground, accent, urgent) {
+        return Util.alpha(foreground, selectionFillAlpha);
     }
     function pressedFillFor(foreground, accent, urgent) {
         return Util.alpha(foreground, pressedFillAlpha);

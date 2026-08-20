@@ -43,7 +43,10 @@ Row {
             }
             readonly property var activeItem: builtinLoader.item || qmlLoader.item
 
-            implicitWidth: activeItem ? activeItem.implicitWidth : 0
+            // A widget that hides itself takes no slot, which is how Omarchy's
+            // own bar sizes these: a plugin with nothing to report sets
+            // visible false and expects the gap to close behind it.
+            implicitWidth: activeItem && activeItem.visible ? activeItem.implicitWidth : 0
             implicitHeight: Config.size
             width: implicitWidth
             height: implicitHeight

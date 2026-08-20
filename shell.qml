@@ -30,6 +30,9 @@ ShellRoot {
             readonly property color background: Config.bg
             readonly property color urgent: Config.urgent
             readonly property string fontFamily: Config.fontFamily
+            // Omarchy's widgets animate their foreground unless the bar says
+            // not to. qsbar has no setting for it, so it is simply on.
+            readonly property bool foregroundAnimationEnabled: true
 
             // Which way a panel should open, given the edge the bar is on.
             readonly property int popoutEdge: {
