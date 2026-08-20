@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Services
+import qs.Commons
 
 // The whole point of qsbar: a widget is a program.
 //
@@ -24,7 +25,7 @@ Item {
     property string cls: ""
 
     implicitWidth: label.implicitWidth
-    implicitHeight: Config.size
+    implicitHeight: Style.bar.sizeHorizontal
     visible: content !== ""
 
     function apply(raw) {
@@ -55,9 +56,9 @@ Item {
         id: label
         anchors.centerIn: parent
         text: root.content
-        color: root.cls === "urgent" || root.cls === "critical" ? "#f38ba8" : Config.fg
-        font.family: Config.fontFamily
-        font.pixelSize: Config.fontSize
+        color: root.cls === "urgent" || root.cls === "critical" ? "#f38ba8" : Color.foreground
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
     }
 
     // Poll mode

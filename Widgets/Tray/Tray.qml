@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import qs.Services
+import qs.Commons
 
 Row {
     id: root
@@ -12,7 +13,7 @@ Row {
 
     // Follows the shared barIconSize unless this widget overrides it, either
     // with an exact iconSize or a scale against the bar height.
-    readonly property int iconSize: cfg.iconSize || (cfg.iconScale !== undefined ? Math.round(Config.size * cfg.iconScale) : Config.barIconSize)
+    readonly property int iconSize: cfg.iconSize || (cfg.iconScale !== undefined ? Math.round(Style.bar.sizeHorizontal * cfg.iconScale) : Style.bar.iconCanvas)
 
     // Icon themes only ship a few fixed sizes, and a request that falls
     // between them misses. Status icons in particular are commonly 22 and 24
@@ -86,7 +87,7 @@ Row {
     }
 
     spacing: cfg.spacing !== undefined ? cfg.spacing : 6
-    height: Config.size
+    height: Style.bar.sizeHorizontal
 
     Repeater {
         model: root.items
@@ -108,7 +109,7 @@ Row {
                 anchors.fill: parent
                 anchors.margins: -2
                 radius: 4
-                color: pointer.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                color: pointer.containsMouse ? Style.hoverFill : "transparent"
             }
 
             IconImage {
@@ -138,8 +139,8 @@ Row {
                     const id = entry.modelData.id || "";
                     return id === "" ? "?" : id.charAt(0).toUpperCase();
                 }
-                color: Config.fg
-                font.family: Config.fontFamily
+                color: Color.foreground
+                font.family: Style.font.family
                 font.pixelSize: Math.round(root.iconSize * 0.7)
             }
 

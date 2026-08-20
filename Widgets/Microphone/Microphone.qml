@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Components
+import qs.Commons
 
 // Mute state for the default source, and the volume on the wheel.
 //
@@ -19,7 +20,7 @@ BarButton {
     iconSource: Icons.microphone(Audio.micMuted)
     // Muted reads as urgent rather than dimmed. A hot mic you believe is off is
     // the expensive mistake here, not the other way round.
-    iconColor: Audio.micMuted ? Config.urgent : Config.fg
+    iconColor: Audio.micMuted ? Color.urgent : Color.foreground
     text: root.showVolume && !Audio.micMuted ? Math.round(Audio.micVolume * 100) + "%" : ""
 
     onClicked: button => {

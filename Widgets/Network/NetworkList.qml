@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Networking
 import qs.Components
 import qs.Services
+import qs.Commons
 
 // Wi-Fi networks, strongest first with the connected one pinned to the top.
 // Shared by the network widget and the control centre.
@@ -102,26 +103,26 @@ Column {
         Text {
             width: root.rowWidth
             text: root.failure
-            color: Config.urgent
+            color: Color.urgent
             wrapMode: Text.WordWrap
-            font.family: Config.fontFamily
-            font.pixelSize: Math.round(Config.fontSize * 0.9)
+            font.family: Style.font.family
+            font.pixelSize: Math.round(Style.font.body * 0.9)
         }
 
         Rectangle {
             visible: root.failed !== null && root.secured(root.failed)
             width: retryLabel.implicitWidth + 16
-            height: Math.round(Config.fontSize * 2)
+            height: Math.round(Style.font.body * 2)
             radius: 4
-            color: retryHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07)
+            color: retryHover.containsMouse ? Style.selectedFill : Style.normalFill
 
             Text {
                 id: retryLabel
                 anchors.centerIn: parent
                 text: "Enter password"
-                color: Config.fg
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                color: Color.foreground
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.9)
             }
 
             MouseArea {
@@ -140,10 +141,10 @@ Column {
     Text {
         visible: Networking.wifiEnabled && rows.count === 0
         text: "Scanning..."
-        color: Config.fg
+        color: Color.foreground
         opacity: 0.6
-        font.family: Config.fontFamily
-        font.pixelSize: Config.fontSize
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
     }
 
     Repeater {
@@ -167,9 +168,9 @@ Column {
             required property var modelData
 
             width: root.rowWidth
-            height: Math.round(Config.fontSize * 2.4)
+            height: Math.round(Style.font.body * 2.4)
             radius: 4
-            color: hover.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+            color: hover.containsMouse ? Style.hoverFill : "transparent"
 
             Row {
                 anchors.left: parent.left
@@ -180,16 +181,16 @@ Column {
                 BarIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     iconSource: Icons.wifi(netRow.modelData.signalStrength)
-                    size: Math.round(Config.fontSize * 1.1)
+                    size: Math.round(Style.font.body * 1.1)
                     opacity: 0.8
                 }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: netRow.modelData.name
-                    color: Config.fg
-                    font.family: Config.fontFamily
-                    font.pixelSize: Config.fontSize
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.body
                     width: root.rowWidth - 150
                     elide: Text.ElideRight
                 }
@@ -206,10 +207,10 @@ Column {
                         return "connected";
                     return Math.round(netRow.modelData.signalStrength * 100) + "%";
                 }
-                color: netRow.modelData.connected ? Config.accent : Config.fg
+                color: netRow.modelData.connected ? Color.accent : Color.foreground
                 opacity: netRow.modelData.connected ? 1 : 0.6
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.9)
             }
 
             MouseArea {

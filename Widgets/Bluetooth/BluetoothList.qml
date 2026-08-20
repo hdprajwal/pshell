@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
 import qs.Services
+import qs.Commons
 
 // Connected devices first, then paired, then anything else in range, so the
 // list is not dominated by passing strangers.
@@ -24,10 +25,10 @@ Column {
     Text {
         visible: root.enabled && rows.count === 0
         text: "Searching..."
-        color: Config.fg
+        color: Color.foreground
         opacity: 0.6
-        font.family: Config.fontFamily
-        font.pixelSize: Config.fontSize
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
     }
 
     Repeater {
@@ -54,19 +55,19 @@ Column {
             readonly property string label: modelData.deviceName || modelData.name || modelData.address
 
             width: root.rowWidth
-            height: Math.round(Config.fontSize * 2.4)
+            height: Math.round(Style.font.body * 2.4)
             radius: 4
-            color: hover.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+            color: hover.containsMouse ? Style.hoverFill : "transparent"
 
             Text {
                 anchors.left: parent.left
                 anchors.leftMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
                 text: devRow.label
-                color: Config.fg
+                color: Color.foreground
                 opacity: devRow.modelData.paired ? 1 : 0.7
-                font.family: Config.fontFamily
-                font.pixelSize: Config.fontSize
+                font.family: Style.font.family
+                font.pixelSize: Style.font.body
                 width: root.rowWidth - 90
                 elide: Text.ElideRight
             }
@@ -84,10 +85,10 @@ Column {
                         return devRow.modelData.batteryAvailable ? Math.round(devRow.modelData.battery * 100) + "%" : "connected";
                     return devRow.modelData.paired ? "paired" : "";
                 }
-                color: devRow.modelData.connected ? Config.accent : Config.fg
+                color: devRow.modelData.connected ? Color.accent : Color.foreground
                 opacity: devRow.modelData.connected ? 1 : 0.55
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.9)
             }
 
             MouseArea {

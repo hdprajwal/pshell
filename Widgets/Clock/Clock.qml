@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.Services
+import qs.Commons
 
 Item {
     id: root
@@ -9,7 +10,7 @@ Item {
     readonly property string format: cfg.format || "ddd dd MMM  HH:mm"
 
     implicitWidth: label.implicitWidth
-    implicitHeight: Config.size
+    implicitHeight: Style.bar.sizeHorizontal
 
     SystemClock {
         id: clock
@@ -20,8 +21,8 @@ Item {
         id: label
         anchors.centerIn: parent
         text: Qt.formatDateTime(clock.date, root.format)
-        color: Config.fg
-        font.family: Config.fontFamily
-        font.pixelSize: Config.fontSize
+        color: Color.foreground
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
     }
 }

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Services.UPower
 import qs.Components
 import qs.Services
+import qs.Commons
 
 BarButton {
     id: root
@@ -85,7 +86,7 @@ BarButton {
     shown: present
     iconSource: themedIcon
     text: cfg.showPercent === false ? "" : percent + "%"
-    iconColor: low ? Config.urgent : Config.fg
+    iconColor: low ? Color.urgent : Color.foreground
     active: PopoutManager.current === panel
 
     onClicked: button => {
@@ -116,7 +117,7 @@ BarButton {
                     BarIcon {
                         anchors.verticalCenter: parent.verticalCenter
                         iconSource: root.themedIcon
-                        size: Math.round(Config.fontSize * 2.8)
+                        size: Math.round(Style.font.body * 2.8)
                     }
 
                     Column {
@@ -129,18 +130,18 @@ BarButton {
                             Text {
                                 anchors.baseline: stateText.baseline
                                 text: root.percent + "%"
-                                color: Config.accent
-                                font.family: Config.fontFamily
-                                font.pixelSize: Math.round(Config.fontSize * 1.9)
+                                color: Color.accent
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 1.9)
                                 font.bold: true
                             }
 
                             Text {
                                 id: stateText
                                 text: root.stateLabel
-                                color: Config.fg
-                                font.family: Config.fontFamily
-                                font.pixelSize: Math.round(Config.fontSize * 1.35)
+                                color: Color.foreground
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 1.35)
                             }
                         }
 
@@ -150,18 +151,18 @@ BarButton {
                             Text {
                                 visible: root.powerLabel !== ""
                                 text: root.powerLabel
-                                color: Config.accent
-                                font.family: Config.fontFamily
-                                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                                color: Color.accent
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 0.9)
                             }
 
                             Text {
                                 visible: root.timeLabel !== ""
                                 text: root.timeLabel
-                                color: Config.fg
+                                color: Color.foreground
                                 opacity: 0.6
-                                font.family: Config.fontFamily
-                                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 0.9)
                             }
                         }
                     }
@@ -170,18 +171,18 @@ BarButton {
                 Rectangle {
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    width: Math.round(Config.fontSize * 1.9)
+                    width: Math.round(Style.font.body * 1.9)
                     height: width
                     radius: 4
-                    color: closeHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+                    color: closeHover.containsMouse ? Style.selectedFill : "transparent"
 
                     Text {
                         anchors.centerIn: parent
                         text: "✕"
-                        color: Config.fg
+                        color: Color.foreground
                         opacity: 0.7
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
 
                     MouseArea {
@@ -225,9 +226,9 @@ BarButton {
                         required property var modelData
 
                         width: parent.cellWidth
-                        height: Math.round(Config.fontSize * 4)
+                        height: Math.round(Style.font.body * 4)
                         radius: 8
-                        color: Qt.rgba(1, 1, 1, 0.05)
+                        color: Util.alpha(Color.foreground, 0.05)
 
                         Column {
                             anchors.centerIn: parent
@@ -236,18 +237,18 @@ BarButton {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: parent.parent.modelData.label
-                                color: Config.fg
+                                color: Color.foreground
                                 opacity: 0.6
-                                font.family: Config.fontFamily
-                                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 0.9)
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: parent.parent.modelData.value
-                                color: parent.parent.modelData.warn ? Config.urgent : Config.fg
-                                font.family: Config.fontFamily
-                                font.pixelSize: Math.round(Config.fontSize * 1.35)
+                                color: parent.parent.modelData.warn ? Color.urgent : Color.foreground
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 1.35)
                                 font.bold: true
                             }
                         }
@@ -291,9 +292,9 @@ BarButton {
                         readonly property bool current: PowerProfiles.profile === modelData.value
 
                         width: profiles.cellWidth
-                        height: Math.round(Config.fontSize * 2.9)
+                        height: Math.round(Style.font.body * 2.9)
                         radius: 6
-                        color: current ? Config.fg : (profileHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+                        color: current ? Color.foreground : (profileHover.containsMouse ? Style.selectedFill : Style.normalFill)
 
                         Row {
                             anchors.centerIn: parent
@@ -303,17 +304,17 @@ BarButton {
                                 anchors.verticalCenter: parent.verticalCenter
                                 visible: parent.parent.current
                                 text: "✓"
-                                color: Config.bg
-                                font.family: Config.fontFamily
-                                font.pixelSize: Math.round(Config.fontSize * 0.95)
+                                color: Color.background
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 0.95)
                             }
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: parent.parent.modelData.label
-                                color: parent.parent.current ? Config.bg : Config.fg
-                                font.family: Config.fontFamily
-                                font.pixelSize: Config.fontSize
+                                color: parent.parent.current ? Color.background : Color.foreground
+                                font.family: Style.font.family
+                                font.pixelSize: Style.font.body
                             }
                         }
 
@@ -341,9 +342,9 @@ BarButton {
                         return "";
                     }
                 }
-                color: Config.urgent
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                color: Color.urgent
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.9)
             }
         }
     }

@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import qs.Services
 import qs.Components
+import qs.Commons
 
 // Tailscale state, read straight off the CLI.
 //
@@ -167,7 +168,7 @@ BarButton {
     // to the bar's foreground like everything else and state is carried by
     // colour: foreground connected, dimmed not, urgent when the CLI errored.
     iconSource: Qt.resolvedUrl("tailscale.svg")
-    iconColor: root.failed ? Config.urgent : (root.running ? Config.fg : Config.dim)
+    iconColor: root.failed ? Color.urgent : (root.running ? Color.foreground : Color.muted)
     text: root.showName && root.running ? root.selfName : ""
     active: PopoutManager.current === panel
 
@@ -266,7 +267,7 @@ BarButton {
             id: content
             spacing: 12
 
-            readonly property int panelWidth: Math.round(Config.fontSize * 26)
+            readonly property int panelWidth: Math.round(Style.font.body * 26)
 
             // Header: the state, who you are, and the one action that matters.
             Item {
@@ -287,17 +288,17 @@ BarButton {
                                 return "Connected";
                             return root.backendState === "" ? "Not running" : "Disconnected";
                         }
-                        color: Config.fg
-                        font.family: Config.fontFamily
-                        font.pixelSize: Math.round(Config.fontSize * 1.15)
+                        color: Color.foreground
+                        font.family: Style.font.family
+                        font.pixelSize: Math.round(Style.font.body * 1.15)
                     }
 
                     Text {
                         visible: root.loginName !== ""
                         text: root.loginName
-                        color: Config.dim
-                        font.family: Config.fontFamily
-                        font.pixelSize: Math.round(Config.fontSize * 0.9)
+                        color: Color.muted
+                        font.family: Style.font.family
+                        font.pixelSize: Math.round(Style.font.body * 0.9)
                     }
                 }
 
@@ -306,9 +307,9 @@ BarButton {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     width: connectRow.implicitWidth + 18
-                    height: Math.round(Config.fontSize * 2.2)
+                    height: Math.round(Style.font.body * 2.2)
                     radius: height / 2
-                    color: connectPointer.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08)
+                    color: connectPointer.containsMouse ? Style.selectedFill : Style.hoverFill
 
                     Row {
                         id: connectRow
@@ -318,16 +319,16 @@ BarButton {
                         BarIcon {
                             anchors.verticalCenter: parent.verticalCenter
                             iconSource: Icons.first(root.running ? ["network-offline-symbolic", "network-vpn-disconnected-symbolic"] : ["network-vpn-symbolic", "network-vpn"])
-                            size: Math.round(Config.fontSize * 1.1)
-                            color: Config.fg
+                            size: Math.round(Style.font.body * 1.1)
+                            color: Color.foreground
                         }
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: root.running ? "Disconnect" : "Connect"
-                            color: Config.fg
-                            font.family: Config.fontFamily
-                            font.pixelSize: Math.round(Config.fontSize * 0.95)
+                            color: Color.foreground
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 0.95)
                         }
                     }
 
@@ -350,15 +351,15 @@ BarButton {
 
                 Item {
                     width: parent.width
-                    height: Math.round(Config.fontSize * 2.4)
+                    height: Math.round(Style.font.body * 2.4)
 
                     Text {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Exit node"
-                        color: Config.fg
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        color: Color.foreground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
 
                     Rectangle {
@@ -371,16 +372,16 @@ BarButton {
                         // you change and not a card you look at.
                         color: Qt.rgba(0, 0, 0, 0.35)
                         border.width: 1
-                        border.color: exitPointer.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.12)
+                        border.color: exitPointer.containsMouse ? Util.alpha(Color.foreground, 0.22) : Util.alpha(Color.foreground, 0.12)
 
                         Text {
                             anchors.left: parent.left
                             anchors.leftMargin: 10
                             anchors.verticalCenter: parent.verticalCenter
                             text: root.activeExit ? String(root.activeExit.HostName) : "None"
-                            color: root.activeExit ? Config.fg : Config.dim
-                            font.family: Config.fontFamily
-                            font.pixelSize: Config.fontSize
+                            color: root.activeExit ? Color.foreground : Color.muted
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.body
                         }
 
                         Text {
@@ -388,9 +389,9 @@ BarButton {
                             anchors.rightMargin: 10
                             anchors.verticalCenter: parent.verticalCenter
                             text: root.exitMenuOpen ? "⌃" : "⌄"
-                            color: Config.dim
-                            font.family: Config.fontFamily
-                            font.pixelSize: Config.fontSize
+                            color: Color.muted
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.body
                         }
 
                         MouseArea {
@@ -435,9 +436,9 @@ BarButton {
                         text: "No machine here advertises an exit node"
                         width: parent.width
                         wrapMode: Text.Wrap
-                        color: Config.dim
-                        font.family: Config.fontFamily
-                        font.pixelSize: Math.round(Config.fontSize * 0.85)
+                        color: Color.muted
+                        font.family: Style.font.family
+                        font.pixelSize: Math.round(Style.font.body * 0.85)
                     }
                 }
             }
@@ -446,7 +447,7 @@ BarButton {
             // something on another machine and do not want to wait out a poll.
             Item {
                 width: content.panelWidth
-                height: Math.round(Config.fontSize * 2.6)
+                height: Math.round(Style.font.body * 2.6)
 
                 Rectangle {
                     id: searchBox
@@ -457,7 +458,7 @@ BarButton {
                     radius: 5
                     color: Qt.rgba(0, 0, 0, 0.35)
                     border.width: 1
-                    border.color: field.activeFocus ? Config.accent : Qt.rgba(1, 1, 1, 0.12)
+                    border.color: field.activeFocus ? Color.accent : Util.alpha(Color.foreground, 0.12)
 
                     BarIcon {
                         id: searchIcon
@@ -465,8 +466,8 @@ BarButton {
                         anchors.leftMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         iconSource: Icons.first(["system-search-symbolic", "edit-find-symbolic"])
-                        size: Math.round(Config.fontSize * 1.1)
-                        color: Config.dim
+                        size: Math.round(Style.font.body * 1.1)
+                        color: Color.muted
                     }
 
                     TextInput {
@@ -479,11 +480,11 @@ BarButton {
                         height: parent.height
                         verticalAlignment: TextInput.AlignVCenter
                         clip: true
-                        color: Config.fg
-                        selectionColor: Config.accent
-                        selectedTextColor: Config.bg
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        color: Color.foreground
+                        selectionColor: Color.accent
+                        selectedTextColor: Color.background
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
 
                         onTextChanged: root.query = text
                         // Escape clears and hands focus back, so a mistyped
@@ -498,9 +499,9 @@ BarButton {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: field.text === ""
                             text: "Search devices..."
-                            color: Config.dim
-                            font.family: Config.fontFamily
-                            font.pixelSize: Config.fontSize
+                            color: Color.muted
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.body
                         }
                     }
 
@@ -521,13 +522,13 @@ BarButton {
                     width: parent.height
                     height: parent.height
                     radius: 5
-                    color: refreshPointer.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+                    color: refreshPointer.containsMouse ? Style.selectedFill : "transparent"
 
                     BarIcon {
                         anchors.centerIn: parent
                         iconSource: Icons.first(["view-refresh-symbolic", "view-refresh"])
-                        size: Math.round(Config.fontSize * 1.2)
-                        color: poll.running ? Config.accent : Config.dim
+                        size: Math.round(Style.font.body * 1.2)
+                        color: poll.running ? Color.accent : Color.muted
                     }
 
                     MouseArea {
@@ -587,17 +588,17 @@ BarButton {
                 Text {
                     visible: root.filtered.length === 0
                     text: root.query.trim() === "" ? "Nothing matches this filter" : "No device matches “" + root.query.trim() + "”"
-                    color: Config.dim
-                    font.family: Config.fontFamily
-                    font.pixelSize: Config.fontSize
+                    color: Color.muted
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.body
                 }
 
                 Text {
                     visible: root.filtered.length > root.maxNodes
                     text: "+" + (root.filtered.length - root.maxNodes) + " more"
-                    color: Config.dim
-                    font.family: Config.fontFamily
-                    font.pixelSize: Math.round(Config.fontSize * 0.85)
+                    color: Color.muted
+                    font.family: Style.font.family
+                    font.pixelSize: Math.round(Style.font.body * 0.85)
                 }
             }
 
@@ -617,18 +618,18 @@ BarButton {
                         BarIcon {
                             anchors.top: parent.top
                             iconSource: Icons.first(["dialog-warning-symbolic", "dialog-warning"])
-                            size: Math.round(Config.fontSize * 1.1)
-                            color: Config.urgent
+                            size: Math.round(Style.font.body * 1.1)
+                            color: Color.urgent
                         }
 
                         Text {
-                            width: content.panelWidth - Math.round(Config.fontSize * 1.1) - 6
+                            width: content.panelWidth - Math.round(Style.font.body * 1.1) - 6
                             wrapMode: Text.Wrap
                             text: parent.modelData
-                            color: Config.urgent
+                            color: Color.urgent
                             opacity: 0.85
-                            font.family: Config.fontFamily
-                            font.pixelSize: Math.round(Config.fontSize * 0.8)
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 0.8)
                         }
                     }
                 }
@@ -639,9 +640,9 @@ BarButton {
                 width: content.panelWidth
                 wrapMode: Text.Wrap
                 text: root.lastError
-                color: Config.urgent
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.85)
+                color: Color.urgent
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.85)
             }
         }
     }

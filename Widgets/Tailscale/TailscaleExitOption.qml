@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Services
+import qs.Commons
 
 // One row in the expanded exit node list.
 Rectangle {
@@ -10,18 +11,18 @@ Rectangle {
 
     signal picked
 
-    height: Math.round(Config.fontSize * 2.2)
+    height: Math.round(Style.font.body * 2.2)
     radius: 4
-    color: pointer.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+    color: pointer.containsMouse ? Style.hoverFill : "transparent"
 
     Text {
         anchors.left: parent.left
         anchors.leftMargin: 10
         anchors.verticalCenter: parent.verticalCenter
         text: (root.selected ? "✓  " : "") + root.label
-        color: root.selected ? Config.accent : Config.fg
-        font.family: Config.fontFamily
-        font.pixelSize: Config.fontSize
+        color: root.selected ? Color.accent : Color.foreground
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
     }
 
     MouseArea {

@@ -22,18 +22,21 @@ import qs.Commons
 // padding, margin, contentWidth/Height, centerOnBar, default contentItem.
 // Missing on purpose (for now): triggerMode ("hover"), containsMouse.
 //
-// Positioning: full-screen layer-shell with the card placed inside at
-// `cardOrigin`. We use the bar window's height/width for the perpendicular
-// axis (away-from-bar) because mapToItem on the anchor returns
-// bar-content-relative coords with internal layout offsets baked in
-// (e.g. ~13px from the bar's vertical centering of its widget row). The
-// parallel axis (along-the-bar) uses the anchor's content x/y since the
-// bar spans full screen on that axis.
+// Positioning: a layer-shell surface anchored to all four edges that honours
+// exclusive zones, so the compositor sizes it to whatever is left over by
+// every bar on screen — this shell's and any other's. That is the whole
+// trick: the surface's own 0,0 already sits below the bar, so the card only
+// has to offset itself by `gap`, and there is no bar height to add and no
+// screen origin to correct. Measuring down from the top of the screen
+// instead puts the card over the bar the moment another shell's bar sits
+// above this one.
 //
-// Outside-click dismissal: an overlay MouseArea catches clicks, with the
-// QsWindow.mask subtracting the bar strip so clicks on the bar still
-// reach the bar widgets (activePopout coordinator hands off to another
-// popup if the user clicks a different bar icon).
+// The parallel axis (along the bar) uses the anchor's content x/y, since a
+// bar spans its whole screen edge on that axis.
+//
+// Outside-click dismissal: an overlay MouseArea catches clicks. The surface
+// stops at the bar, so a click on the bar reaches the bar directly and needs
+// no mask or forwarding of its own.
 PanelWindow {
   id: root
 
@@ -80,7 +83,7 @@ PanelWindow {
   screen: anchorWindow ? anchorWindow.screen : null
   visible: open || card.opacity > 0 || popoutSwitching
   color: "transparent"
-  exclusionMode: ExclusionMode.Ignore
+  exclusionMode: ExclusionMode.Normal
 
   WlrLayershell.namespace: "omarchy-keyboard-panel"
   WlrLayershell.layer: WlrLayer.Overlay
@@ -101,29 +104,13 @@ PanelWindow {
 
   onBackingWindowVisibleChanged: beginFocusPrime()
 
-  // Full-screen layer-shell. The visible card is positioned inside via
-  // `cardOrigin`. The `mask` below makes the bar area click-through (so
-  // the user can click another bar icon while the panel is open and the
-  // activePopout coordinator swaps to that popup); everywhere else, the
-  // overlay catches the click and dismisses via the MouseArea below.
+  // Anchored to all four edges with no exclusive zone of its own, so the
+  // compositor hands back the area every bar has left unclaimed.
   anchors {
     top: true
     bottom: true
     left: true
     right: true
-  }
-
-  // Clickable region is the whole screen. Clicks in the bar strip are
-  // forwarded to registered bar buttons so switching between panel icons
-  // works in one click even when the overlay surface is above the bar.
-  readonly property real _barStripSize: {
-    if (!bar) return 0
-    var actual = (root.barPos === "top" || root.barPos === "bottom") ? root.barH : root.barW
-    return Math.max(bar.barSize, actual) + root.gap
-  }
-  mask: Region {
-    width: root.screenW
-    height: root.screenH
   }
 
   // Track every layout change between the bar's contentItem and the
@@ -148,14 +135,12 @@ PanelWindow {
   }
   readonly property real anchorW: anchorItem ? anchorItem.width : 0
   readonly property real anchorH: anchorItem ? anchorItem.height : 0
-  readonly property real screenW: screen ? screen.width : 0
-  readonly property real screenH: screen ? screen.height : 0
-  readonly property real availableCardWidth: screenW > 0
-    ? Math.max(120, screenW - ((barPos === "left" || barPos === "right") ? barW + gap + margin : margin * 2))
-    : 0
-  readonly property real availableCardHeight: screenH > 0
-    ? Math.max(120, screenH - ((barPos === "top" || barPos === "bottom") ? barH + gap + margin : margin * 2))
-    : 0
+  // The surface, not the output. The compositor already subtracted every
+  // bar, so this is the room the card actually has.
+  readonly property real surfaceW: root.width
+  readonly property real surfaceH: root.height
+  readonly property real availableCardWidth: surfaceW > 0 ? Math.max(120, surfaceW - margin * 2) : 0
+  readonly property real availableCardHeight: surfaceH > 0 ? Math.max(120, surfaceH - margin * 2) : 0
   readonly property real verticalContentInset: padding * 2 + Border.top(borderSpec) + Border.bottom(borderSpec)
 
   function fittedContentWidth(width, cap) {
@@ -178,43 +163,34 @@ PanelWindow {
     return Math.round(Math.min(desired, maxHeight))
   }
 
-  // Desired top-left of the card in screen coordinates. For the
-  // perpendicular axis (away-from-bar) we anchor to the bar window's edge
-  // directly — not the anchor item's y/x — because mapToItem(barContent)
-  // returns coordinates in the bar's content space, which can be offset
-  // from the bar surface's screen-anchored corner by internal layout
-  // (centering wrappers, padding). The bar's surface IS aligned to its
-  // anchored screen edge, so using `barW`/`barH` gives the right edge
-  // regardless of how the bar's internal widgets are positioned. For the
-  // parallel axis (along the bar) the anchor item's reported position is
-  // still consistent with the bar content origin, so it's accurate for
-  // centering the card under the icon.
-  readonly property real barW: anchorWindow ? anchorWindow.width : screenW
+  // Top-left of the card within the surface. The edge the bar sits on is
+  // already the surface's own edge, so the away-from-bar axis is just `gap`.
+  readonly property real barW: anchorWindow ? anchorWindow.width : surfaceW
   readonly property real barH: anchorWindow ? anchorWindow.height : 0
   readonly property point cardOrigin: {
     if (!anchorItem || !bar) return Qt.point(margin, margin)
     var x = 0, y = 0
     if (centerOnBar && (barPos === "top" || barPos === "bottom")) {
-      x = screenW / 2 - contentWidth / 2
-      y = barPos === "bottom" ? screenH - barH - contentHeight - gap : barH + gap
+      x = surfaceW / 2 - contentWidth / 2
+      y = barPos === "bottom" ? surfaceH - contentHeight - gap : gap
     } else if (centerOnBar) {
-      x = barPos === "left" ? barW + gap : screenW - barW - contentWidth - gap
-      y = screenH / 2 - contentHeight / 2
+      x = barPos === "left" ? gap : surfaceW - contentWidth - gap
+      y = surfaceH / 2 - contentHeight / 2
     } else if (barPos === "bottom") {
       x = anchorScreenPos.x + anchorW / 2 - contentWidth / 2
-      y = screenH - barH - contentHeight - gap
+      y = surfaceH - contentHeight - gap
     } else if (barPos === "left") {
-      x = barW + gap
+      x = gap
       y = anchorScreenPos.y + anchorH / 2 - contentHeight / 2
     } else if (barPos === "right") {
-      x = screenW - barW - contentWidth - gap
+      x = surfaceW - contentWidth - gap
       y = anchorScreenPos.y + anchorH / 2 - contentHeight / 2
     } else { // "top" (default)
       x = anchorScreenPos.x + anchorW / 2 - contentWidth / 2
-      y = barH + gap
+      y = gap
     }
-    x = Math.max(margin, Math.min(x, screenW - contentWidth - margin))
-    y = Math.max(margin, Math.min(y, screenH - contentHeight - margin))
+    x = Math.max(margin, Math.min(x, surfaceW - contentWidth - margin))
+    y = Math.max(margin, Math.min(y, surfaceH - contentHeight - margin))
     return Qt.point(Math.round(x), Math.round(y))
   }
 
@@ -272,64 +248,19 @@ PanelWindow {
 
   // --- outside-click dismissal --------------------------------------------
 
-  // Catches clicks anywhere in the clickable region (i.e. everywhere on
-  // screen except the bar strip, which is masked out). The card has its
-  // own MouseArea below so clicks on it don't bubble up here. Disabled
-  // during the fade-out so the dying overlay doesn't swallow clicks that
-  // were meant for the apps behind it.
+  // Catches clicks anywhere outside the card. The card has its own
+  // MouseArea below so clicks on it don't bubble up here. Disabled during
+  // the fade-out so the dying overlay doesn't swallow clicks that were
+  // meant for the apps behind it.
+  //
+  // The surface stops at the bar, so a click on a bar icon lands on that
+  // icon and the popout coordinator swaps panels on its own. Nothing here
+  // has to recognise the bar or forward anything to it.
   MouseArea {
-    id: dismissArea
     anchors.fill: parent
     enabled: root.open
     acceptedButtons: Qt.AllButtons
-    hoverEnabled: true
-    property bool hoveringBar: false
-    cursorShape: hoveringBar ? Qt.PointingHandCursor : Qt.ArrowCursor
-
-    function inBarRegion(px, py) {
-      if (root.barPos === "bottom") return py >= root.screenH - root._barStripSize
-      if (root.barPos === "left") return px <= root._barStripSize
-      if (root.barPos === "right") return px >= root.screenW - root._barStripSize
-      return py <= root._barStripSize
-    }
-
-    function barPoint(px, py) {
-      if (root.barPos === "bottom") return Qt.point(px, py - (root.screenH - root.barH))
-      if (root.barPos === "right") return Qt.point(px - (root.screenW - root.barW), py)
-      return Qt.point(px, py)
-    }
-
-    function pressTargetAt(px, py) {
-      if (!root.anchorWindow || !root.anchorWindow.contentItem || !root.bar || !root.bar.clickTargets) return null
-      var p = barPoint(px, py)
-      var targets = root.bar.clickTargets
-      for (var i = targets.length - 1; i >= 0; i--) {
-        var target = targets[i]
-        if (!target || !target.triggerPress || target.visible === false || target.opacity === 0 || !target.mapToItem) continue
-        if (root.bar.targetBelongsToWindow && !root.bar.targetBelongsToWindow(target, root.anchorWindow)) continue
-        var pos = root.anchorWindow.itemPosition(target)
-        if (p.x >= pos.x && p.x <= pos.x + target.width && p.y >= pos.y && p.y <= pos.y + target.height) return target
-      }
-      return null
-    }
-
-    function forwardBarClick(px, py, button) {
-      if (button !== Qt.LeftButton && button !== Qt.RightButton && button !== Qt.MiddleButton) return false
-      var target = pressTargetAt(px, py)
-      if (!target) return false
-      target.triggerPress(button)
-      return true
-    }
-
-    onPositionChanged: function(mouse) { hoveringBar = inBarRegion(mouse.x, mouse.y) }
-    onExited: hoveringBar = false
-    onClicked: function(mouse) {
-      // While Exclusive is priming, Hyprland may route a click from another
-      // output here with translated coordinates. Never interpret that as a
-      // click on this output's bar.
-      if (root.focusPrimed && inBarRegion(mouse.x, mouse.y) && forwardBarClick(mouse.x, mouse.y, mouse.button)) return
-      root.close()
-    }
+    onClicked: root.close()
   }
 
   // The panel surface only spans the anchor's screen, and the compositor

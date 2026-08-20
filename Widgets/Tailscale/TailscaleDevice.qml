@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Components
+import qs.Commons
 
 // One machine on the tailnet.
 //
@@ -34,12 +35,12 @@ Rectangle {
 
     readonly property color onlineColor: "#3fb950"
 
-    width: Math.round(Config.fontSize * 26)
+    width: Math.round(Style.font.body * 26)
     height: body.implicitHeight + 16
     radius: 6
-    color: hover.containsMouse ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.05)
+    color: hover.containsMouse ? Style.hoverFill : Style.normalFill
     border.width: 1
-    border.color: Qt.rgba(1, 1, 1, 0.08)
+    border.color: Util.alpha(Color.foreground, 0.08)
 
     MouseArea {
         id: hover
@@ -64,10 +65,10 @@ Rectangle {
             Rectangle {
                 id: dot
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.round(Config.fontSize * 0.6)
+                width: Math.round(Style.font.body * 0.6)
                 height: width
                 radius: width / 2
-                color: root.online ? root.onlineColor : Config.dim
+                color: root.online ? root.onlineColor : Color.muted
                 opacity: root.online ? 1 : 0.6
             }
 
@@ -77,10 +78,10 @@ Rectangle {
                 anchors.leftMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.hostName
-                color: Config.fg
+                color: Color.foreground
                 opacity: root.online ? 1 : 0.6
-                font.family: Config.fontFamily
-                font.pixelSize: Config.fontSize
+                font.family: Style.font.family
+                font.pixelSize: Style.font.body
             }
 
             Text {
@@ -88,11 +89,11 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.isSelf || root.owner !== ""
                 text: root.isSelf ? "This device" : root.owner
-                color: Config.dim
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.85)
+                color: Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.85)
                 elide: Text.ElideRight
-                width: Math.min(implicitWidth, Math.round(Config.fontSize * 12))
+                width: Math.min(implicitWidth, Math.round(Style.font.body * 12))
                 horizontalAlignment: Text.AlignRight
             }
         }
@@ -104,12 +105,12 @@ Rectangle {
             Text {
                 id: ipLabel
                 anchors.left: parent.left
-                anchors.leftMargin: Math.round(Config.fontSize * 0.6) + 8
+                anchors.leftMargin: Math.round(Style.font.body * 0.6) + 8
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.ip
-                color: Config.dim
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                color: Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.9)
             }
 
             // The address is the one thing you open this panel to take away
@@ -119,16 +120,16 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.ip !== ""
-                width: Math.round(Config.fontSize * 1.7)
+                width: Math.round(Style.font.body * 1.7)
                 height: width
                 radius: 4
-                color: copyPointer.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+                color: copyPointer.containsMouse ? Style.selectedFill : "transparent"
 
                 BarIcon {
                     anchors.centerIn: parent
                     iconSource: Icons.first(["edit-copy-symbolic", "edit-copy"])
-                    size: Math.round(Config.fontSize * 1.1)
-                    color: copied.running ? root.onlineColor : Config.dim
+                    size: Math.round(Style.font.body * 1.1)
+                    color: copied.running ? root.onlineColor : Color.muted
                 }
 
                 MouseArea {
@@ -163,11 +164,11 @@ Rectangle {
                     parts.push("relay: " + root.relay);
                 return parts.join("  •  ");
             }
-            leftPadding: Math.round(Config.fontSize * 0.6) + 8
-            color: Config.dim
+            leftPadding: Math.round(Style.font.body * 0.6) + 8
+            color: Color.muted
             opacity: 0.8
-            font.family: Config.fontFamily
-            font.pixelSize: Math.round(Config.fontSize * 0.85)
+            font.family: Style.font.family
+            font.pixelSize: Math.round(Style.font.body * 0.85)
         }
     }
 }

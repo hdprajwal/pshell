@@ -43,10 +43,49 @@ Singleton {
     // colours and no terminal to ask, so a preference is mandatory here.
     readonly property string matugenPrefer: data.matugenPrefer || "saturation"
     readonly property int gap: data.gap !== undefined ? data.gap : 12
-    readonly property int cornerRadius: data.cornerRadius !== undefined ? data.cornerRadius : 0
-    readonly property int gapsOut: data.gapsOut !== undefined ? data.gapsOut : 5
+
+    // Style takes its rounding and screen-edge gap from Hyprland, so panels
+    // match window decoration without being told twice. These are the escape
+    // hatch: -1 means "not set here", and Style keeps asking the compositor.
+    readonly property int cornerRadiusOverride: data.cornerRadius !== undefined ? data.cornerRadius : -1
+    readonly property int gapsOutOverride: data.gapsOut !== undefined ? data.gapsOut : -1
     readonly property real spacingScale: data.spacingScale || 1.0
     readonly property bool scaleWithFont: data.scaleWithFont !== false
+
+    // config.json expressed in Omarchy's token vocabulary. Color merges this
+    // under ~/.config/qsbar/shell.toml and hands the result to Style, so one
+    // dictionary drives both qs.Components and every qs.Ui widget.
+    //
+    // Only tokens where qsbar wants something other than Omarchy's built-in
+    // default belong here; anything absent falls through to that default.
+    readonly property var shellDefaults: {
+        const out = {
+            "font.base-size": String(fontSize),
+            "bar.size-horizontal": String(size),
+            "bar.size-vertical": String(size),
+            "bar.icon-canvas": String(barIconSize),
+            "spacing.bar-gap": String(gap),
+            "spacing.scale": String(spacingScale),
+            "spacing.scale-with-font": scaleWithFont ? "true" : "false",
+            // A panel edge that states itself quietly. Omarchy's default is a
+            // solid 2px accent, which reads as a highlight rather than a
+            // container next to qsbar's flat bar.
+            "popups.border": "foreground",
+            "popups.border-alpha": "0.15",
+            "popups.border-width": "1",
+            "spacing.popup-padding": "12",
+            "tooltip.border": "foreground",
+            "tooltip.border-alpha": "0.15",
+            "menu.border": "foreground",
+            "menu.border-alpha": "0.15"
+        };
+        const extra = data.shell;
+        if (extra && typeof extra === "object") {
+            for (var key in extra)
+                out[key] = String(extra[key]);
+        }
+        return out;
+    }
 
     readonly property var left: data.left || []
     readonly property var center: data.center || []

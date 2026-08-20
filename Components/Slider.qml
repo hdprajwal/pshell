@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Services
+import qs.Commons
 
 // Horizontal slider used by the control centre. Click or drag anywhere on
 // the track.
@@ -20,9 +21,9 @@ Item {
     property real dragValue: 0
     readonly property real shown: Math.max(0, Math.min(1, dragging ? dragValue : value))
 
-    readonly property int iconSize: Math.round(Config.fontSize * 1.4)
+    readonly property int iconSize: Math.round(Style.font.body * 1.4)
 
-    implicitHeight: Math.round(Config.fontSize * 2.2)
+    implicitHeight: Math.round(Style.font.body * 2.2)
 
     // mouseX is already relative to the track, because the MouseArea fills
     // it. Subtracting the track's own x here as well was what put the fill
@@ -54,9 +55,9 @@ Item {
                 id: groove
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width
-                height: Math.round(Config.fontSize * 1.5)
+                height: Math.round(Style.font.body * 1.5)
                 radius: height / 2
-                color: Qt.rgba(1, 1, 1, 0.1)
+                color: Util.alpha(Color.foreground, 0.1)
 
                 Rectangle {
                     // Round the cap only once there is something to draw, so
@@ -64,7 +65,7 @@ Item {
                     width: root.shown <= 0 ? 0 : Math.max(parent.height, parent.width * root.shown)
                     height: parent.height
                     radius: parent.radius
-                    color: root.dimmed ? Qt.rgba(1, 1, 1, 0.25) : Config.fg
+                    color: root.dimmed ? Util.alpha(Color.foreground, 0.25) : Color.foreground
                 }
             }
 

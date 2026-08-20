@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Components
 import qs.Services
+import qs.Commons
 
 // Password entry for a secured network qsbar has no saved secret for.
 //
@@ -73,10 +74,10 @@ PanelWindow {
         anchors.centerIn: parent
         width: 360
         height: card.implicitHeight + 32
-        radius: Config.cornerRadius > 0 ? Config.cornerRadius : 8
-        color: Config.bg
+        radius: Style.cornerRadius
+        color: Color.background
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.15)
+        border.color: Color.popups.border
 
         // Swallow clicks so they do not reach the backdrop and cancel.
         MouseArea {
@@ -92,9 +93,9 @@ PanelWindow {
             Text {
                 width: parent.width
                 text: "Connect to " + prompt.ssid
-                color: Config.fg
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 1.2)
+                color: Color.foreground
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 1.2)
                 elide: Text.ElideRight
             }
 
@@ -102,19 +103,19 @@ PanelWindow {
                 width: parent.width
                 visible: prompt.message !== ""
                 text: prompt.message + ". The saved password may be wrong."
-                color: Config.urgent
+                color: Color.urgent
                 wrapMode: Text.WordWrap
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.9)
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.9)
             }
 
             Rectangle {
                 width: parent.width
-                height: Math.round(Config.fontSize * 2.6)
+                height: Math.round(Style.font.body * 2.6)
                 radius: 6
-                color: Qt.rgba(1, 1, 1, 0.07)
+                color: Util.alpha(Color.foreground, 0.07)
                 border.width: field.activeFocus ? 1 : 0
-                border.color: Config.accent
+                border.color: Color.accent
 
                 TextInput {
                     id: field
@@ -122,12 +123,12 @@ PanelWindow {
                     anchors.leftMargin: 10
                     anchors.rightMargin: 40
                     verticalAlignment: TextInput.AlignVCenter
-                    color: Config.fg
-                    font.family: Config.fontFamily
-                    font.pixelSize: Config.fontSize
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.body
                     echoMode: TextInput.Password
                     selectByMouse: true
-                    selectionColor: Config.accent
+                    selectionColor: Color.accent
                     clip: true
 
                     Keys.onEscapePressed: prompt.close()
@@ -137,10 +138,10 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: field.text === ""
                         text: "Password"
-                        color: Config.fg
+                        color: Color.foreground
                         opacity: 0.4
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
                 }
 
@@ -148,15 +149,15 @@ PanelWindow {
                     anchors.right: parent.right
                     anchors.rightMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
-                    width: Math.round(Config.fontSize * 1.9)
+                    width: Math.round(Style.font.body * 1.9)
                     height: width
                     radius: 4
-                    color: revealHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+                    color: revealHover.containsMouse ? Style.selectedFill : "transparent"
 
                     BarIcon {
                         anchors.centerIn: parent
                         iconSource: Icons.first(field.echoMode === TextInput.Password ? ["view-conceal-symbolic", "view-private-symbolic", "view-hidden-symbolic"] : ["view-reveal-symbolic", "view-visible-symbolic"])
-                        size: Math.round(Config.fontSize * 1.1)
+                        size: Math.round(Style.font.body * 1.1)
                         opacity: 0.7
                     }
 
@@ -175,17 +176,17 @@ PanelWindow {
                 spacing: 8
 
                 Rectangle {
-                    width: Math.round(Config.fontSize * 6)
-                    height: Math.round(Config.fontSize * 2.4)
+                    width: Math.round(Style.font.body * 6)
+                    height: Math.round(Style.font.body * 2.4)
                     radius: 6
-                    color: cancelHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07)
+                    color: cancelHover.containsMouse ? Style.selectedFill : Style.normalFill
 
                     Text {
                         anchors.centerIn: parent
                         text: "Cancel"
-                        color: Config.fg
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        color: Color.foreground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
 
                     MouseArea {
@@ -198,18 +199,18 @@ PanelWindow {
                 }
 
                 Rectangle {
-                    width: Math.round(Config.fontSize * 6)
-                    height: Math.round(Config.fontSize * 2.4)
+                    width: Math.round(Style.font.body * 6)
+                    height: Math.round(Style.font.body * 2.4)
                     radius: 6
                     opacity: field.text === "" ? 0.4 : 1
-                    color: Config.fg
+                    color: Color.foreground
 
                     Text {
                         anchors.centerIn: parent
                         text: "Connect"
-                        color: Config.bg
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        color: Color.background
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
 
                     MouseArea {

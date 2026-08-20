@@ -2,7 +2,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.Services
+import qs.Commons
 
+// Deprecated. qs.Ui.KeyboardPanel is the panel surface now; this stays
+// only until the last widget has moved across.
+//
 // The panel a bar widget opens beneath itself.
 //
 // This is a full-screen layer-shell window rather than a PopupWindow anchored
@@ -21,8 +25,8 @@ PanelWindow {
     property bool opened: false
     property int keyboardFocus: WlrKeyboardFocus.None
 
-    readonly property int padding: 12
-    readonly property int gap: 6
+    readonly property int padding: Style.spacing.popupPadding
+    readonly property int gap: Style.gapsOut
 
     default property alias content: container.data
 
@@ -111,10 +115,10 @@ PanelWindow {
         width: Math.max(220, container.childrenRect.width + popup.padding * 2)
         height: container.childrenRect.height + popup.padding * 2
 
-        color: Config.bg
-        radius: Config.cornerRadius > 0 ? Config.cornerRadius : 8
-        border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.15)
+        color: Color.background
+        radius: Style.cornerRadius
+        border.width: Style.spacing.hairline
+        border.color: Color.popups.border
 
         opacity: popup.opened ? 1 : 0
         scale: popup.opened ? 1 : 0.92

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Services
+import qs.Commons
 
 // A control centre tile. The icon square toggles the thing on and off; the
 // rest of the tile opens its detail list, which is how DMS splits it too.
@@ -18,9 +19,9 @@ Rectangle {
     signal toggled
     signal detailRequested
 
-    implicitHeight: Math.round(Config.fontSize * 4.2)
+    implicitHeight: Math.round(Style.font.body * 4.2)
     radius: 8
-    color: expanded ? Qt.rgba(1, 1, 1, 0.14) : (bodyHover.containsMouse ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.05))
+    color: expanded ? Style.selectedFill : (bodyHover.containsMouse ? Style.hoverFill : Style.normalFill)
 
     MouseArea {
         id: bodyHover
@@ -42,16 +43,16 @@ Rectangle {
         Rectangle {
             id: iconBox
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.round(Config.fontSize * 2.8)
+            width: Math.round(Style.font.body * 2.8)
             height: width
             radius: 6
-            color: root.active ? Config.fg : (iconHover.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.1))
+            color: root.active ? Color.foreground : (iconHover.containsMouse ? Style.selectedFill : Style.hoverFill)
 
             BarIcon {
                 anchors.centerIn: parent
                 iconSource: root.iconSource
-                size: Math.round(Config.fontSize * 1.4)
-                color: root.active ? Config.bg : Config.fg
+                size: Math.round(Style.font.body * 1.4)
+                color: root.active ? Color.background : Color.foreground
             }
 
             MouseArea {
@@ -71,9 +72,9 @@ Rectangle {
             Text {
                 width: parent.width
                 text: root.title
-                color: Config.fg
-                font.family: Config.fontFamily
-                font.pixelSize: Config.fontSize
+                color: Color.foreground
+                font.family: Style.font.family
+                font.pixelSize: Style.font.body
                 elide: Text.ElideRight
             }
 
@@ -81,10 +82,10 @@ Rectangle {
                 width: parent.width
                 visible: root.subtitle !== ""
                 text: root.subtitle
-                color: Config.fg
+                color: Color.foreground
                 opacity: 0.55
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.85)
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.85)
                 elide: Text.ElideRight
             }
         }

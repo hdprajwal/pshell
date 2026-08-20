@@ -10,6 +10,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Components
 import qs.Services
+import qs.Commons
 
 ShellRoot {
     Variants {
@@ -24,12 +25,12 @@ ShellRoot {
             // so a widget written for it works here without edits.
             readonly property bool vertical: Config.position === "left" || Config.position === "right"
             readonly property string position: Config.position
-            readonly property int barSize: Config.size
-            readonly property color foreground: Config.fg
-            readonly property color barForeground: Config.fg
-            readonly property color background: Config.bg
-            readonly property color urgent: Config.urgent
-            readonly property string fontFamily: Config.fontFamily
+            readonly property int barSize: Style.bar.sizeHorizontal
+            readonly property color foreground: Color.foreground
+            readonly property color barForeground: Color.foreground
+            readonly property color background: Color.background
+            readonly property color urgent: Color.urgent
+            readonly property string fontFamily: Style.font.family
             // Omarchy's widgets animate their foreground unless the bar says
             // not to. qsbar has no setting for it, so it is simply on.
             readonly property bool foregroundAnimationEnabled: true
@@ -102,7 +103,7 @@ ShellRoot {
             }
 
             screen: modelData
-            color: Config.bg
+            color: Color.background
 
             anchors {
                 top: Config.position === "top" || barWindow.vertical
@@ -111,8 +112,8 @@ ShellRoot {
                 right: Config.position === "right" || !barWindow.vertical
             }
 
-            implicitHeight: barWindow.vertical ? 0 : Config.size
-            implicitWidth: barWindow.vertical ? Config.size : 0
+            implicitHeight: barWindow.vertical ? 0 : Style.bar.sizeHorizontal
+            implicitWidth: barWindow.vertical ? Style.bar.sizeVertical : 0
 
             WlrLayershell.namespace: "qsbar"
             WlrLayershell.layer: WlrLayer.Top
@@ -138,7 +139,7 @@ ShellRoot {
                 entries: Config.left
                 bar: barWindow
                 anchors.left: parent.left
-                anchors.leftMargin: Config.gap
+                anchors.leftMargin: Style.spacing.barGap
                 anchors.verticalCenter: parent.verticalCenter
             }
 
@@ -153,7 +154,7 @@ ShellRoot {
                 entries: Config.right
                 bar: barWindow
                 anchors.right: parent.right
-                anchors.rightMargin: Config.gap
+                anchors.rightMargin: Style.spacing.barGap
                 anchors.verticalCenter: parent.verticalCenter
             }
 
@@ -170,22 +171,22 @@ ShellRoot {
 
                 anchor.window: barWindow
                 anchor.rect.x: tooltip.target ? tooltip.target.mapToItem(null, 0, 0).x + tooltip.target.width / 2 - tooltip.implicitWidth / 2 : 0
-                anchor.rect.y: Config.position === "bottom" ? -tooltip.implicitHeight : Config.size
+                anchor.rect.y: Config.position === "bottom" ? -tooltip.implicitHeight : Style.bar.sizeHorizontal
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Config.bg
-                    radius: Config.cornerRadius
-                    border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.15)
+                    color: Color.tooltip.background
+                    radius: Style.cornerRadius
+                    border.width: Style.spacing.hairline
+                    border.color: Color.tooltip.border
 
                     Text {
                         id: tooltipLabel
                         anchors.centerIn: parent
                         text: tooltip.text
-                        color: Config.fg
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        color: Color.foreground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
                 }
             }

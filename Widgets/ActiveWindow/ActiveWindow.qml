@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.Services
+import qs.Commons
 
 // The focused window: its icon, its application name, and its title.
 //
@@ -55,7 +56,7 @@ Item {
     // Nothing focused collapses the slot, and Section.qml hides a slot with no
     // width, so the bar closes the gap on an empty workspace.
     implicitWidth: root.toplevel ? content.implicitWidth : 0
-    implicitHeight: Config.size
+    implicitHeight: Style.bar.sizeHorizontal
     visible: root.toplevel !== null
 
     Row {
@@ -70,8 +71,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.showIcon && root.iconSource !== ""
             source: root.iconSource
-            width: Config.barIconSize
-            height: Config.barIconSize
+            width: Style.bar.iconCanvas
+            height: Style.bar.iconCanvas
             asynchronous: true
             fillMode: Image.PreserveAspectFit
             sourceSize.width: 64
@@ -83,18 +84,18 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.showAppName && root.appName !== ""
             text: root.appName
-            color: Config.fg
-            font.family: Config.fontFamily
-            font.pixelSize: Config.fontSize
+            color: Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
         }
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.showAppName && root.appName !== "" && root.title !== ""
             text: "·"
-            color: Config.dim
-            font.family: Config.fontFamily
-            font.pixelSize: Config.fontSize
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
         }
 
         Text {
@@ -105,10 +106,10 @@ Item {
             width: Math.min(implicitWidth, root.maxWidth)
             elide: Text.ElideRight
             text: root.title
-            color: Config.fg
+            color: Color.foreground
             opacity: 0.75
-            font.family: Config.fontFamily
-            font.pixelSize: Config.fontSize
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
         }
     }
 }

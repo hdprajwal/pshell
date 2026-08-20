@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.Services
 import qs.Components
+import qs.Commons
 
 // Whether anything is listening or watching right now.
 //
@@ -45,7 +46,7 @@ BarButton {
             out.push(Icons.first(["camera-web-symbolic", "camera-video-symbolic", "camera-photo-symbolic"]));
         return out;
     }
-    iconColor: Config.urgent
+    iconColor: Color.urgent
     active: PopoutManager.current === panel
 
     onClicked: button => {
@@ -88,9 +89,9 @@ BarButton {
 
             Text {
                 text: "In use"
-                color: Config.fg
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 1.2)
+                color: Color.foreground
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 1.2)
             }
 
             Repeater {
@@ -104,8 +105,8 @@ BarButton {
                     BarIcon {
                         anchors.verticalCenter: parent.verticalCenter
                         iconSource: Icons.microphone(false)
-                        size: Math.round(Config.fontSize * 1.2)
-                        color: Config.urgent
+                        size: Math.round(Style.font.body * 1.2)
+                        color: Color.urgent
                     }
 
                     Text {
@@ -117,9 +118,9 @@ BarButton {
                             const props = parent.modelData.properties || ({});
                             return String(props["application.name"] || parent.modelData.name || "something") + " is using the microphone";
                         }
-                        color: Config.fg
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        color: Color.foreground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
                 }
             }
@@ -131,8 +132,8 @@ BarButton {
                 BarIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     iconSource: Icons.first(["camera-web-symbolic", "camera-video-symbolic"])
-                    size: Math.round(Config.fontSize * 1.2)
-                    color: Config.urgent
+                    size: Math.round(Style.font.body * 1.2)
+                    color: Color.urgent
                 }
 
                 Text {
@@ -141,9 +142,9 @@ BarButton {
                     // by whom, and naming the wrong program would be worse
                     // than naming none.
                     text: "The camera is in use"
-                    color: Config.fg
-                    font.family: Config.fontFamily
-                    font.pixelSize: Config.fontSize
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.body
                 }
             }
         }

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Services.Pipewire
 import qs.Components
 import qs.Services
+import qs.Commons
 
 // Output or input device picker. `input` switches which list is shown.
 //
@@ -41,30 +42,30 @@ Column {
 
     Item {
         width: root.rowWidth
-        height: Math.round(Config.fontSize * 1.8)
+        height: Math.round(Style.font.body * 1.8)
 
         Text {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             text: root.input ? "Input Devices" : "Audio Devices"
-            color: Config.fg
-            font.family: Config.fontFamily
-            font.pixelSize: Math.round(Config.fontSize * 1.25)
+            color: Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Math.round(Style.font.body * 1.25)
         }
 
         Rectangle {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.round(Config.fontSize * 1.9)
+            width: Math.round(Style.font.body * 1.9)
             height: width
             radius: 4
             visible: root.settingsCommand !== ""
-            color: gearHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+            color: gearHover.containsMouse ? Style.selectedFill : "transparent"
 
             BarIcon {
                 anchors.centerIn: parent
                 iconSource: Icons.first(["preferences-system-symbolic", "emblem-system-symbolic", "applications-system"])
-                size: Math.round(Config.fontSize * 1.1)
+                size: Math.round(Style.font.body * 1.1)
                 opacity: 0.7
             }
 
@@ -101,11 +102,11 @@ Column {
                 readonly property bool pinned: Prefs.isPinned(modelData.name, root.input)
 
                 width: root.rowWidth
-                height: Math.round(Config.fontSize * 3.4)
+                height: Math.round(Style.font.body * 3.4)
                 radius: 8
-                color: hover.containsMouse && !selected ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+                color: hover.containsMouse && !selected ? Style.hoverFill : "transparent"
                 border.width: selected ? 1 : 0
-                border.color: Qt.rgba(1, 1, 1, 0.45)
+                border.color: Util.alpha(Color.foreground, 0.45)
 
                 MouseArea {
                     id: hover
@@ -129,7 +130,7 @@ Column {
                     BarIcon {
                         anchors.verticalCenter: parent.verticalCenter
                         iconSource: root.input ? Icons.microphone(false) : Icons.first(["audio-speakers-symbolic", "audio-volume-high-symbolic"])
-                        size: Math.round(Config.fontSize * 1.2)
+                        size: Math.round(Style.font.body * 1.2)
                         opacity: 0.85
                     }
 
@@ -139,9 +140,9 @@ Column {
 
                         Text {
                             text: devRow.modelData.description || devRow.modelData.nickname || devRow.modelData.name
-                            color: Config.fg
-                            font.family: Config.fontFamily
-                            font.pixelSize: Config.fontSize
+                            color: Color.foreground
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.body
                             width: root.rowWidth - 130
                             elide: Text.ElideRight
                         }
@@ -149,10 +150,10 @@ Column {
                         Text {
                             visible: devRow.selected
                             text: "Active"
-                            color: Config.fg
+                            color: Color.foreground
                             opacity: 0.55
-                            font.family: Config.fontFamily
-                            font.pixelSize: Math.round(Config.fontSize * 0.85)
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 0.85)
                         }
                     }
                 }
@@ -162,9 +163,9 @@ Column {
                     anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
                     width: pinRow.implicitWidth + 14
-                    height: Math.round(Config.fontSize * 1.9)
+                    height: Math.round(Style.font.body * 1.9)
                     radius: height / 2
-                    color: devRow.pinned ? Qt.rgba(1, 1, 1, 0.2) : (pinHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+                    color: devRow.pinned ? Style.selectedFill : (pinHover.containsMouse ? Style.selectedFill : Style.normalFill)
 
                     Row {
                         id: pinRow
@@ -174,17 +175,17 @@ Column {
                         BarIcon {
                             anchors.verticalCenter: parent.verticalCenter
                             iconSource: Icons.first(["pin-symbolic", "view-pin-symbolic", "gnome-panel-pin"])
-                            size: Math.round(Config.fontSize * 0.95)
+                            size: Math.round(Style.font.body * 0.95)
                             opacity: devRow.pinned ? 1 : 0.7
                         }
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: devRow.pinned ? "Pinned" : "Pin"
-                            color: Config.fg
+                            color: Color.foreground
                             opacity: devRow.pinned ? 1 : 0.7
-                            font.family: Config.fontFamily
-                            font.pixelSize: Math.round(Config.fontSize * 0.85)
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 0.85)
                         }
                     }
 
@@ -202,19 +203,19 @@ Column {
 
     Text {
         text: root.input ? "Recording" : "Playback"
-        color: Config.fg
+        color: Color.foreground
         opacity: 0.55
-        font.family: Config.fontFamily
-        font.pixelSize: Math.round(Config.fontSize * 0.9)
+        font.family: Style.font.family
+        font.pixelSize: Math.round(Style.font.body * 0.9)
     }
 
     Text {
         visible: root.streams.length === 0
         text: root.input ? "Nothing recording" : "Nothing playing"
-        color: Config.fg
+        color: Color.foreground
         opacity: 0.35
-        font.family: Config.fontFamily
-        font.pixelSize: Math.round(Config.fontSize * 0.85)
+        font.family: Style.font.family
+        font.pixelSize: Math.round(Style.font.body * 0.85)
     }
 
     Column {
@@ -227,7 +228,7 @@ Column {
                 required property var modelData
 
                 width: root.rowWidth
-                height: Math.round(Config.fontSize * 2.2)
+                height: Math.round(Style.font.body * 2.2)
 
                 PwObjectTracker {
                     objects: [parent.modelData]
@@ -237,10 +238,10 @@ Column {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     text: parent.modelData.description || parent.modelData.name
-                    color: Config.fg
+                    color: Color.foreground
                     opacity: 0.8
-                    font.family: Config.fontFamily
-                    font.pixelSize: Math.round(Config.fontSize * 0.9)
+                    font.family: Style.font.family
+                    font.pixelSize: Math.round(Style.font.body * 0.9)
                     width: root.rowWidth - 60
                     elide: Text.ElideRight
                 }
@@ -249,10 +250,10 @@ Column {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     text: parent.modelData.audio ? Math.round(parent.modelData.audio.volume * 100) + "%" : ""
-                    color: Config.fg
+                    color: Color.foreground
                     opacity: 0.55
-                    font.family: Config.fontFamily
-                    font.pixelSize: Math.round(Config.fontSize * 0.85)
+                    font.family: Style.font.family
+                    font.pixelSize: Math.round(Style.font.body * 0.85)
                 }
             }
         }

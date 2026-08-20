@@ -7,6 +7,7 @@ import qs.Components
 import qs.Services
 import qs.Widgets.Bluetooth
 import qs.Widgets.Network
+import qs.Commons
 
 // One panel for the things you actually reach for: volume, brightness, wifi,
 // bluetooth, audio devices and the session buttons.
@@ -108,9 +109,9 @@ BarButton {
             // Session header
             Rectangle {
                 width: parent.width
-                height: Math.round(Config.fontSize * 4.4)
+                height: Math.round(Style.font.body * 4.4)
                 radius: 8
-                color: Qt.rgba(1, 1, 1, 0.05)
+                color: Util.alpha(Color.foreground, 0.05)
 
                 Row {
                     anchors.left: parent.left
@@ -120,10 +121,10 @@ BarButton {
 
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.round(Config.fontSize * 3)
+                        width: Math.round(Style.font.body * 3)
                         height: width
                         radius: width / 2
-                        color: Qt.rgba(1, 1, 1, 0.12)
+                        color: Util.alpha(Color.foreground, 0.12)
                         clip: true
 
                         Image {
@@ -137,9 +138,9 @@ BarButton {
                             anchors.centerIn: parent
                             visible: !root.cfg.avatar
                             text: (Quickshell.env("USER") || "?").charAt(0).toUpperCase()
-                            color: Config.fg
-                            font.family: Config.fontFamily
-                            font.pixelSize: Math.round(Config.fontSize * 1.4)
+                            color: Color.foreground
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 1.4)
                         }
                     }
 
@@ -149,17 +150,17 @@ BarButton {
 
                         Text {
                             text: root.cfg.name || Quickshell.env("USER") || ""
-                            color: Config.fg
-                            font.family: Config.fontFamily
-                            font.pixelSize: Math.round(Config.fontSize * 1.2)
+                            color: Color.foreground
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 1.2)
                         }
 
                         Text {
                             text: root.uptime
-                            color: Config.fg
+                            color: Color.foreground
                             opacity: 0.55
-                            font.family: Config.fontFamily
-                            font.pixelSize: Math.round(Config.fontSize * 0.85)
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 0.85)
                         }
                     }
                 }
@@ -189,15 +190,15 @@ BarButton {
                         Rectangle {
                             required property var modelData
 
-                            width: Math.round(Config.fontSize * 2.4)
+                            width: Math.round(Style.font.body * 2.4)
                             height: width
                             radius: 6
-                            color: btnHover.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+                            color: btnHover.containsMouse ? Style.selectedFill : "transparent"
 
                             BarIcon {
                                 anchors.centerIn: parent
                                 iconSource: Icons.first(parent.modelData.icon)
-                                size: Math.round(Config.fontSize * 1.2)
+                                size: Math.round(Style.font.body * 1.2)
                             }
 
                             MouseArea {
@@ -291,7 +292,7 @@ BarButton {
                 visible: root.detail !== ""
                 height: visible ? Math.min(320, detailColumn.implicitHeight + 12) : 0
                 radius: 8
-                color: Qt.rgba(1, 1, 1, 0.05)
+                color: Util.alpha(Color.foreground, 0.05)
 
                 Flickable {
                     anchors.fill: parent

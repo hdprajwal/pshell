@@ -15,6 +15,7 @@ import qs.Widgets.Network
 import qs.Widgets.ProcWidget
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
+import qs.Commons
 
 Row {
     id: root
@@ -22,8 +23,8 @@ Row {
     property var entries: []
     property var bar: null
 
-    spacing: Config.gap
-    height: Config.size
+    spacing: Style.spacing.barGap
+    height: Style.bar.sizeHorizontal
 
     Repeater {
         model: root.entries
@@ -43,11 +44,8 @@ Row {
             }
             readonly property var activeItem: builtinLoader.item || qmlLoader.item
 
-            // A widget that hides itself takes no slot, which is how Omarchy's
-            // own bar sizes these: a plugin with nothing to report sets
-            // visible false and expects the gap to close behind it.
-            implicitWidth: activeItem && activeItem.visible ? activeItem.implicitWidth : 0
-            implicitHeight: Config.size
+            implicitWidth: activeItem ? activeItem.implicitWidth : 0
+            implicitHeight: Style.bar.sizeHorizontal
             width: implicitWidth
             height: implicitHeight
             visible: implicitWidth > 0

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Components
 import qs.Services
+import qs.Commons
 
 // A clock in the bar that opens a month. The plain `clock` widget stays for
 // anyone who wants text and nothing else.
@@ -50,25 +51,25 @@ BarButton {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     text: Qt.formatDateTime(clock.date, root.timeFormat)
-                    color: Config.fg
-                    font.family: Config.fontFamily
-                    font.pixelSize: Math.round(Config.fontSize * 4.2)
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Math.round(Style.font.body * 4.2)
                 }
 
                 Text {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     text: Qt.formatDateTime(clock.date, root.dateFormat)
-                    color: Config.dim
-                    font.family: Config.fontFamily
-                    font.pixelSize: Math.round(Config.fontSize * 1.15)
+                    color: Color.muted
+                    font.family: Style.font.family
+                    font.pixelSize: Math.round(Style.font.body * 1.15)
                 }
             }
 
             Rectangle {
                 width: month.width
                 height: 1
-                color: Qt.rgba(1, 1, 1, 0.12)
+                color: Util.alpha(Color.foreground, 0.12)
             }
 
             MonthGrid {

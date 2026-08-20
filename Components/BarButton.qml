@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Services
+import qs.Commons
 
 // A bar entry made of one or more icons and optional text. Shared by the
 // widgets that open a panel, so they hover and space identically.
@@ -15,7 +16,7 @@ Item {
     property string iconSource: ""
     property string icon: ""
     property string text: ""
-    property color iconColor: Config.fg
+    property color iconColor: Color.foreground
     property bool active: false
     // Whether this widget has anything to say right now.
     property bool shown: true
@@ -25,7 +26,7 @@ Item {
 
     readonly property bool usingMulti: iconSources.length > 0
     readonly property bool usingImage: iconSource !== ""
-    readonly property int iconSize: Config.barIconSize
+    readonly property int iconSize: Style.bar.iconCanvas
 
     // A hidden button takes no width. Section drops a zero-width slot, and a
     // dropped slot costs no spacing either, so a widget that hides itself
@@ -37,14 +38,14 @@ Item {
     // and collapse every button to nothing.
     visible: root.shown
     implicitWidth: root.shown ? content.implicitWidth + 10 : 0
-    implicitHeight: Config.size
+    implicitHeight: Style.bar.sizeHorizontal
 
     Rectangle {
         anchors.fill: parent
         anchors.topMargin: 3
         anchors.bottomMargin: 3
         radius: 4
-        color: root.active ? Qt.rgba(1, 1, 1, 0.14) : (pointer.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent")
+        color: root.active ? Style.selectedFill : (pointer.containsMouse ? Style.hoverFill : "transparent")
     }
 
     Row {
@@ -78,17 +79,17 @@ Item {
             visible: !root.usingMulti && !root.usingImage && root.icon !== ""
             text: root.icon
             color: root.iconColor
-            font.family: Config.iconFont
-            font.pixelSize: Math.round(Config.fontSize * 1.1)
+            font.family: Style.font.iconFamily
+            font.pixelSize: Math.round(Style.font.body * 1.1)
         }
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.text !== ""
             text: root.text
-            color: Config.fg
-            font.family: Config.fontFamily
-            font.pixelSize: Config.fontSize
+            color: Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
         }
     }
 

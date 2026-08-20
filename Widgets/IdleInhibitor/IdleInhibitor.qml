@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Services
 import qs.Components
+import qs.Commons
 
 // Keep the screen awake.
 //
@@ -27,7 +28,7 @@ BarButton {
 
     iconSource: Icons.first(root.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
     icon: root.inhibited ? "●" : "○"
-    iconColor: root.inhibited ? Config.accent : Config.fg
+    iconColor: root.inhibited ? Color.accent : Color.foreground
     active: root.inhibited
 
     onClicked: button => {

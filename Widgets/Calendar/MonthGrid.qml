@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Services
+import qs.Commons
 
 // One month: a header you can page through, a weekday row, and the days.
 //
@@ -23,12 +24,12 @@ Column {
     property int viewYear: 0
     property int viewMonth: 0
 
-    readonly property int cellSize: Math.round(Config.fontSize * 2.9)
+    readonly property int cellSize: Math.round(Style.font.body * 2.9)
     // A day cell is wider than it is tall. Square cells put the same padding
     // on every side, but a two-digit number is about twice as wide as it is
     // high, so the leftover space all shows up above and below and the rows
     // read as further apart than the columns even when the gap is identical.
-    readonly property int cellHeight: Math.round(Config.fontSize * 2.2)
+    readonly property int cellHeight: Math.round(Style.font.body * 2.2)
     // Shared by the grid and the weekday row above it, which have to keep the
     // same column pitch or the labels drift off their columns.
     readonly property int cellGap: 4
@@ -85,14 +86,14 @@ Column {
         width: root.cellSize
         height: root.cellSize
         radius: 4
-        color: pointer.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+        color: pointer.containsMouse ? Style.hoverFill : "transparent"
 
         Text {
             anchors.centerIn: parent
             text: nav.glyph
-            color: Config.fg
-            font.family: Config.fontFamily
-            font.pixelSize: Math.round(Config.fontSize * 1.6)
+            color: Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Math.round(Style.font.body * 1.6)
         }
 
         MouseArea {
@@ -118,14 +119,14 @@ Column {
             width: grid.width - root.cellSize * 2
             height: root.cellSize
             radius: 4
-            color: titlePointer.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+            color: titlePointer.containsMouse ? Style.hoverFill : "transparent"
 
             Text {
                 anchors.centerIn: parent
                 text: Qt.locale().standaloneMonthName(root.viewMonth) + " " + root.viewYear
-                color: Config.fg
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 1.15)
+                color: Color.foreground
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 1.15)
             }
 
             MouseArea {
@@ -157,9 +158,9 @@ Column {
                 // Two letters rather than the narrow form, which is one letter
                 // and gives you T and T, S and S.
                 text: Qt.locale().dayName((root.weekStart + index) % 7, Locale.ShortFormat).substring(0, 2)
-                color: Config.dim
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.8)
+                color: Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.8)
             }
         }
     }
@@ -194,7 +195,7 @@ Column {
                         height: width
                         radius: width / 2
                         visible: parent.modelData.isToday
-                        color: Config.accent
+                        color: Color.accent
                     }
 
                     Text {
@@ -202,10 +203,10 @@ Column {
                         text: parent.modelData.day
                         // Against the filled pill the text has to flip to the
                         // panel background to stay readable.
-                        color: parent.modelData.isToday ? Config.bg : Config.fg
+                        color: parent.modelData.isToday ? Color.background : Color.foreground
                         opacity: parent.modelData.inMonth ? 1 : 0.3
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
                 }
             }

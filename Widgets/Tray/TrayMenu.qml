@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Components
 import qs.Services
+import qs.Commons
 
 // The menu a tray icon opens on right click, drawn by qsbar rather than
 // handed to QsMenuAnchor, so it picks up the bar's colours and font.
@@ -17,7 +18,7 @@ Popout {
 
     property var trayItem: null
 
-    readonly property int rowHeight: Math.round(Config.fontSize * 2.2)
+    readonly property int rowHeight: Math.round(Style.font.body * 2.2)
     readonly property int menuWidth: 230
     readonly property int maxHeight: 460
 
@@ -103,10 +104,10 @@ Popout {
                         anchors.leftMargin: 6
                         anchors.verticalCenter: parent.verticalCenter
                         text: "‹  " + (stack.count > 0 ? stack.get(stack.count - 1).label : "")
-                        color: Config.fg
+                        color: Color.foreground
                         opacity: 0.7
-                        font.family: Config.fontFamily
-                        font.pixelSize: Config.fontSize
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.body
                     }
 
                     MouseArea {
@@ -120,7 +121,7 @@ Popout {
                     width: popup.menuWidth
                     height: 1
                     visible: stack.count > 0
-                    color: Qt.rgba(1, 1, 1, 0.12)
+                    color: Util.alpha(Color.foreground, 0.12)
                 }
 
                 Repeater {
@@ -138,8 +139,8 @@ Popout {
                         radius: separator ? 0 : 4
                         color: {
                             if (separator)
-                                return Qt.rgba(1, 1, 1, 0.12);
-                            return hover.containsMouse && usable ? Qt.rgba(1, 1, 1, 0.1) : "transparent";
+                                return Util.alpha(Color.foreground, 0.12);
+                            return hover.containsMouse && usable ? Style.hoverFill : "transparent";
                         }
 
                         MouseArea {
@@ -168,32 +169,32 @@ Popout {
                             // Checkbox for a toggle, circle for a radio.
                             Rectangle {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Config.fontSize
-                                height: Config.fontSize
+                                width: Style.font.body
+                                height: Style.font.body
                                 visible: row.modelData && row.modelData.buttonType !== undefined && row.modelData.buttonType !== 0
                                 radius: row.modelData && row.modelData.buttonType === 2 ? width / 2 : 2
                                 color: "transparent"
                                 border.width: 1
-                                border.color: Qt.rgba(1, 1, 1, 0.4)
+                                border.color: Util.alpha(Color.foreground, 0.4)
 
                                 Rectangle {
                                     anchors.centerIn: parent
                                     width: parent.width - 6
                                     height: parent.height - 6
                                     radius: parent.radius > 2 ? parent.radius - 3 : 1
-                                    color: Config.accent
+                                    color: Color.accent
                                     visible: row.modelData && row.modelData.checkState === 2
                                 }
                             }
 
                             Image {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Config.fontSize
-                                height: Config.fontSize
+                                width: Style.font.body
+                                height: Style.font.body
                                 visible: row.modelData && (row.modelData.icon || "") !== ""
                                 source: row.modelData ? (row.modelData.icon || "") : ""
-                                sourceSize.width: Config.fontSize
-                                sourceSize.height: Config.fontSize
+                                sourceSize.width: Style.font.body
+                                sourceSize.height: Style.font.body
                                 fillMode: Image.PreserveAspectFit
                                 smooth: true
                             }
@@ -201,10 +202,10 @@ Popout {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: row.modelData ? (row.modelData.text || "") : ""
-                                color: Config.fg
+                                color: Color.foreground
                                 opacity: row.usable ? 1 : 0.45
-                                font.family: Config.fontFamily
-                                font.pixelSize: Config.fontSize
+                                font.family: Style.font.family
+                                font.pixelSize: Style.font.body
                                 elide: Text.ElideRight
                             }
                         }
@@ -215,10 +216,10 @@ Popout {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !row.separator && row.modelData && row.modelData.hasChildren
                             text: "›"
-                            color: Config.fg
+                            color: Color.foreground
                             opacity: 0.6
-                            font.family: Config.fontFamily
-                            font.pixelSize: Config.fontSize
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.body
                         }
                     }
                 }

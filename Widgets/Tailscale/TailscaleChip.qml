@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Services
+import qs.Commons
 
 // A filter chip with its count. Selected fills with the accent and draws its
 // text in the background colour, which is the same inverted pill the active
@@ -14,9 +15,9 @@ Rectangle {
     signal picked
 
     width: row.implicitWidth + 20
-    height: Math.round(Config.fontSize * 2.1)
+    height: Math.round(Style.font.body * 2.1)
     radius: height / 2
-    color: root.selected ? Config.accent : (pointer.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+    color: root.selected ? Color.accent : (pointer.containsMouse ? Style.selectedFill : Style.normalFill)
 
     Behavior on color {
         ColorAnimation {
@@ -33,17 +34,17 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.selected
             text: "✓"
-            color: Config.bg
-            font.family: Config.fontFamily
-            font.pixelSize: Math.round(Config.fontSize * 0.9)
+            color: Color.background
+            font.family: Style.font.family
+            font.pixelSize: Math.round(Style.font.body * 0.9)
         }
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: root.label + " (" + root.count + ")"
-            color: root.selected ? Config.bg : Config.fg
-            font.family: Config.fontFamily
-            font.pixelSize: Math.round(Config.fontSize * 0.9)
+            color: root.selected ? Color.background : Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Math.round(Style.font.body * 0.9)
         }
     }
 

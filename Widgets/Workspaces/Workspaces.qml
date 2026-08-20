@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import qs.Services
+import qs.Commons
 
 Row {
     id: root
@@ -23,7 +24,7 @@ Row {
     }
 
     spacing: 2
-    height: Config.size
+    height: Style.bar.sizeHorizontal
 
     Repeater {
         model: root.ids
@@ -45,13 +46,13 @@ Row {
             readonly property bool occupied: workspace !== null && workspace.toplevels.values.length > 0
 
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(Config.size - 8, label.implicitWidth + 12)
-            height: Config.size - 8
+            width: Math.max(Style.bar.sizeHorizontal - 8, label.implicitWidth + 12)
+            height: Style.bar.sizeHorizontal - 8
             radius: height / 2
 
             // Inverted pill: the active workspace fills with the foreground
             // colour and draws its number in the background colour.
-            color: active ? Config.fg : "transparent"
+            color: active ? Color.foreground : "transparent"
 
             Behavior on color {
                 ColorAnimation {
@@ -63,10 +64,10 @@ Row {
                 id: label
                 anchors.centerIn: parent
                 text: pill.modelData
-                color: pill.active ? Config.bg : Config.fg
+                color: pill.active ? Color.background : Color.foreground
                 opacity: pill.active ? 1 : (pill.occupied ? 0.75 : 0.4)
-                font.family: Config.fontFamily
-                font.pixelSize: Config.fontSize
+                font.family: Style.font.family
+                font.pixelSize: Style.font.body
                 renderType: Text.NativeRendering
 
                 Behavior on opacity {

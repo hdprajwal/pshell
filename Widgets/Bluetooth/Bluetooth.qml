@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import qs.Components
 import qs.Services
+import qs.Commons
 
 BarButton {
     id: root
@@ -67,23 +68,23 @@ BarButton {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Bluetooth"
-                    color: Config.fg
-                    font.family: Config.fontFamily
-                    font.pixelSize: Math.round(Config.fontSize * 1.2)
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Math.round(Style.font.body * 1.2)
                 }
 
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: Math.round(Config.fontSize * 2.6)
-                    height: Math.round(Config.fontSize * 1.4)
+                    width: Math.round(Style.font.body * 2.6)
+                    height: Math.round(Style.font.body * 1.4)
                     radius: height / 2
-                    color: root.enabled ? Config.accent : Qt.rgba(1, 1, 1, 0.18)
+                    color: root.enabled ? Color.accent : Util.alpha(Color.foreground, 0.18)
 
                     Rectangle {
                         width: parent.height - 4
                         height: width
                         radius: width / 2
-                        color: Config.bg
+                        color: Color.background
                         y: 2
                         x: root.enabled ? parent.width - width - 2 : 2
 
@@ -111,10 +112,10 @@ BarButton {
             Text {
                 visible: deviceList.children.length > 0
                 text: "Right click a device to forget it"
-                color: Config.fg
+                color: Color.foreground
                 opacity: 0.45
-                font.family: Config.fontFamily
-                font.pixelSize: Math.round(Config.fontSize * 0.85)
+                font.family: Style.font.family
+                font.pixelSize: Math.round(Style.font.body * 0.85)
             }
         }
     }
