@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import qs.Services
 import qs.Commons
+import qs.Ui
 
 // Connected devices first, then paired, then anything else in range, so the
 // list is not dominated by passing strangers.
@@ -20,13 +21,12 @@ Column {
             adapter.discovering = on;
     }
 
-    spacing: 1
+    spacing: Style.spacing.xxs
 
     Text {
         visible: root.enabled && rows.count === 0
         text: "Searching..."
-        color: Color.foreground
-        opacity: 0.6
+        color: Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
     }
@@ -48,23 +48,24 @@ Column {
             return all.slice(0, root.maxDevices);
         }
 
-        Rectangle {
+        BorderSurface {
             id: devRow
 
             required property var modelData
             readonly property string label: modelData.deviceName || modelData.name || modelData.address
+            readonly property bool hot: hover.containsMouse
 
             width: root.rowWidth
             height: Math.round(Style.font.body * 2.4)
-            radius: 4
-            color: hover.containsMouse ? Style.hoverFill : "transparent"
+            radius: Style.cornerRadius
+            color: Style.controlFill(false, hot, Color.foreground, Color.accent)
 
             Text {
                 anchors.left: parent.left
-                anchors.leftMargin: 6
+                anchors.leftMargin: Style.spacing.md
                 anchors.verticalCenter: parent.verticalCenter
                 text: devRow.label
-                color: Color.foreground
+                color: Color.popups.text
                 opacity: devRow.modelData.paired ? 1 : 0.7
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
@@ -74,7 +75,7 @@ Column {
 
             Text {
                 anchors.right: parent.right
-                anchors.rightMargin: 6
+                anchors.rightMargin: Style.spacing.md
                 anchors.verticalCenter: parent.verticalCenter
                 text: {
                     if (devRow.modelData.pairing)
@@ -85,10 +86,10 @@ Column {
                         return devRow.modelData.batteryAvailable ? Math.round(devRow.modelData.battery * 100) + "%" : "connected";
                     return devRow.modelData.paired ? "paired" : "";
                 }
-                color: devRow.modelData.connected ? Color.accent : Color.foreground
+                color: devRow.modelData.connected ? Color.accent : Color.popups.text
                 opacity: devRow.modelData.connected ? 1 : 0.55
                 font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 0.9)
+                font.pixelSize: Style.font.bodySmall
             }
 
             MouseArea {

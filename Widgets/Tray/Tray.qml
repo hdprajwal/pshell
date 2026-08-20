@@ -1,34 +1,21 @@
 import QtQuick
 import Quickshell
 import Quickshell.Services.SystemTray
-import Quickshell.Widgets
 import qs.Services
 import qs.Commons
+import qs.Ui
+import qs.Components
 
-Row {
+BarWidget {
     id: root
+    moduleName: "qsbar.tray"
 
     property var cfg: ({})
-    property var bar: null
 
     // Follows the shared barIconSize unless this widget overrides it, either
     // with an exact iconSize or a scale against the bar height.
     readonly property int iconSize: cfg.iconSize || (cfg.iconScale !== undefined ? Math.round(Style.bar.sizeHorizontal * cfg.iconScale) : Style.bar.iconCanvas)
 
-    // Icon themes only ship a few fixed sizes, and a request that falls
-    // between them misses. Status icons in particular are commonly 22 and 24
-    // only, with no 16 at all: breeze ships flameshot-tray at 22 and 24, so
-    // asking for 16 loses an icon that is sitting right there. Request the
-    // next real size up, starting at 22, and let the scene graph scale it
-    // down to whatever the bar actually needs.
-    readonly property int requestSize: {
-        const sizes = [22, 24, 32, 48, 64];
-        for (var i = 0; i < sizes.length; i++) {
-            if (sizes[i] >= root.iconSize)
-                return sizes[i];
-        }
-        return sizes[sizes.length - 1];
-    }
     // Comma-separated ids to leave out, matched case-insensitively.
     readonly property var hidden: String(cfg.hide || "").split(",").map(s => s.trim().toLowerCase()).filter(s => s !== "")
 
@@ -36,7 +23,7 @@ Row {
         const all = SystemTray.items.values;
         if (root.hidden.length === 0)
             return all;
-        return all.filter(item => root.hidden.indexOf(String(item?.id || "").toLowerCase()) < 0);
+        return all.filter(item => root.hidden.indexOf(String((item && item.id) || "").toLowerCase()) < 0);
     }
 
     // Status Notifier icons arrive in three shapes: a bare theme name, an
@@ -72,101 +59,70 @@ Row {
         return resolved !== "" ? resolved : root.byId(item);
     }
 
-    // Menus drop away from whichever screen edge the bar sits on.
-    readonly property int menuEdge: {
-        switch (Config.position) {
-        case "bottom":
-            return Edges.Top;
-        case "left":
-            return Edges.Right;
-        case "right":
-            return Edges.Left;
-        default:
-            return Edges.Bottom;
-        }
-    }
+    // Which entry's menu is open, so the bar's open-panel mark can underline
+    // just that icon rather than the whole row.
+    readonly property real openPanelIndicatorWidth: trayMenu.activeAnchorWidth
 
-    spacing: cfg.spacing !== undefined ? cfg.spacing : 6
-    height: Style.bar.sizeHorizontal
+    implicitWidth: row.implicitWidth
+    implicitHeight: row.implicitHeight
 
-    Repeater {
-        model: root.items
+    Row {
+        id: row
+        spacing: cfg.spacing !== undefined ? cfg.spacing : 6
 
-        Item {
-            id: entry
+        Repeater {
+            model: root.items
 
-            required property var modelData
+            BarIconButton {
+                id: entry
 
-            readonly property string label: modelData.tooltipTitle || modelData.title || modelData.id || ""
+                required property var modelData
 
+                readonly property string label: modelData.tooltipTitle || modelData.title || modelData.id || ""
 
-            anchors.verticalCenter: parent.verticalCenter
-            width: root.iconSize
-            height: root.iconSize
+                bar: root.bar
+                slotSize: root.iconSize
+                opticalSize: root.iconSize
+                tooltipText: entry.label
+                iconComponent: Component {
+                    Item {
+                        anchors.fill: parent
 
-            // Hover backing, so an icon has a visible hit target.
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: -2
-                radius: 4
-                color: pointer.containsMouse ? Style.hoverFill : "transparent"
-            }
+                        readonly property string source: root.iconSource(entry.modelData)
 
-            IconImage {
-                id: image
-                anchors.centerIn: parent
-                width: root.iconSize
-                height: root.iconSize
-                source: root.iconSource(entry.modelData)
-                asynchronous: true
-                visible: source !== "" && status === Image.Ready
+                        BarIcon {
+                            anchors.fill: parent
+                            visible: parent.source !== ""
+                            iconSource: parent.source
+                            size: root.iconSize
+                            color: Color.foreground
+                        }
 
-                // IconImage normally asks the theme for exactly the size it
-                // draws at, which for a small bar is a size no theme ships.
-                // Ask for a real size instead and let the image downscale,
-                // which is sharper than scaling the drawn result.
-                backer.sourceSize.width: root.requestSize
-                backer.sourceSize.height: root.requestSize
-                backer.smooth: true
-            }
-
-            // An icon that fails to resolve still needs to be clickable, so
-            // fall back to the first letter of the item id.
-            Text {
-                anchors.centerIn: parent
-                visible: !image.visible
-                text: {
-                    const id = entry.modelData.id || "";
-                    return id === "" ? "?" : id.charAt(0).toUpperCase();
+                        // An icon that fails to resolve still needs to be
+                        // clickable, so fall back to the first letter of the
+                        // item id.
+                        Text {
+                            anchors.centerIn: parent
+                            visible: parent.source === ""
+                            text: {
+                                const id = entry.modelData.id || "";
+                                return id === "" ? "?" : id.charAt(0).toUpperCase();
+                            }
+                            color: Color.foreground
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(root.iconSize * 0.7)
+                        }
+                    }
                 }
-                color: Color.foreground
-                font.family: Style.font.family
-                font.pixelSize: Math.round(root.iconSize * 0.7)
-            }
 
-            MouseArea {
-                id: pointer
-                anchors.fill: parent
-                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-
-                onEntered: if (root.bar)
-                    root.bar.showTooltip(entry, entry.label)
-                onExited: if (root.bar)
-                    root.bar.hideTooltip(entry)
-
-                onClicked: mouse => {
-                    if (root.bar)
-                        root.bar.hideTooltip(entry);
-
-                    if (mouse.button === Qt.RightButton) {
+                onPressed: button => {
+                    if (button === Qt.RightButton) {
                         if (entry.modelData.hasMenu)
                             trayMenu.openFor(entry.modelData, entry);
                         return;
                     }
 
-                    if (mouse.button === Qt.MiddleButton) {
+                    if (button === Qt.MiddleButton) {
                         entry.modelData.secondaryActivate();
                         return;
                     }
@@ -181,14 +137,7 @@ Row {
                     }
                 }
 
-                onWheel: wheel => {
-                    const dy = wheel.angleDelta.y;
-                    const dx = wheel.angleDelta.x;
-                    if (dy !== 0)
-                        entry.modelData.scroll(dy, false);
-                    if (dx !== 0)
-                        entry.modelData.scroll(dx, true);
-                }
+                onWheelMoved: delta => entry.modelData.scroll(delta, false)
             }
         }
     }
@@ -198,5 +147,6 @@ Row {
     TrayMenu {
         id: trayMenu
         bar: root.bar
+        owner: root
     }
 }

@@ -4,6 +4,7 @@ import Quickshell.Services.Pipewire
 import qs.Components
 import qs.Services
 import qs.Commons
+import qs.Ui
 
 // Output or input device picker. `input` switches which list is shown.
 //
@@ -13,6 +14,7 @@ import qs.Commons
 Column {
     id: root
 
+    property QtObject bar: null
     property int rowWidth: 260
     property bool input: false
     property string settingsCommand: ""
@@ -79,13 +81,35 @@ Column {
         }
     }
 
-    Slider {
+    Item {
         width: root.rowWidth
         visible: root.input
-        value: Audio.micVolume
-        dimmed: Audio.micMuted
-        iconSource: Icons.microphone(Audio.micMuted)
-        onMoved: v => Audio.setMicVolume(v)
+        height: micSlider.implicitHeight
+
+        BarIcon {
+            id: micIcon
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            iconSource: Icons.microphone(Audio.micMuted)
+            size: Math.round(Style.font.body * 1.4)
+            opacity: Audio.micMuted ? 0.45 : 1
+        }
+
+        PanelSlider {
+            id: micSlider
+            bar: root.bar
+            anchors.left: micIcon.right
+            anchors.leftMargin: Style.spacing.lg
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            minimum: 0
+            maximum: 1
+            step: 0.05
+            value: Audio.micVolume
+            opacity: Audio.micMuted ? 0.45 : 1
+            onMoved: v => Audio.setMicVolume(v)
+            onRightClicked: Audio.toggleMicMute()
+        }
     }
 
     Column {

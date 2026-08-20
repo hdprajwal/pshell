@@ -1,10 +1,10 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Wayland
 import qs.Services
-import qs.Components
 import qs.Commons
+import qs.Ui
+import qs.Components
 
 // Tailscale state, read straight off the CLI.
 //
@@ -13,24 +13,22 @@ import qs.Commons
 // needs, so this polls the command instead. Tailscale publishes no event
 // stream worth holding open, and its state changes on the order of minutes,
 // so a poll is the honest shape rather than a compromise.
-BarButton {
+Panel {
     id: root
+    moduleName: "qsbar.tailscale"
+    ipcTarget: "qsbar.tailscale"
 
     property var cfg: ({})
-    property var bar: null
 
     // The whole parsed status document. Empty until the first poll lands.
     property var status: ({})
     property bool failed: false
     property string lastError: ""
 
-    // Panel state, cleared on dismiss so it never reopens filtered.
+    // Panel state, cleared once the panel closes so it never reopens
+    // filtered.
     property string query: ""
     property string filter: "myOnline"
-    property bool exitMenuOpen: false
-    // True only while the search field is in use. The popout ties its
-    // keyboard focus to this rather than holding focus for its whole life.
-    property bool searching: false
 
     readonly property int interval: (cfg.interval || 10) * 1000
     readonly property bool showName: cfg.showName === true
@@ -106,6 +104,32 @@ BarButton {
     readonly property var exitCandidates: devices.filter(d => d.ExitNodeOption && String(d.ID || "") !== root.selfId)
     readonly property var activeExit: devices.find(d => d.ExitNode) || null
 
+    // The exit-node dropdown's option list and value. Machines are addressed
+    // by their first Tailscale IP, same as the CLI call itself, so the value
+    // round-trips back into useExitNode() without a second lookup table.
+    readonly property var exitNodeOptions: {
+        const opts = [{
+            value: "",
+            label: "None"
+        }];
+        for (var i = 0; i < root.exitCandidates.length; i++) {
+            const d = root.exitCandidates[i];
+            opts.push({
+                value: String((d.TailscaleIPs || [])[0] || ""),
+                label: String(d.HostName || ""),
+                description: root.ownerOf(d)
+            });
+        }
+        return opts;
+    }
+    readonly property string activeExitValue: root.activeExit ? String((root.activeExit.TailscaleIPs || [])[0] || "") : ""
+
+    function exitNodeForValue(value) {
+        if (value === "")
+            return null;
+        return root.exitCandidates.find(d => String((d.TailscaleIPs || [])[0] || "") === value) || null;
+    }
+
     // The owner of a device, empty when it is one of yours. It is what tells
     // two similarly named machines apart on a shared tailnet.
     function ownerOf(device) {
@@ -153,7 +177,6 @@ BarButton {
 
     function useExitNode(node) {
         root.run(["set", "--exit-node=" + (node ? String(node.TailscaleIPs[0]) : "")]);
-        root.exitMenuOpen = false;
     }
 
     // -- separates the address from anything wl-copy might read as a flag.
@@ -163,21 +186,27 @@ BarButton {
         clipboard.running = true;
     }
 
-    // The Tailscale mark itself, shipped beside this file, rather than a
-    // generic VPN glyph from the icon theme. It is one flat shape, so it tints
-    // to the bar's foreground like everything else and state is carried by
-    // colour: foreground connected, dimmed not, urgent when the CLI errored.
-    iconSource: Qt.resolvedUrl("tailscale.svg")
-    iconColor: root.failed ? Color.urgent : (root.running ? Color.foreground : Color.muted)
-    text: root.showName && root.running ? root.selfName : ""
-    active: PopoutManager.current === panel
+    readonly property bool showLabel: root.showName && root.running && root.selfName !== ""
 
-    onClicked: button => {
-        if (button !== Qt.LeftButton)
+    // What the button paints, for Section's open-panel mark: the icon alone,
+    // never the name label beside it.
+    readonly property real openPanelIndicatorWidth: button.implicitWidth
+    readonly property real openPanelIndicatorHeight: button.implicitHeight
+
+    implicitWidth: button.implicitWidth + (root.showLabel ? Style.spacing.sm + nameLabel.implicitWidth : 0)
+    implicitHeight: button.implicitHeight
+
+    function press(mouseButton) {
+        if (mouseButton !== Qt.LeftButton)
             return;
-        panel.toggle(root);
-        if (panel.opened)
+        root.toggle();
+        if (root.opened)
             root.refresh();
+    }
+
+    onOpenedChanged: if (!root.opened) {
+        root.lastError = "";
+        root.query = "";
     }
 
     Process {
@@ -242,407 +271,302 @@ BarButton {
             poll.running = true
     }
 
-    Popout {
-        id: panel
+    // The Tailscale mark itself, shipped beside this file, rather than a
+    // generic VPN glyph from the icon theme. It is one flat shape, so it tints
+    // to the bar's foreground like everything else and state is carried by
+    // colour: foreground connected, dimmed not, urgent when the CLI errored.
+    BarIconButton {
+        id: button
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
         bar: root.bar
-        // Focus is held only while the search field is in use, never for the
-        // life of the panel. A focused layer surface takes clicks away from
-        // the bar behind it, so a panel holding focus throughout can be opened
-        // from its widget but not closed from it.
-        //
-        // Exclusive rather than OnDemand, for the same reason PasswordPrompt
-        // uses it: OnDemand grants focus only on a click, and the click that
-        // starts a search is already delivered by the time this flips, which
-        // leaves the field showing a cursor and receiving nothing.
-        keyboardFocus: root.searching ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-        onDismissed: {
-            root.lastError = "";
-            root.query = "";
-            root.exitMenuOpen = false;
-            root.searching = false;
+        iconComponent: Component {
+            BarIcon {
+                anchors.fill: parent
+                iconSource: Qt.resolvedUrl("tailscale.svg")
+                size: Style.bar.iconCanvas
+                color: root.failed ? Color.urgent : (root.running ? Color.foreground : Color.muted)
+            }
         }
+        onPressed: b => root.press(b)
+    }
 
-        Column {
-            id: content
-            spacing: 12
+    Text {
+        id: nameLabel
+        visible: root.showLabel
+        anchors.left: button.right
+        anchors.leftMargin: Style.spacing.sm
+        anchors.verticalCenter: button.verticalCenter
+        text: root.selfName
+        color: root.barForeground
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
 
-            readonly property int panelWidth: Math.round(Style.font.body * 26)
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: mouse => root.press(mouse.button)
+        }
+    }
 
-            // Header: the state, who you are, and the one action that matters.
-            Item {
-                width: content.panelWidth
-                height: Math.max(headerText.implicitHeight, connectButton.height)
+    KeyboardPanel {
+        id: panel
+        anchorItem: button
+        owner: root
+        bar: root.bar
+        open: root.opened
+        focusTarget: keyCatcher
+        contentWidth: panel.fittedContentWidth(column.panelWidth + panel.horizontalContentInset)
+        contentHeight: panel.fittedContentHeight(column.implicitHeight)
 
-                Column {
-                    id: headerText
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 1
+        PanelKeyCatcher {
+            id: keyCatcher
+            anchors.fill: parent
+            // Both a plain text field and the exit-node dropdown's embedded
+            // search field want ordinary typing, not j/k turned into panel
+            // navigation. Same rule the dropdowns themselves document for
+            // their own popups.
+            blocked: searchField.activeFocus || exitDropdown.popupOpen
+            onCloseRequested: root.close()
+            onTabRequested: direction => root.switchPanel(direction)
 
-                    Text {
-                        text: {
-                            if (root.needsLogin)
-                                return "Needs login";
-                            if (root.running)
-                                return "Connected";
-                            return root.backendState === "" ? "Not running" : "Disconnected";
+            Column {
+                id: column
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                spacing: Style.spacing.xxl
+
+                readonly property int panelWidth: Math.round(Style.font.body * 26)
+
+                // Header: the state, who you are, and the one action that
+                // matters.
+                PanelHero {
+                    width: column.panelWidth
+                    foreground: Color.popups.text
+                    iconComponent: Component {
+                        BarIcon {
+                            iconSource: Qt.resolvedUrl("tailscale.svg")
+                            size: Style.font.display
+                            color: root.failed ? Color.urgent : (root.running ? Color.popups.text : Color.muted)
                         }
-                        color: Color.foreground
-                        font.family: Style.font.family
-                        font.pixelSize: Math.round(Style.font.body * 1.15)
                     }
-
-                    Text {
-                        visible: root.loginName !== ""
-                        text: root.loginName
-                        color: Color.muted
-                        font.family: Style.font.family
-                        font.pixelSize: Math.round(Style.font.body * 0.9)
+                    title: {
+                        if (root.needsLogin)
+                            return "Needs login";
+                        if (root.running)
+                            return "Connected";
+                        return root.backendState === "" ? "Not running" : "Disconnected";
+                    }
+                    meta: root.loginName
+                    trailingControl: Component {
+                        Button {
+                            text: root.running ? "Disconnect" : "Connect"
+                            foreground: Color.popups.text
+                            bordered: true
+                            onClicked: root.running ? root.disconnect() : root.connect()
+                        }
                     }
                 }
 
-                Rectangle {
-                    id: connectButton
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    width: connectRow.implicitWidth + 18
-                    height: Math.round(Style.font.body * 2.2)
-                    radius: height / 2
-                    color: connectPointer.containsMouse ? Style.selectedFill : Style.hoverFill
+                PanelSeparator {
+                    width: column.panelWidth
+                    foreground: Color.popups.text
+                }
+
+                // Exit node. A dropdown rather than a floating menu list of
+                // our own: the kit's popup already does the searching and the
+                // z-ordering, and unlike the panel itself it does not have to
+                // reason about layer-shell focus.
+                Column {
+                    width: column.panelWidth
+                    spacing: Style.spacing.sm
+
+                    PanelSectionHeader {
+                        text: "Exit node"
+                        foreground: Color.popups.text
+                    }
+
+                    SearchableDropdown {
+                        id: exitDropdown
+                        width: column.panelWidth
+                        showLabel: false
+                        foreground: Color.popups.text
+                        background: Color.popups.background
+                        options: root.exitNodeOptions
+                        value: root.activeExitValue
+                        placeholderText: "Search exit nodes..."
+                        emptyText: "No exit node candidates"
+                        onChanged: value => root.useExitNode(root.exitNodeForValue(value))
+                    }
+                }
+
+                PanelSeparator {
+                    width: column.panelWidth
+                    foreground: Color.popups.text
+                }
+
+                // Search, filters, and the device list. A manual refresh sits
+                // beside the search field for when you have just changed
+                // something on another machine and do not want to wait out a
+                // poll.
+                Column {
+                    width: column.panelWidth
+                    spacing: Style.spacing.sm
+
+                    PanelSectionHeader {
+                        text: "Devices"
+                        foreground: Color.popups.text
+                    }
 
                     Row {
-                        id: connectRow
-                        anchors.centerIn: parent
-                        spacing: 6
+                        width: column.panelWidth
+                        spacing: Style.spacing.sm
 
-                        BarIcon {
-                            anchors.verticalCenter: parent.verticalCenter
-                            iconSource: Icons.first(root.running ? ["network-offline-symbolic", "network-vpn-disconnected-symbolic"] : ["network-vpn-symbolic", "network-vpn"])
-                            size: Math.round(Style.font.body * 1.1)
-                            color: Color.foreground
+                        TextField {
+                            id: searchField
+                            width: column.panelWidth - refreshButton.width - parent.spacing
+                            text: root.query
+                            placeholderText: "Search devices..."
+                            foreground: Color.popups.text
+
+                            onTextChanged: root.query = text
+                            // Escape clears and hands focus back, so a
+                            // mistyped search costs neither the panel nor the
+                            // toggle.
+                            Keys.onEscapePressed: {
+                                text = "";
+                                keyCatcher.forceActiveFocus();
+                            }
                         }
 
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.running ? "Disconnect" : "Connect"
-                            color: Color.foreground
-                            font.family: Style.font.family
-                            font.pixelSize: Math.round(Style.font.body * 0.95)
+                        PanelActionButton {
+                            id: refreshButton
+                            foreground: Color.popups.text
+                            tooltipText: "Refresh"
+                            onClicked: root.refresh()
+
+                            BarIcon {
+                                anchors.centerIn: parent
+                                iconSource: Icons.first(["view-refresh-symbolic", "view-refresh"])
+                                size: Style.font.icon
+                                color: poll.running ? Color.accent : Color.muted
+                            }
                         }
                     }
 
-                    MouseArea {
-                        id: connectPointer
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.running ? root.disconnect() : root.connect()
-                    }
-                }
-            }
+                    // Counts live on the chips because the useful question is
+                    // usually "how many of mine are up", which the number
+                    // answers without opening anything.
+                    Row {
+                        spacing: Style.spacing.sm
 
-            // Exit node. Expands in place rather than floating a menu over the
-            // panel, which would mean a second window and a second z-order to
-            // reason about for a list that is usually one line long.
-            Column {
-                width: content.panelWidth
-                spacing: 6
+                        TailscaleChip {
+                            label: "My Online"
+                            count: root.myOnline.length
+                            selected: root.filter === "myOnline"
+                            onPicked: root.filter = "myOnline"
+                        }
 
-                Item {
-                    width: parent.width
-                    height: Math.round(Style.font.body * 2.4)
+                        TailscaleChip {
+                            label: "Online"
+                            count: root.onlineDevices.length
+                            selected: root.filter === "online"
+                            onPicked: root.filter = "online"
+                        }
 
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Exit node"
-                        color: Color.foreground
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
+                        TailscaleChip {
+                            label: "All"
+                            count: root.devices.length
+                            selected: root.filter === "all"
+                            onPicked: root.filter = "all"
+                        }
                     }
 
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Math.round(content.panelWidth * 0.52)
-                        height: parent.height
-                        radius: 5
-                        // Recessed rather than lifted, so it reads as a field
-                        // you change and not a card you look at.
-                        color: Qt.rgba(0, 0, 0, 0.35)
-                        border.width: 1
-                        border.color: exitPointer.containsMouse ? Util.alpha(Color.foreground, 0.22) : Util.alpha(Color.foreground, 0.12)
+                    Column {
+                        width: column.panelWidth
+                        spacing: Style.spacing.sm
 
-                        Text {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.activeExit ? String(root.activeExit.HostName) : "None"
-                            color: root.activeExit ? Color.foreground : Color.muted
-                            font.family: Style.font.family
-                            font.pixelSize: Style.font.body
+                        Repeater {
+                            model: root.filtered.slice(0, root.maxNodes)
+
+                            TailscaleDevice {
+                                required property var modelData
+
+                                width: column.panelWidth
+                                device: modelData
+                                isSelf: String(modelData.ID || "") === root.selfId
+                                owner: root.ownerOf(modelData)
+                                onCopyRequested: address => root.copyText(address)
+                            }
                         }
 
                         Text {
-                            anchors.right: parent.right
-                            anchors.rightMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.exitMenuOpen ? "⌃" : "⌄"
+                            visible: root.filtered.length === 0
+                            text: root.query.trim() === "" ? "Nothing matches this filter" : "No device matches “" + root.query.trim() + "”"
                             color: Color.muted
                             font.family: Style.font.family
                             font.pixelSize: Style.font.body
                         }
 
-                        MouseArea {
-                            id: exitPointer
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.exitMenuOpen = !root.exitMenuOpen
+                        Text {
+                            visible: root.filtered.length > root.maxNodes
+                            text: "+" + (root.filtered.length - root.maxNodes) + " more"
+                            color: Color.muted
+                            font.family: Style.font.family
+                            font.pixelSize: Math.round(Style.font.body * 0.85)
                         }
                     }
                 }
 
                 Column {
-                    visible: root.exitMenuOpen
-                    width: parent.width
-                    spacing: 0
+                    visible: root.health.length > 0
+                    width: column.panelWidth
+                    spacing: Style.spacing.xs
 
-                    TailscaleExitOption {
-                        width: parent.width
-                        label: "None"
-                        selected: root.activeExit === null
-                        onPicked: root.useExitNode(null)
+                    PanelSectionHeader {
+                        text: "Health"
+                        foreground: Color.urgent
                     }
 
                     Repeater {
-                        model: root.exitCandidates
+                        model: root.health
 
-                        TailscaleExitOption {
-                            required property var modelData
+                        Row {
+                            required property string modelData
 
-                            width: parent.width
-                            label: String(modelData.HostName || "")
-                            selected: modelData.ExitNode === true
-                            onPicked: root.useExitNode(modelData)
+                            width: column.panelWidth
+                            spacing: Style.spacing.sm
+
+                            BarIcon {
+                                anchors.top: parent.top
+                                iconSource: Icons.first(["dialog-warning-symbolic", "dialog-warning"])
+                                size: Style.font.body
+                                color: Color.urgent
+                            }
+
+                            Text {
+                                width: column.panelWidth - Style.font.body - Style.spacing.sm
+                                wrapMode: Text.Wrap
+                                text: parent.modelData
+                                color: Color.urgent
+                                opacity: 0.85
+                                font.family: Style.font.family
+                                font.pixelSize: Math.round(Style.font.body * 0.8)
+                            }
                         }
-                    }
-
-                    Text {
-                        visible: root.exitCandidates.length === 0
-                        // Said plainly, because an empty dropdown reads as a
-                        // bug when the truth is that nobody is offering.
-                        text: "No machine here advertises an exit node"
-                        width: parent.width
-                        wrapMode: Text.Wrap
-                        color: Color.muted
-                        font.family: Style.font.family
-                        font.pixelSize: Math.round(Style.font.body * 0.85)
-                    }
-                }
-            }
-
-            // Search, and a manual refresh for when you have just changed
-            // something on another machine and do not want to wait out a poll.
-            Item {
-                width: content.panelWidth
-                height: Math.round(Style.font.body * 2.6)
-
-                Rectangle {
-                    id: searchBox
-                    anchors.left: parent.left
-                    anchors.right: refreshButton.left
-                    anchors.rightMargin: 8
-                    height: parent.height
-                    radius: 5
-                    color: Qt.rgba(0, 0, 0, 0.35)
-                    border.width: 1
-                    border.color: field.activeFocus ? Color.accent : Util.alpha(Color.foreground, 0.12)
-
-                    BarIcon {
-                        id: searchIcon
-                        anchors.left: parent.left
-                        anchors.leftMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        iconSource: Icons.first(["system-search-symbolic", "edit-find-symbolic"])
-                        size: Math.round(Style.font.body * 1.1)
-                        color: Color.muted
-                    }
-
-                    TextInput {
-                        id: field
-                        anchors.left: searchIcon.right
-                        anchors.leftMargin: 8
-                        anchors.right: parent.right
-                        anchors.rightMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        height: parent.height
-                        verticalAlignment: TextInput.AlignVCenter
-                        clip: true
-                        color: Color.foreground
-                        selectionColor: Color.accent
-                        selectedTextColor: Color.background
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
-
-                        onTextChanged: root.query = text
-                        // Escape clears and hands focus back, so a mistyped
-                        // search costs neither the panel nor the toggle.
-                        Keys.onEscapePressed: {
-                            text = "";
-                            root.searching = false;
-                            focus = false;
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: field.text === ""
-                            text: "Search devices..."
-                            color: Color.muted
-                            font.family: Style.font.family
-                            font.pixelSize: Style.font.body
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.IBeamCursor
-                        onClicked: {
-                            root.searching = true;
-                            field.forceActiveFocus();
-                        }
-                    }
-                }
-
-                Rectangle {
-                    id: refreshButton
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.height
-                    height: parent.height
-                    radius: 5
-                    color: refreshPointer.containsMouse ? Style.selectedFill : "transparent"
-
-                    BarIcon {
-                        anchors.centerIn: parent
-                        iconSource: Icons.first(["view-refresh-symbolic", "view-refresh"])
-                        size: Math.round(Style.font.body * 1.2)
-                        color: poll.running ? Color.accent : Color.muted
-                    }
-
-                    MouseArea {
-                        id: refreshPointer
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.refresh()
-                    }
-                }
-            }
-
-            // Counts live on the chips because the useful question is usually
-            // "how many of mine are up", which the number answers without
-            // opening anything.
-            Row {
-                spacing: 6
-
-                TailscaleChip {
-                    label: "My Online"
-                    count: root.myOnline.length
-                    selected: root.filter === "myOnline"
-                    onPicked: root.filter = "myOnline"
-                }
-
-                TailscaleChip {
-                    label: "Online"
-                    count: root.onlineDevices.length
-                    selected: root.filter === "online"
-                    onPicked: root.filter = "online"
-                }
-
-                TailscaleChip {
-                    label: "All"
-                    count: root.devices.length
-                    selected: root.filter === "all"
-                    onPicked: root.filter = "all"
-                }
-            }
-
-            Column {
-                spacing: 6
-
-                Repeater {
-                    model: root.filtered.slice(0, root.maxNodes)
-
-                    TailscaleDevice {
-                        required property var modelData
-
-                        device: modelData
-                        isSelf: String(modelData.ID || "") === root.selfId
-                        owner: root.ownerOf(modelData)
-                        onCopyRequested: address => root.copyText(address)
                     }
                 }
 
                 Text {
-                    visible: root.filtered.length === 0
-                    text: root.query.trim() === "" ? "Nothing matches this filter" : "No device matches “" + root.query.trim() + "”"
-                    color: Color.muted
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.body
-                }
-
-                Text {
-                    visible: root.filtered.length > root.maxNodes
-                    text: "+" + (root.filtered.length - root.maxNodes) + " more"
-                    color: Color.muted
+                    visible: root.lastError !== ""
+                    width: column.panelWidth
+                    wrapMode: Text.Wrap
+                    text: root.lastError
+                    color: Color.urgent
                     font.family: Style.font.family
                     font.pixelSize: Math.round(Style.font.body * 0.85)
                 }
-            }
-
-            Column {
-                visible: root.health.length > 0
-                width: content.panelWidth
-                spacing: 3
-
-                Repeater {
-                    model: root.health
-
-                    Row {
-                        required property string modelData
-
-                        spacing: 6
-
-                        BarIcon {
-                            anchors.top: parent.top
-                            iconSource: Icons.first(["dialog-warning-symbolic", "dialog-warning"])
-                            size: Math.round(Style.font.body * 1.1)
-                            color: Color.urgent
-                        }
-
-                        Text {
-                            width: content.panelWidth - Math.round(Style.font.body * 1.1) - 6
-                            wrapMode: Text.Wrap
-                            text: parent.modelData
-                            color: Color.urgent
-                            opacity: 0.85
-                            font.family: Style.font.family
-                            font.pixelSize: Math.round(Style.font.body * 0.8)
-                        }
-                    }
-                }
-            }
-
-            Text {
-                visible: root.lastError !== ""
-                width: content.panelWidth
-                wrapMode: Text.Wrap
-                text: root.lastError
-                color: Color.urgent
-                font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 0.85)
             }
         }
     }

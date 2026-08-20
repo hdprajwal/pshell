@@ -1,7 +1,8 @@
 import QtQuick
 import qs.Services
-import qs.Components
 import qs.Commons
+import qs.Ui
+import qs.Components
 
 // One machine on the tailnet.
 //
@@ -33,14 +34,17 @@ Rectangle {
     readonly property string relay: String(device.Relay || "")
     readonly property string os: String(device.OS || "")
 
+    // Fixed rather than the accent: green reads as "online" the same way in
+    // every network tool, and an accent pulled off a red wallpaper would
+    // make a healthy machine look broken.
     readonly property color onlineColor: "#3fb950"
 
     width: Math.round(Style.font.body * 26)
     height: body.implicitHeight + 16
-    radius: 6
+    radius: Style.cornerRadius
     color: hover.containsMouse ? Style.hoverFill : Style.normalFill
     border.width: 1
-    border.color: Util.alpha(Color.foreground, 0.08)
+    border.color: Util.alpha(Color.popups.text, 0.08)
 
     MouseArea {
         id: hover
@@ -78,7 +82,7 @@ Rectangle {
                 anchors.leftMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.hostName
-                color: Color.foreground
+                color: Color.popups.text
                 opacity: root.online ? 1 : 0.6
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
@@ -115,32 +119,23 @@ Rectangle {
 
             // The address is the one thing you open this panel to take away
             // with you, so copying it is a click rather than a selection.
-            Rectangle {
+            PanelActionButton {
                 id: copyButton
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.ip !== ""
-                width: Math.round(Style.font.body * 1.7)
-                height: width
-                radius: 4
-                color: copyPointer.containsMouse ? Style.selectedFill : "transparent"
+                foreground: Color.popups.text
+                tooltipText: "Copy address"
+                onClicked: {
+                    root.copyRequested(root.ip);
+                    copied.restart();
+                }
 
                 BarIcon {
                     anchors.centerIn: parent
                     iconSource: Icons.first(["edit-copy-symbolic", "edit-copy"])
-                    size: Math.round(Style.font.body * 1.1)
+                    size: Style.font.icon
                     color: copied.running ? root.onlineColor : Color.muted
-                }
-
-                MouseArea {
-                    id: copyPointer
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        root.copyRequested(root.ip);
-                        copied.restart();
-                    }
                 }
             }
 

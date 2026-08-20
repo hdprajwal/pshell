@@ -1,164 +1,123 @@
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
 import qs.Components
 import qs.Services
 import qs.Commons
+import qs.Ui
 
 // Password entry for a secured network qsbar has no saved secret for.
 //
-// Two things make this different from Popout. It needs real keyboard focus,
-// which layer surfaces only get when they ask, and it is centred rather than
-// anchored to a widget. Everything else stays deliberately similar.
-PanelWindow {
-    id: prompt
+// A KeyboardPanel gives this the same layer-shell focus priming every other
+// panel gets (see the comment block at the top of Ui/KeyboardPanel.qml), so
+// there is no bespoke WlrLayershell handling here. Opening it hands this
+// popout the coordinator's single-popout slot, which is what closes the
+// network panel underneath without this component asking it to.
+Item {
+    id: root
+
+    property QtObject bar: null
+    property Item anchorItem: null
 
     property var network: null
     property string ssid: ""
+    property string message: ""
 
     signal accepted(string password)
 
-    property string message: ""
+    readonly property bool opened: keyboardPanel.open
 
     function open(target, why) {
-        prompt.network = target;
-        prompt.message = why || "";
-        prompt.ssid = target ? target.name : "";
+        root.network = target;
+        root.message = why || "";
+        root.ssid = target ? target.name : "";
         field.text = "";
-        field.echoMode = TextInput.Password;
-        prompt.visible = true;
-        Qt.callLater(() => field.forceActiveFocus());
+        field.password = true;
+        keyboardPanel.open = true;
     }
 
     function close() {
-        prompt.visible = false;
-        prompt.network = null;
+        keyboardPanel.open = false;
+        root.network = null;
         field.text = "";
     }
 
     function submit() {
         if (field.text === "")
             return;
-        prompt.accepted(field.text);
-        prompt.close();
+        root.accepted(field.text);
+        root.close();
     }
 
-    visible: false
-    color: "transparent"
-
-    anchors {
-        top: true
-        left: true
-        right: true
-        bottom: true
-    }
-
-    exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.namespace: "qsbar:password"
-    WlrLayershell.layer: WlrLayer.Top
-    // Exclusive so keystrokes reach the field rather than whatever was
-    // focused before. Without this the window renders but cannot be typed in.
-    WlrLayershell.keyboardFocus: prompt.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-    Rectangle {
-        anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.4)
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: prompt.close()
-        }
-    }
-
-    Rectangle {
-        anchors.centerIn: parent
-        width: 360
-        height: card.implicitHeight + 32
-        radius: Style.cornerRadius
-        color: Color.background
-        border.width: 1
-        border.color: Color.popups.border
-
-        // Swallow clicks so they do not reach the backdrop and cancel.
-        MouseArea {
-            anchors.fill: parent
-        }
+    KeyboardPanel {
+        id: keyboardPanel
+        anchorItem: root.anchorItem
+        bar: root.bar
+        owner: root
+        centerOnBar: true
+        focusTarget: field
+        contentWidth: keyboardPanel.fittedContentWidth(Style.space(320))
+        contentHeight: keyboardPanel.fittedContentHeight(card.implicitHeight)
 
         Column {
             id: card
-            anchors.centerIn: parent
-            width: parent.width - 32
-            spacing: 12
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            spacing: Style.spacing.md
 
             Text {
                 width: parent.width
-                text: "Connect to " + prompt.ssid
-                color: Color.foreground
+                text: "Connect to " + root.ssid
+                color: Color.popups.text
                 font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 1.2)
+                font.pixelSize: Style.font.subtitle
                 elide: Text.ElideRight
             }
 
             Text {
                 width: parent.width
-                visible: prompt.message !== ""
-                text: prompt.message + ". The saved password may be wrong."
+                visible: root.message !== ""
+                text: root.message + ". The saved password may be wrong."
                 color: Color.urgent
                 wrapMode: Text.WordWrap
                 font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 0.9)
+                font.pixelSize: Style.font.bodySmall
             }
 
-            Rectangle {
+            Item {
                 width: parent.width
-                height: Math.round(Style.font.body * 2.6)
-                radius: 6
-                color: Util.alpha(Color.foreground, 0.07)
-                border.width: field.activeFocus ? 1 : 0
-                border.color: Color.accent
+                implicitHeight: field.implicitHeight
 
-                TextInput {
+                TextField {
                     id: field
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 40
-                    verticalAlignment: TextInput.AlignVCenter
-                    color: Color.foreground
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.body
-                    echoMode: TextInput.Password
-                    selectByMouse: true
-                    selectionColor: Color.accent
-                    clip: true
+                    password: true
+                    placeholderText: "Password"
+                    rightPadding: horizontalPadding + reveal.width + Style.spacing.xs
 
-                    Keys.onEscapePressed: prompt.close()
-                    onAccepted: prompt.submit()
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: field.text === ""
-                        text: "Password"
-                        color: Color.foreground
-                        opacity: 0.4
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
-                    }
+                    Keys.onEscapePressed: root.close()
+                    onAccepted: root.submit()
                 }
 
-                Rectangle {
-                    anchors.right: parent.right
-                    anchors.rightMargin: 6
-                    anchors.verticalCenter: parent.verticalCenter
+                Item {
+                    id: reveal
                     width: Math.round(Style.font.body * 1.9)
                     height: width
-                    radius: 4
-                    color: revealHover.containsMouse ? Style.selectedFill : "transparent"
+                    anchors.right: field.right
+                    anchors.rightMargin: Style.spacing.sm
+                    anchors.verticalCenter: field.verticalCenter
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: Style.cornerRadius
+                        color: revealHover.containsMouse ? Style.hoverFill : "transparent"
+                    }
 
                     BarIcon {
                         anchors.centerIn: parent
-                        iconSource: Icons.first(field.echoMode === TextInput.Password ? ["view-conceal-symbolic", "view-private-symbolic", "view-hidden-symbolic"] : ["view-reveal-symbolic", "view-visible-symbolic"])
+                        iconSource: Icons.first(field.password ? ["view-conceal-symbolic", "view-private-symbolic", "view-hidden-symbolic"] : ["view-reveal-symbolic", "view-visible-symbolic"])
                         size: Math.round(Style.font.body * 1.1)
-                        opacity: 0.7
+                        color: Color.popups.text
                     }
 
                     MouseArea {
@@ -166,58 +125,25 @@ PanelWindow {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: field.echoMode = field.echoMode === TextInput.Password ? TextInput.Normal : TextInput.Password
+                        onClicked: field.password = !field.password
                     }
                 }
             }
 
             Row {
                 anchors.right: parent.right
-                spacing: 8
+                spacing: Style.spacing.md
 
-                Rectangle {
-                    width: Math.round(Style.font.body * 6)
-                    height: Math.round(Style.font.body * 2.4)
-                    radius: 6
-                    color: cancelHover.containsMouse ? Style.selectedFill : Style.normalFill
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Cancel"
-                        color: Color.foreground
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
-                    }
-
-                    MouseArea {
-                        id: cancelHover
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: prompt.close()
-                    }
+                Button {
+                    text: "Cancel"
+                    onClicked: root.close()
                 }
 
-                Rectangle {
-                    width: Math.round(Style.font.body * 6)
-                    height: Math.round(Style.font.body * 2.4)
-                    radius: 6
+                Button {
+                    text: "Connect"
+                    bordered: true
                     opacity: field.text === "" ? 0.4 : 1
-                    color: Color.foreground
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Connect"
-                        color: Color.background
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: prompt.submit()
-                    }
+                    onClicked: root.submit()
                 }
             }
         }

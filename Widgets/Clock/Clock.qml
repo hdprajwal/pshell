@@ -2,15 +2,17 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Ui
 
-Item {
+BarWidget {
     id: root
+    moduleName: "qsbar.clock"
 
     property var cfg: ({})
     readonly property string format: cfg.format || "ddd dd MMM  HH:mm"
 
     implicitWidth: label.implicitWidth
-    implicitHeight: Style.bar.sizeHorizontal
+    implicitHeight: root.barSize
 
     SystemClock {
         id: clock

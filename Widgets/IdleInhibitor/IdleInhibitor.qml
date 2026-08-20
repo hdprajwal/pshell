@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import qs.Services
 import qs.Components
 import qs.Commons
+import qs.Ui
 
 // Keep the screen awake.
 //
@@ -16,23 +17,30 @@ import qs.Commons
 // one-pixel transparent window on the overlay layer, which sits above
 // fullscreen windows and is never occluded. It is created only while the
 // toggle is on, so nothing is on screen the rest of the time.
-BarButton {
+BarIndicator {
     id: root
 
     property var cfg: ({})
-    property var bar: null
 
     // Off after a restart, always. A machine that silently refuses to sleep
     // because of something you turned on last week is a bad surprise.
     property bool inhibited: false
 
-    iconSource: Icons.first(root.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
-    icon: root.inhibited ? "●" : "○"
-    iconColor: root.inhibited ? Color.accent : Color.foreground
     active: root.inhibited
+    activeTooltipText: "Allow the screen to sleep"
+    inactiveTooltipText: "Keep the screen awake"
 
-    onClicked: button => {
-        if (button === Qt.LeftButton)
+    iconComponent: Component {
+        BarIcon {
+            anchors.fill: parent
+            iconSource: Icons.first(root.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
+            size: Style.bar.iconCanvas
+            color: root.inhibited ? Color.accent : Color.foreground
+        }
+    }
+
+    onPressed: b => {
+        if (b === Qt.LeftButton)
             root.inhibited = !root.inhibited;
     }
 

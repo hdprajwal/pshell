@@ -136,12 +136,21 @@ PanelWindow {
   readonly property real anchorW: anchorItem ? anchorItem.width : 0
   readonly property real anchorH: anchorItem ? anchorItem.height : 0
   // The surface, not the output. The compositor already subtracted every
-  // bar, so this is the room the card actually has.
+  // bar, so this is the room the card actually has, and it is what the
+  // geometry below works in.
   readonly property real surfaceW: root.width
   readonly property real surfaceH: root.height
+  // The output itself. Nothing here positions with these any more, but they
+  // are part of what a widget can read off its own panel, so they stay.
+  readonly property real screenW: screen ? screen.width : 0
+  readonly property real screenH: screen ? screen.height : 0
   readonly property real availableCardWidth: surfaceW > 0 ? Math.max(120, surfaceW - margin * 2) : 0
   readonly property real availableCardHeight: surfaceH > 0 ? Math.max(120, surfaceH - margin * 2) : 0
   readonly property real verticalContentInset: padding * 2 + Border.top(borderSpec) + Border.bottom(borderSpec)
+  // Symmetric with the vertical inset. Omarchy panels are all given a
+  // fixed contentWidth and never need this; qsbar sizes several panels
+  // from what is in them, and they need the same allowance for chrome.
+  readonly property real horizontalContentInset: padding * 2 + Border.left(borderSpec) + Border.right(borderSpec)
 
   function fittedContentWidth(width, cap) {
     var desired = Math.max(1, Number(width) || 1)

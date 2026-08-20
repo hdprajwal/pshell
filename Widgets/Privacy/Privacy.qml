@@ -5,6 +5,7 @@ import Quickshell.Services.Pipewire
 import qs.Services
 import qs.Components
 import qs.Commons
+import qs.Ui
 
 // Whether anything is listening or watching right now.
 //
@@ -13,11 +14,10 @@ import qs.Commons
 // an event and the dot appears the instant a program opens the mic. A camera
 // is opened straight on /dev/videoN by most programs, which emits nothing at
 // all, so that half is a poll and can be up to `interval` seconds late.
-BarButton {
+BarIndicator {
     id: root
 
     property var cfg: ({})
-    property var bar: null
 
     readonly property bool showCamera: cfg.showCamera !== false
     readonly property int interval: (cfg.interval || 2) * 1000
@@ -35,23 +35,42 @@ BarButton {
         objects: Pipewire.nodes.values
     }
 
-    // Nothing in use hides the widget, the way activeWindow does, rather than
-    // leaving a permanent icon that means nothing most of the time.
-    shown: root.micActive || root.cameraActive
-    iconSources: {
-        const out = [];
-        if (root.micActive)
-            out.push(Icons.microphone(false));
+    // application.name is what a program calls itself to Pipewire; the node
+    // name is the fallback when it does not bother to say. A dot alone
+    // cannot say who is listening, so the detail moves into the tooltip.
+    readonly property string detailText: {
+        const lines = root.micStreams.map(m => {
+            const props = m.properties || ({});
+            return String(props["application.name"] || m.name || "something") + " is using the microphone";
+        });
         if (root.cameraActive)
-            out.push(Icons.first(["camera-web-symbolic", "camera-video-symbolic", "camera-photo-symbolic"]));
-        return out;
+            lines.push("The camera is in use");
+        return lines.join("\n");
     }
-    iconColor: Color.urgent
-    active: PopoutManager.current === panel
 
-    onClicked: button => {
-        if (button === Qt.LeftButton)
-            panel.toggle(root);
+    active: root.micActive || root.cameraActive
+    // "active" rather than the default "single": a hover over the bar
+    // reveals the indicators you can act on, and this is not one of
+    // them. Nothing capturing means nothing to show.
+    indicatorBlock: "active"
+
+    iconComponent: Component {
+        BarIcon {
+            anchors.fill: parent
+            // The mic takes the glyph when both are live: it is the
+            // event-driven half, so it is the one worth not missing.
+            iconSource: root.micActive ? Icons.microphone(false) : Icons.first(["camera-web-symbolic", "camera-video-symbolic", "camera-photo-symbolic"])
+            size: Style.bar.iconCanvas
+            color: Color.urgent
+        }
+    }
+
+    // The old panel listed every capturing program by name; that detail
+    // lives on here as a tooltip rather than a click target, since a status
+    // dot has nothing to open.
+    PanelToolTip {
+        visible: root.tooltipHovered && root.detailText !== ""
+        text: root.detailText
     }
 
     // fuser exits non-zero when nothing holds the device, which is the whole
@@ -79,74 +98,4 @@ BarButton {
     // Stop claiming the camera is live once the poll is switched off.
     onShowCameraChanged: if (!root.showCamera)
         root.cameraActive = false
-
-    Popout {
-        id: panel
-        bar: root.bar
-
-        Column {
-            spacing: 8
-
-            Text {
-                text: "In use"
-                color: Color.foreground
-                font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 1.2)
-            }
-
-            Repeater {
-                model: root.micStreams
-
-                Row {
-                    required property var modelData
-
-                    spacing: 8
-
-                    BarIcon {
-                        anchors.verticalCenter: parent.verticalCenter
-                        iconSource: Icons.microphone(false)
-                        size: Math.round(Style.font.body * 1.2)
-                        color: Color.urgent
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        // application.name is what a program calls itself to
-                        // Pipewire; the node name is the fallback when it does
-                        // not bother to say.
-                        text: {
-                            const props = parent.modelData.properties || ({});
-                            return String(props["application.name"] || parent.modelData.name || "something") + " is using the microphone";
-                        }
-                        color: Color.foreground
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
-                    }
-                }
-            }
-
-            Row {
-                visible: root.cameraActive
-                spacing: 8
-
-                BarIcon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    iconSource: Icons.first(["camera-web-symbolic", "camera-video-symbolic"])
-                    size: Math.round(Style.font.body * 1.2)
-                    color: Color.urgent
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    // Deliberately vague. fuser says the device is held, not
-                    // by whom, and naming the wrong program would be worse
-                    // than naming none.
-                    text: "The camera is in use"
-                    color: Color.foreground
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.body
-                }
-            }
-        }
-    }
 }

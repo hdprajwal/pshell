@@ -150,9 +150,18 @@ QtObject {
         property color unselectedBorder: root.composed("image-picker.unselected-border", "image-picker.unselected-border-alpha", root.foreground, 0.28)
     }
 
-    // config.json is the base layer, shell.toml the override, so a token
-    // tuned by hand survives an edit to config.json and vice versa.
+    // Where Omarchy keeps its own theme, for a widget that wants to load an
+    // asset out of it. qsbar takes no colour from here — the palette comes
+    // from config.json and matugen — but the paths are the same ones.
+    readonly property string home: Quickshell.env("HOME") || ""
+    readonly property string stateHome: (Quickshell.env("XDG_STATE_HOME") || home + "/.local/state")
+    readonly property string currentThemePath: stateHome + "/omarchy/current/theme"
+
+    // Three layers, weakest first: config.json expressed as tokens, then
+    // anything pushed in at runtime, then the hand-written override file. A
+    // token tuned in one survives an edit to another.
     readonly property var themeShellValues: Config.shellDefaults
+    property var pushedShellValues: ({})
     property var userShellValues: ({})
 
     onThemeShellValuesChanged: mergeShell()
@@ -195,6 +204,8 @@ QtObject {
         var base = themeShellValues || ({});
         for (var tk in base)
             merged[tk] = base[tk];
+        for (var pk in pushedShellValues)
+            merged[pk] = pushedShellValues[pk];
         for (var uk in userShellValues)
             merged[uk] = userShellValues[uk];
         shellValues = merged;
@@ -203,6 +214,14 @@ QtObject {
 
     function loadUserShell(raw) {
         userShellValues = parseShell(raw);
+        mergeShell();
+    }
+
+    // Omarchy's shell reads a theme's shell.toml and pushes it in here on a
+    // theme switch. qsbar has no theme switcher of its own, but the entry
+    // point works, so anything driving one gets the same result.
+    function loadShell(raw) {
+        pushedShellValues = parseShell(raw);
         mergeShell();
     }
 

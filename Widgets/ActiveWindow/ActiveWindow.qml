@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Services
 import qs.Commons
+import qs.Ui
 
 // The focused window: its icon, its application name, and its title.
 //
@@ -10,11 +11,11 @@ import qs.Commons
 // rather than Hyprland's IPC, so unlike `workspaces` this is not tied to one
 // compositor. Hyprland's own activeToplevel reads null here whether or not a
 // window is focused, so it would not have worked anyway.
-Item {
+BarWidget {
     id: root
+    moduleName: "qsbar.active-window"
 
     property var cfg: ({})
-    property var bar: null
 
     readonly property var toplevel: ToplevelManager.activeToplevel
     readonly property string appId: toplevel ? String(toplevel.appId || "") : ""
@@ -56,7 +57,7 @@ Item {
     // Nothing focused collapses the slot, and Section.qml hides a slot with no
     // width, so the bar closes the gap on an empty workspace.
     implicitWidth: root.toplevel ? content.implicitWidth : 0
-    implicitHeight: Style.bar.sizeHorizontal
+    implicitHeight: root.barSize
     visible: root.toplevel !== null
 
     Row {

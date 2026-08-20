@@ -21,7 +21,10 @@ the bar it belongs under. Both now anchor a layer surface to all four edges and
 honour exclusive zones, so the compositor sizes the surface to what every bar
 has left over and the card offsets itself by `gap` alone. That also lets the
 bar keep its own clicks, so the mask and click-forwarding KeyboardPanel needed
-to reach past its own overlay are gone. The public API of both is unchanged.
+to reach past its own overlay are gone. Both also gained a
+`horizontalContentInset`, the mirror of the `verticalContentInset` they
+already had, for panels that size themselves from their content. Nothing
+either of them already exposed has changed.
 
 `Commons/Color.qml`, `Commons/Style.qml` and `Commons/Util.qml` are qsbar's
 own. They implement the same interface as Omarchy's, but read qsbar's

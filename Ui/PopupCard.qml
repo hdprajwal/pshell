@@ -22,13 +22,14 @@ import qs.Commons
 PanelWindow {
     id: root
 
-    required property Item anchorItem
+    property Item anchorItem: null
     required property QtObject bar
     property var owner: null
     property int margin: Style.gapsOut
     property int padding: Style.spacing.popupPadding
     property int contentWidth: Style.space(280)
     property int contentHeight: Style.space(200)
+    property color backgroundColor: Color.popups.background
     property color borderColor: Color.popups.border
     property var borderSpec: Border.localOrSurfaceSpec("popups", "border", borderColor, Color.popups.border, Math.max(1, Style.space(2)))
     property bool open: false
@@ -88,11 +89,21 @@ PanelWindow {
     // bar, so this is the room the card actually has.
     readonly property real surfaceW: root.width
     readonly property real surfaceH: root.height
+    // The output and the bar. Nothing here positions with these any more,
+    // but they are part of what a widget can read off its own panel.
+    readonly property real screenW: popupScreen ? popupScreen.width : 0
+    readonly property real screenH: popupScreen ? popupScreen.height : 0
+    readonly property real barW: anchorWindow ? anchorWindow.width : surfaceW
+    readonly property real barH: anchorWindow ? anchorWindow.height : 0
     readonly property real anchorW: anchorItem ? anchorItem.width : 0
     readonly property real anchorH: anchorItem ? anchorItem.height : 0
     readonly property real availableCardWidth: surfaceW > 0 ? Math.max(120, surfaceW - margin * 2) : 0
     readonly property real availableCardHeight: surfaceH > 0 ? Math.max(120, surfaceH - margin * 2) : 0
     readonly property real verticalContentInset: padding * 2 + Border.top(borderSpec) + Border.bottom(borderSpec)
+    // Symmetric with the vertical inset. Omarchy panels are all given a
+    // fixed contentWidth and never need this; qsbar sizes several panels
+    // from what is in them, and they need the same allowance for chrome.
+    readonly property real horizontalContentInset: padding * 2 + Border.left(borderSpec) + Border.right(borderSpec)
 
     function fittedContentWidth(width, cap) {
         var desired = Math.max(1, Number(width) || 1);
@@ -195,7 +206,7 @@ PanelWindow {
         y: root.cardOrigin.y
         width: root.contentWidth
         height: root.contentHeight
-        color: Color.popups.background
+        color: root.backgroundColor
         borderSpec: root.borderSpec
         padding: root.padding
         radius: Style.cornerRadius

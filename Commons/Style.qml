@@ -440,6 +440,20 @@ QtObject {
         gapsOutProc.running = true;
     }
 
+    // Hyprland reloads sourced config asynchronously, so an immediate hyprctl
+    // races it and reads the old value. Omarchy's theme IPC calls this after
+    // applying a theme; a widget that changes a Hyprland option can too.
+    function scheduleRefresh() {
+        refreshTimer.restart();
+    }
+
+    property Timer refreshTimer: Timer {
+        id: refreshTimer
+        interval: 200
+        repeat: false
+        onTriggered: root.refresh()
+    }
+
     function applyRoundingJson(raw) {
         try {
             var json = JSON.parse(raw || "{}");

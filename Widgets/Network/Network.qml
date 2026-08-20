@@ -4,12 +4,17 @@ import Quickshell.Networking
 import qs.Components
 import qs.Services
 import qs.Commons
+import qs.Ui
 
-BarButton {
+// Wi-Fi + wired status in the bar with a network list panel. Shaped the way
+// Calendar is: a qs.Ui.Panel owns open/close/IPC, a BarIconButton paints the
+// bar slot, and a KeyboardPanel is the popup surface.
+Panel {
     id: root
+    moduleName: "qsbar.network"
+    ipcTarget: "qsbar.network"
 
     property var cfg: ({})
-    property var bar: null
 
     readonly property var wifiDevice: {
         const devices = Networking.devices.values;
@@ -44,7 +49,7 @@ BarButton {
 
     // Wired wins when it is up: it is the connection actually carrying
     // traffic, so showing wifi strength there would be misleading.
-    iconSource: {
+    readonly property string iconSource: {
         if (wiredUp)
             return Icons.wired(true);
         if (!Networking.wifiEnabled)
@@ -54,92 +59,116 @@ BarButton {
         return Icons.wifi(0);
     }
 
-    text: cfg.showName === true && activeWifi ? activeWifi.name : ""
-    // Derived from the coordinator rather than this panel's own flag, so
-    // exactly one widget can ever look active.
-    active: PopoutManager.current === panel
+    readonly property bool showName: cfg.showName === true && activeWifi !== null
 
-    onClicked: button => {
-        if (button === Qt.RightButton) {
-            Networking.wifiEnabled = !Networking.wifiEnabled;
-            return;
+    implicitWidth: button.implicitWidth
+    implicitHeight: button.implicitHeight
+
+    // Scanning costs power, so it only runs while the panel is open.
+    onOpenedChanged: networkList.scan(root.opened)
+
+    BarIconButton {
+        id: button
+        anchors.fill: parent
+        bar: root.bar
+        // No wired link and no connected wifi is the one state actually
+        // worth flagging; a radio the user turned off on purpose is not.
+        active: Networking.wifiEnabled && !root.wiredUp && !root.activeWifi
+        slotSize: root.showName ? Style.bar.iconSlot + nameLabel.implicitWidth + Style.spacing.xs : Style.bar.iconSlot
+
+        iconComponent: Component {
+            BarIcon {
+                anchors.fill: parent
+                iconSource: root.iconSource
+                size: Style.bar.iconCanvas
+                color: button.active ? button.activeColor : button.foreground
+            }
         }
-        panel.toggle(root);
-        networkList.scan(panel.opened);
+
+        Text {
+            id: nameLabel
+            visible: root.showName
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            anchors.rightMargin: Style.spacing.xs
+            text: root.activeWifi ? root.activeWifi.name : ""
+            color: button.foreground
+            font.family: button.fontFamily
+            font.pixelSize: button.fontSize
+        }
+
+        onPressed: b => {
+            if (b === Qt.RightButton) {
+                Networking.wifiEnabled = !Networking.wifiEnabled;
+                return;
+            }
+            root.toggle();
+        }
     }
 
-    Popout {
+    KeyboardPanel {
         id: panel
+        anchorItem: button
+        owner: root
         bar: root.bar
+        open: root.opened
+        focusTarget: keyCatcher
+        contentWidth: panel.fittedContentWidth(Style.space(280))
+        contentHeight: panel.fittedContentHeight(column.implicitHeight)
 
-        // Scanning costs power, so it only runs while the panel is open.
-        onDismissed: networkList.scan(false)
+        PanelKeyCatcher {
+            id: keyCatcher
+            anchors.fill: parent
+            onCloseRequested: root.close()
+            onTabRequested: direction => root.switchPanel(direction)
 
-        Column {
-            spacing: 8
+            Column {
+                id: column
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                spacing: Style.spacing.xxl
 
-            Row {
-                spacing: 10
+                Row {
+                    spacing: Style.spacing.lg
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Wi-Fi"
+                        color: Color.popups.text
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.subtitle
+                    }
+
+                    ToggleSwitch {
+                        anchors.verticalCenter: parent.verticalCenter
+                        checked: Networking.wifiEnabled
+                        onToggled: Networking.wifiEnabled = !Networking.wifiEnabled
+                    }
+                }
 
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Wi-Fi"
-                    color: Color.foreground
+                    visible: root.wiredUp
+                    text: "Wired connected"
+                    color: Color.muted
                     font.family: Style.font.family
-                    font.pixelSize: Math.round(Style.font.body * 1.2)
+                    font.pixelSize: Style.font.body
                 }
 
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Math.round(Style.font.body * 2.6)
-                    height: Math.round(Style.font.body * 1.4)
-                    radius: height / 2
-                    color: Networking.wifiEnabled ? Color.accent : Util.alpha(Color.foreground, 0.18)
-
-                    Rectangle {
-                        width: parent.height - 4
-                        height: width
-                        radius: width / 2
-                        color: Color.background
-                        y: 2
-                        x: Networking.wifiEnabled ? parent.width - width - 2 : 2
-
-                        Behavior on x {
-                            NumberAnimation {
-                                duration: 120
-                            }
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
-                    }
+                NetworkList {
+                    id: networkList
+                    bar: root.bar
+                    anchorItem: button
+                    maxNetworks: root.cfg.maxNetworks || 8
                 }
-            }
 
-            Text {
-                visible: root.wiredUp
-                text: "Wired connected"
-                color: Color.foreground
-                opacity: 0.7
-                font.family: Style.font.family
-                font.pixelSize: Style.font.body
-            }
-
-            NetworkList {
-                id: networkList
-                maxNetworks: root.cfg.maxNetworks || 8
-            }
-
-            Text {
-                visible: networkList.children.length > 0
-                text: "Right click a network to forget it"
-                color: Color.foreground
-                opacity: 0.45
-                font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 0.85)
+                Text {
+                    visible: networkList.children.length > 0
+                    text: "Right click a network to forget it"
+                    color: Color.muted
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.caption
+                }
             }
         }
     }

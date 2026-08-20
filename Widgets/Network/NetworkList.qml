@@ -4,12 +4,15 @@ import Quickshell.Networking
 import qs.Components
 import qs.Services
 import qs.Commons
+import qs.Ui
 
 // Wi-Fi networks, strongest first with the connected one pinned to the top.
 // Shared by the network widget and the control centre.
 Column {
     id: root
 
+    property QtObject bar: null
+    property Item anchorItem: null
     property int rowWidth: 260
     property int maxNetworks: 8
 
@@ -93,12 +96,12 @@ Column {
         }
     }
 
-    spacing: 1
+    spacing: Style.spacing.xxs
 
     Column {
         width: root.rowWidth
         visible: root.failure !== ""
-        spacing: 4
+        spacing: Style.spacing.sm
 
         Text {
             width: root.rowWidth
@@ -106,43 +109,20 @@ Column {
             color: Color.urgent
             wrapMode: Text.WordWrap
             font.family: Style.font.family
-            font.pixelSize: Math.round(Style.font.body * 0.9)
+            font.pixelSize: Style.font.bodySmall
         }
 
-        Rectangle {
+        Button {
             visible: root.failed !== null && root.secured(root.failed)
-            width: retryLabel.implicitWidth + 16
-            height: Math.round(Style.font.body * 2)
-            radius: 4
-            color: retryHover.containsMouse ? Style.selectedFill : Style.normalFill
-
-            Text {
-                id: retryLabel
-                anchors.centerIn: parent
-                text: "Enter password"
-                color: Color.foreground
-                font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 0.9)
-            }
-
-            MouseArea {
-                id: retryHover
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    PopoutManager.closeAll();
-                    passwordPrompt.open(root.failed, root.failure);
-                }
-            }
+            text: "Enter password"
+            onClicked: passwordPrompt.open(root.failed, root.failure)
         }
     }
 
     Text {
         visible: Networking.wifiEnabled && rows.count === 0
         text: "Scanning..."
-        color: Color.foreground
-        opacity: 0.6
+        color: Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
     }
@@ -162,33 +142,34 @@ Column {
             return nets.slice(0, root.maxNetworks);
         }
 
-        Rectangle {
+        BorderSurface {
             id: netRow
 
             required property var modelData
+            readonly property bool hot: hover.containsMouse
 
             width: root.rowWidth
             height: Math.round(Style.font.body * 2.4)
-            radius: 4
-            color: hover.containsMouse ? Style.hoverFill : "transparent"
+            radius: Style.cornerRadius
+            color: Style.controlFill(false, hot, Color.foreground, Color.accent)
 
             Row {
                 anchors.left: parent.left
-                anchors.leftMargin: 6
+                anchors.leftMargin: Style.spacing.md
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 6
+                spacing: Style.spacing.md
 
                 BarIcon {
                     anchors.verticalCenter: parent.verticalCenter
                     iconSource: Icons.wifi(netRow.modelData.signalStrength)
                     size: Math.round(Style.font.body * 1.1)
-                    opacity: 0.8
+                    color: Color.popups.text
                 }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: netRow.modelData.name
-                    color: Color.foreground
+                    color: Color.popups.text
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
                     width: root.rowWidth - 150
@@ -198,7 +179,7 @@ Column {
 
             Text {
                 anchors.right: parent.right
-                anchors.rightMargin: 6
+                anchors.rightMargin: Style.spacing.md
                 anchors.verticalCenter: parent.verticalCenter
                 text: {
                     if (root.pending === netRow.modelData || netRow.modelData.state === ConnectionState.Connecting)
@@ -207,10 +188,10 @@ Column {
                         return "connected";
                     return Math.round(netRow.modelData.signalStrength * 100) + "%";
                 }
-                color: netRow.modelData.connected ? Color.accent : Color.foreground
+                color: netRow.modelData.connected ? Color.accent : Color.popups.text
                 opacity: netRow.modelData.connected ? 1 : 0.6
                 font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 0.9)
+                font.pixelSize: Style.font.bodySmall
             }
 
             MouseArea {
@@ -232,9 +213,6 @@ Column {
                         return;
 
                     if (root.needsPassword(netRow.modelData)) {
-                        // Close the panel first: it covers the screen, and
-                        // leaving it up would sit over the prompt.
-                        PopoutManager.closeAll();
                         passwordPrompt.open(netRow.modelData, "");
                         return;
                     }
@@ -246,6 +224,8 @@ Column {
 
     PasswordPrompt {
         id: passwordPrompt
+        bar: root.bar
+        anchorItem: root.anchorItem
         onAccepted: password => {
             if (passwordPrompt.network)
                 root.joinWithPassword(passwordPrompt.network, password);

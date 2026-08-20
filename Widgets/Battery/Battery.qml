@@ -4,12 +4,20 @@ import Quickshell.Services.UPower
 import qs.Components
 import qs.Services
 import qs.Commons
+import qs.Ui
 
-BarButton {
+Panel {
     id: root
+    moduleName: "qsbar.battery"
+    ipcTarget: "qsbar.battery"
 
     property var cfg: ({})
-    property var bar: null
+
+    // Keyboard cursor over the power-profile row. Off until the panel opens
+    // or an arrow key moves it, so a fresh open never highlights a profile
+    // the user hasn't touched yet.
+    property int profileIndex: 0
+    property bool cursorActive: false
 
     readonly property var device: UPower.displayDevice
 
@@ -36,6 +44,7 @@ BarButton {
     readonly property int percent: present ? Math.round(device.percentage * 100) : 0
     readonly property bool charging: present && (device.state === UPowerDeviceState.Charging || device.state === UPowerDeviceState.FullyCharged)
     readonly property bool low: present && percent <= (cfg.lowThreshold || 20) && !charging
+    readonly property bool showPercent: cfg.showPercent !== false
 
     readonly property string themedIcon: Icons.battery(percent, charging)
 
@@ -83,268 +92,343 @@ BarButton {
         return (charging ? "Time until full: " : "Time remaining: ") + rest;
     }
 
-    shown: present
-    iconSource: themedIcon
-    text: cfg.showPercent === false ? "" : percent + "%"
-    iconColor: low ? Color.urgent : Color.foreground
-    active: PopoutManager.current === panel
-
-    onClicked: button => {
-        if (button === Qt.RightButton) {
-            cfg.showPercent = cfg.showPercent === false;
-            return;
-        }
-        panel.toggle(root);
+    // Performance is absent on hardware that cannot do it, so the row is
+    // built from what the daemon reports.
+    readonly property var profileOptions: {
+        const list = [
+            {
+                label: "Power Saver",
+                value: PowerProfile.PowerSaver
+            },
+            {
+                label: "Balanced",
+                value: PowerProfile.Balanced
+            }
+        ];
+        if (PowerProfiles.hasPerformanceProfile)
+            list.push({
+                label: "Performance",
+                value: PowerProfile.Performance
+            });
+        return list;
     }
 
-    Popout {
-        id: panel
+    function selectProfileByDelta(delta) {
+        if (profileOptions.length === 0)
+            return;
+        cursorActive = true;
+        profileIndex = (profileIndex + delta + profileOptions.length) % profileOptions.length;
+    }
+
+    function activateSelectedProfile() {
+        if (!cursorActive || profileIndex < 0 || profileIndex >= profileOptions.length)
+            return;
+        PowerProfiles.profile = profileOptions[profileIndex].value;
+    }
+
+    // No battery on a desktop; the widget takes no bar space rather than
+    // sitting there showing nothing.
+    visible: present
+    implicitWidth: present ? button.implicitWidth : 0
+    implicitHeight: present ? button.implicitHeight : 0
+
+    // A percentage sits well past an icon's width, so the open-panel mark
+    // should track what's painted rather than the whole (widened) slot.
+    readonly property real openPanelIndicatorWidth: showPercent && !button.vertical ? button.width : 0
+
+    onOpenedChanged: {
+        if (opened) {
+            const idx = profileOptions.findIndex(o => o.value === PowerProfiles.profile);
+            profileIndex = idx >= 0 ? idx : 0;
+            cursorActive = false;
+        }
+    }
+    onPresentChanged: if (!present) close()
+
+    BarIconButton {
+        id: button
+        anchors.fill: parent
         bar: root.bar
+        // Percentage-in-the-bar widens the slot to fit the label; matched by
+        // opticalSize so the icon+label pair centers as one unit instead of
+        // the icon alone centering in the wider slot and stranding the text.
+        slotSize: root.showPercent && !vertical ? Style.bar.iconSlot + percentMetrics.width + Style.spacing.sm : Style.bar.iconSlot
+        opticalSize: root.showPercent && !vertical ? slotSize : Style.bar.iconCanvas
+        iconComponent: Component {
+            Row {
+                anchors.centerIn: parent
+                spacing: Style.spacing.sm
 
-        Column {
-            width: root.cfg.panelWidth || 360
-            spacing: 12
+                BarIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconSource: root.themedIcon
+                    size: Style.bar.iconCanvas
+                    color: root.low ? Color.urgent : Color.foreground
+                }
 
-            // Headline: charge, state, draw and time remaining.
-            Item {
-                width: parent.width
-                height: headline.implicitHeight
+                Text {
+                    visible: root.showPercent && !button.vertical
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.percent + "%"
+                    color: Color.foreground
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.body
+                }
+            }
+        }
 
-                Row {
-                    id: headline
-                    spacing: 12
+        onPressed: b => {
+            if (b === Qt.RightButton) {
+                root.cfg.showPercent = root.cfg.showPercent === false;
+                return;
+            }
+            root.toggle();
+        }
+    }
+
+    // Off-screen measurement of the percent label so slotSize/opticalSize
+    // can widen to fit it without depending on an id inside the Component
+    // above, whose scope is private to its own instance.
+    TextMetrics {
+        id: percentMetrics
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
+        text: root.percent + "%"
+    }
+
+    KeyboardPanel {
+        id: panel
+        anchorItem: button
+        owner: root
+        bar: root.bar
+        open: root.opened
+        focusTarget: keyCatcher
+        contentWidth: panel.fittedContentWidth((root.cfg.panelWidth || 360) + panel.horizontalContentInset)
+        contentHeight: panel.fittedContentHeight(column.implicitHeight)
+
+        PanelKeyCatcher {
+            id: keyCatcher
+            anchors.fill: parent
+
+            onMoveRequested: (dx, dy) => {
+                const delta = dx !== 0 ? dx : dy;
+                if (delta !== 0)
+                    root.selectProfileByDelta(delta);
+            }
+            onActivateRequested: root.activateSelectedProfile()
+            onCloseRequested: root.close()
+            onTabRequested: direction => root.switchPanel(direction)
+
+            Column {
+                id: column
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                spacing: Style.spacing.xxl
+
+                // Headline: icon, state, and the big percentage.
+                Item {
+                    width: parent.width
+                    implicitHeight: Math.max(heroIcon.implicitHeight, heroLabels.implicitHeight, heroPercent.implicitHeight)
 
                     BarIcon {
+                        id: heroIcon
+                        anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                         iconSource: root.themedIcon
-                        size: Math.round(Style.font.body * 2.8)
+                        size: Style.font.display
+                        color: root.low ? Color.urgent : Color.popups.text
                     }
 
                     Column {
+                        id: heroLabels
+                        anchors.left: heroIcon.right
+                        anchors.leftMargin: Style.space(14)
+                        anchors.right: heroPercent.left
+                        anchors.rightMargin: Style.space(10)
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 4
+                        spacing: Style.space(2)
 
-                        Row {
-                            spacing: 8
-
-                            Text {
-                                anchors.baseline: stateText.baseline
-                                text: root.percent + "%"
-                                color: Color.accent
-                                font.family: Style.font.family
-                                font.pixelSize: Math.round(Style.font.body * 1.9)
-                                font.bold: true
-                            }
-
-                            Text {
-                                id: stateText
-                                text: root.stateLabel
-                                color: Color.foreground
-                                font.family: Style.font.family
-                                font.pixelSize: Math.round(Style.font.body * 1.35)
-                            }
+                        Text {
+                            width: parent.width
+                            text: "Battery"
+                            color: Color.popups.text
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.title
+                            font.bold: true
+                            elide: Text.ElideRight
                         }
 
-                        Row {
-                            spacing: 10
-
-                            Text {
-                                visible: root.powerLabel !== ""
-                                text: root.powerLabel
-                                color: Color.accent
-                                font.family: Style.font.family
-                                font.pixelSize: Math.round(Style.font.body * 0.9)
-                            }
-
-                            Text {
-                                visible: root.timeLabel !== ""
-                                text: root.timeLabel
-                                color: Color.foreground
-                                opacity: 0.6
-                                font.family: Style.font.family
-                                font.pixelSize: Math.round(Style.font.body * 0.9)
-                            }
+                        Text {
+                            width: parent.width
+                            text: root.stateLabel.toUpperCase()
+                            color: Color.muted
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.caption
+                            font.bold: true
+                            font.letterSpacing: 1.2
+                            elide: Text.ElideRight
                         }
                     }
-                }
-
-                Rectangle {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    width: Math.round(Style.font.body * 1.9)
-                    height: width
-                    radius: 4
-                    color: closeHover.containsMouse ? Style.selectedFill : "transparent"
 
                     Text {
-                        anchors.centerIn: parent
-                        text: "✕"
-                        color: Color.foreground
-                        opacity: 0.7
+                        id: heroPercent
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.percent + "%"
+                        color: Color.popups.text
                         font.family: Style.font.family
-                        font.pixelSize: Style.font.body
-                    }
-
-                    MouseArea {
-                        id: closeHover
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: panel.close()
+                        font.pixelSize: Style.font.displayLarge
+                        font.bold: true
                     }
                 }
-            }
 
-            // Health and capacity, side by side.
-            Row {
-                width: parent.width
-                spacing: 10
-                visible: cards.length > 0
+                // Draw rate and time remaining, when the daemon has them.
+                Row {
+                    width: parent.width
+                    spacing: Style.spacing.xl
+                    visible: root.powerLabel !== "" || root.timeLabel !== ""
 
-                readonly property var cards: {
-                    const list = [];
-                    if (root.health >= 0)
-                        list.push({
-                            label: "Health",
-                            value: Math.round(root.health) + "%",
-                            warn: root.health < 70
-                        });
-                    if (root.device && root.device.energyCapacity > 0)
-                        list.push({
-                            label: "Capacity",
-                            value: root.device.energyCapacity.toFixed(1) + " Wh",
-                            warn: false
-                        });
-                    return list;
-                }
-                readonly property int cellWidth: cards.length > 0 ? (width - spacing * (cards.length - 1)) / cards.length : width
+                    Text {
+                        visible: root.powerLabel !== ""
+                        text: root.powerLabel
+                        color: Color.accent
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.bodySmall
+                    }
 
-                Repeater {
-                    model: parent.cards
-
-                    Rectangle {
-                        required property var modelData
-
-                        width: parent.cellWidth
-                        height: Math.round(Style.font.body * 4)
-                        radius: 8
-                        color: Util.alpha(Color.foreground, 0.05)
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: 2
-
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: parent.parent.modelData.label
-                                color: Color.foreground
-                                opacity: 0.6
-                                font.family: Style.font.family
-                                font.pixelSize: Math.round(Style.font.body * 0.9)
-                            }
-
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: parent.parent.modelData.value
-                                color: parent.parent.modelData.warn ? Color.urgent : Color.foreground
-                                font.family: Style.font.family
-                                font.pixelSize: Math.round(Style.font.body * 1.35)
-                                font.bold: true
-                            }
-                        }
+                    Text {
+                        visible: root.timeLabel !== ""
+                        text: root.timeLabel
+                        color: Color.muted
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.bodySmall
                     }
                 }
-            }
 
-            // Power profiles. Performance is absent on hardware that cannot
-            // do it, so the row is built from what the daemon reports.
-            Row {
-                id: profiles
-                width: parent.width
-                spacing: 10
+                // Health and capacity, side by side.
+                Row {
+                    width: parent.width
+                    spacing: Style.spacing.xl
+                    visible: cards.length > 0
 
-                readonly property var options: {
-                    const list = [
-                        {
-                            label: "Power Saver",
-                            value: PowerProfile.PowerSaver
-                        },
-                        {
-                            label: "Balanced",
-                            value: PowerProfile.Balanced
-                        }
-                    ];
-                    if (PowerProfiles.hasPerformanceProfile)
-                        list.push({
-                            label: "Performance",
-                            value: PowerProfile.Performance
-                        });
-                    return list;
-                }
-                readonly property int cellWidth: (width - spacing * (options.length - 1)) / options.length
+                    readonly property var cards: {
+                        const list = [];
+                        if (root.health >= 0)
+                            list.push({
+                                label: "Health",
+                                value: Math.round(root.health) + "%",
+                                warn: root.health < 70
+                            });
+                        if (root.device && root.device.energyCapacity > 0)
+                            list.push({
+                                label: "Capacity",
+                                value: root.device.energyCapacity.toFixed(1) + " Wh",
+                                warn: false
+                            });
+                        return list;
+                    }
+                    readonly property int cellWidth: cards.length > 0 ? (width - spacing * (cards.length - 1)) / cards.length : width
 
-                Repeater {
-                    model: profiles.options
+                    Repeater {
+                        model: parent.cards
 
-                    Rectangle {
-                        required property var modelData
+                        Rectangle {
+                            required property var modelData
 
-                        readonly property bool current: PowerProfiles.profile === modelData.value
+                            width: parent.cellWidth
+                            height: Style.space(64)
+                            radius: Style.cornerRadius
+                            color: Util.alpha(Color.popups.text, 0.05)
 
-                        width: profiles.cellWidth
-                        height: Math.round(Style.font.body * 2.9)
-                        radius: 6
-                        color: current ? Color.foreground : (profileHover.containsMouse ? Style.selectedFill : Style.normalFill)
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: Style.spacing.xxs
 
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 5
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: parent.parent.modelData.label
+                                    color: Color.muted
+                                    font.family: Style.font.family
+                                    font.pixelSize: Style.font.bodySmall
+                                }
 
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: parent.parent.current
-                                text: "✓"
-                                color: Color.background
-                                font.family: Style.font.family
-                                font.pixelSize: Math.round(Style.font.body * 0.95)
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: parent.parent.modelData.label
-                                color: parent.parent.current ? Color.background : Color.foreground
-                                font.family: Style.font.family
-                                font.pixelSize: Style.font.body
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: parent.parent.modelData.value
+                                    color: parent.parent.modelData.warn ? Color.urgent : Color.popups.text
+                                    font.family: Style.font.family
+                                    font.pixelSize: Style.font.subtitle
+                                    font.bold: true
+                                }
                             }
                         }
+                    }
+                }
 
-                        MouseArea {
-                            id: profileHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: PowerProfiles.profile = parent.modelData.value
+                PanelSeparator {
+                    visible: root.profileOptions.length > 0
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: Style.spacing.lg
+                    visible: root.profileOptions.length > 0
+
+                    PanelSectionHeader {
+                        text: "POWER PROFILE"
+                    }
+
+                    Row {
+                        id: profileRow
+                        width: parent.width
+                        spacing: Style.spacing.md
+
+                        readonly property real cellWidth: root.profileOptions.length > 0 ? (width - spacing * (root.profileOptions.length - 1)) / root.profileOptions.length : 0
+
+                        Repeater {
+                            model: root.profileOptions
+
+                            Button {
+                                required property var modelData
+                                required property int index
+
+                                width: profileRow.cellWidth
+                                text: modelData.label
+                                fontSize: Style.font.bodySmall
+                                bordered: true
+                                active: PowerProfiles.profile === modelData.value
+                                hasCursor: root.cursorActive && root.profileIndex === index
+                                onClicked: PowerProfiles.profile = modelData.value
+                                onHovered: h => {
+                                    if (h) {
+                                        root.cursorActive = true;
+                                        root.profileIndex = index;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            Text {
-                width: parent.width
-                visible: PowerProfiles.degradationReason !== PerformanceDegradationReason.None
-                text: {
-                    switch (PowerProfiles.degradationReason) {
-                    case PerformanceDegradationReason.LapDetected:
-                        return "Performance limited: lap detected";
-                    case PerformanceDegradationReason.HighTemperature:
-                        return "Performance limited: running hot";
-                    default:
-                        return "";
+                Text {
+                    width: parent.width
+                    visible: PowerProfiles.degradationReason !== PerformanceDegradationReason.None
+                    text: {
+                        switch (PowerProfiles.degradationReason) {
+                        case PerformanceDegradationReason.LapDetected:
+                            return "Performance limited: lap detected";
+                        case PerformanceDegradationReason.HighTemperature:
+                            return "Performance limited: running hot";
+                        default:
+                            return "";
+                        }
                     }
+                    color: Color.urgent
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.bodySmall
+                    wrapMode: Text.WordWrap
                 }
-                color: Color.urgent
-                font.family: Style.font.family
-                font.pixelSize: Math.round(Style.font.body * 0.9)
             }
         }
     }

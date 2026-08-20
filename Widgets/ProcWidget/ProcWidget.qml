@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Services
 import qs.Commons
+import qs.Ui
 
 // The whole point of qsbar: a widget is a program.
 //
@@ -11,8 +12,9 @@ import qs.Commons
 //
 // Output is plain text, or Waybar-style JSON:
 //   {"text": "42%", "tooltip": "cpu", "class": "warn"}
-Item {
+BarWidget {
     id: root
+    moduleName: "qsbar.proc"
 
     property var cfg: ({})
 
@@ -24,9 +26,11 @@ Item {
     property string tooltip: ""
     property string cls: ""
 
-    implicitWidth: label.implicitWidth
-    implicitHeight: Style.bar.sizeHorizontal
-    visible: content !== ""
+    // Nothing to show collapses the slot, matching Waybar's own hidden-
+    // module behaviour, rather than sitting there as an empty pill.
+    implicitWidth: root.content !== "" ? button.implicitWidth : 0
+    implicitHeight: root.barSize
+    visible: root.content !== ""
 
     function apply(raw) {
         const s = (raw || "").trim();
@@ -52,13 +56,21 @@ Item {
         cls = "";
     }
 
-    Text {
-        id: label
-        anchors.centerIn: parent
+    WidgetButton {
+        id: button
+        anchors.fill: parent
+        bar: root.bar
         text: root.content
-        color: root.cls === "urgent" || root.cls === "critical" ? "#f38ba8" : Color.foreground
-        font.family: Style.font.family
-        font.pixelSize: Style.font.body
+        tooltipText: root.tooltip
+        // Waybar's "urgent"/"critical" classes are the one thing a proc
+        // widget needs to shout about; the urgent token is what every other
+        // widget in this shell already uses for that.
+        active: root.cls === "urgent" || root.cls === "critical"
+
+        onPressed: b => {
+            if (root.cfg.onClick)
+                Quickshell.execDetached(["sh", "-c", String(root.cfg.onClick)]);
+        }
     }
 
     // Poll mode
@@ -89,11 +101,5 @@ Item {
             splitMarker: "\n"
             onRead: data => root.apply(data)
         }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        enabled: !!root.cfg.onClick
-        onClicked: Quickshell.execDetached(["sh", "-c", String(root.cfg.onClick)])
     }
 }

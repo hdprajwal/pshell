@@ -56,6 +56,35 @@ QtObject {
         Quickshell.execDetached(["bash", "-lc", command]);
     }
 
+    // The text-editing keys every searchable panel's filter shares:
+    //   Backspace       delete the previous character
+    //   Ctrl+Backspace  delete the previous word
+    //   Ctrl+U          clear the field
+    // True only when the key would actually change the text, so an empty
+    // filter never swallows it and a panel's own empty-filter fallback (menu
+    // back-navigation, say) still gets its turn.
+    function editsFilter(event, text) {
+        if (!text)
+            return false;
+        // Alt and Meta sequences belong to other shortcuts.
+        if (event.modifiers & (Qt.AltModifier | Qt.MetaModifier))
+            return false;
+        // Ctrl+U alone; Ctrl+Shift+U is Unicode input.
+        if (event.key === Qt.Key_U)
+            return event.modifiers === Qt.ControlModifier;
+        return event.key === Qt.Key_Backspace;
+    }
+
+    // The filter text after applying one of those keys. Assumes
+    // editsFilter(event, text) already said yes.
+    function editedFilter(event, text) {
+        if (event.key === Qt.Key_U)
+            return "";
+        if (event.modifiers & Qt.ControlModifier)
+            return text.replace(/\s+$/, "").replace(/\S+$/, "");
+        return text.slice(0, -1);
+    }
+
     function isPlainObject(value) {
         return value !== null && typeof value === "object" && !Array.isArray(value);
     }
