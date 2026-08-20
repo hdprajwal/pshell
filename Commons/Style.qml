@@ -278,6 +278,16 @@ QtObject {
         // Distance between adjacent widgets in a bar section. qsbar's own
         // token; Omarchy lays its bar out from iconSlot instead.
         readonly property int barGap: root.spacingToken("bar-gap", 12)
+        // Inside the bar, from its edge to the first or last widget.
+        readonly property int barPadding: root.spacingToken("bar-padding", 12)
+        // Outside the bar, from the screen edge. Non-zero on any side lifts
+        // the bar off that edge; the compositor keeps the space reserved, so
+        // a window still stops short of it.
+        readonly property int barMarginTop: root.spacingToken("bar-margin-top", 0)
+        readonly property int barMarginBottom: root.spacingToken("bar-margin-bottom", 0)
+        readonly property int barMarginLeft: root.spacingToken("bar-margin-left", 0)
+        readonly property int barMarginRight: root.spacingToken("bar-margin-right", 0)
+        readonly property bool barDetached: barMarginTop > 0 || barMarginBottom > 0 || barMarginLeft > 0 || barMarginRight > 0
     }
 
     // ------------------------------------------------------------- typography

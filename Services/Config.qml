@@ -42,7 +42,40 @@ Singleton {
     // matugen refuses to guess when an image has several candidate source
     // colours and no terminal to ask, so a preference is mandatory here.
     readonly property string matugenPrefer: data.matugenPrefer || "saturation"
+    // Three separate distances, which used to be one:
+    //   gap     - between two widgets in a section
+    //   padding - between the bar's own edge and the first or last widget
+    //   margin  - between the bar and the screen edge, which detaches it
+    // `padding` defaults to `gap` because that is what it was before it had
+    // a name of its own, so a config written without it looks unchanged.
     readonly property int gap: data.gap !== undefined ? data.gap : 12
+    readonly property int padding: data.padding !== undefined ? data.padding : gap
+
+    // A number margins every side equally; an object sets the sides it names
+    // and leaves the rest at zero. A bar anchored to the top only ever shows
+    // three of them, but naming all four keeps one spelling for every
+    // position.
+    readonly property var margin: {
+        const m = data.margin;
+        const out = {
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0
+        };
+        if (typeof m === "number") {
+            out.top = out.bottom = out.left = out.right = Math.max(0, Math.round(m));
+            return out;
+        }
+        if (m && typeof m === "object") {
+            for (var side in out) {
+                const v = Number(m[side]);
+                if (isFinite(v))
+                    out[side] = Math.max(0, Math.round(v));
+            }
+        }
+        return out;
+    }
 
     // Style takes its rounding and screen-edge gap from Hyprland, so panels
     // match window decoration without being told twice. These are the escape
@@ -65,6 +98,11 @@ Singleton {
             "bar.size-vertical": String(size),
             "bar.icon-canvas": String(barIconSize),
             "spacing.bar-gap": String(gap),
+            "spacing.bar-padding": String(padding),
+            "spacing.bar-margin-top": String(margin.top),
+            "spacing.bar-margin-bottom": String(margin.bottom),
+            "spacing.bar-margin-left": String(margin.left),
+            "spacing.bar-margin-right": String(margin.right),
             "spacing.scale": String(spacingScale),
             "spacing.scale-with-font": scaleWithFont ? "true" : "false",
             // A panel edge that states itself quietly. Omarchy's default is a

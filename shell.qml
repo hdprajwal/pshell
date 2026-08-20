@@ -103,13 +103,26 @@ ShellRoot {
             }
 
             screen: modelData
-            color: Color.background
+            // The surface is transparent and the bar is a rectangle inside
+            // it, because a detached bar wants rounded corners and a window
+            // cannot have them.
+            color: "transparent"
 
             anchors {
                 top: Config.position === "top" || barWindow.vertical
                 bottom: Config.position === "bottom" || barWindow.vertical
                 left: Config.position === "left" || !barWindow.vertical
                 right: Config.position === "right" || !barWindow.vertical
+            }
+
+            // Lifts the bar off the screen edges. The compositor still
+            // reserves the space, so a maximised window stops outside the
+            // margin rather than sliding under it.
+            margins {
+                top: Style.spacing.barMarginTop
+                bottom: Style.spacing.barMarginBottom
+                left: Style.spacing.barMarginLeft
+                right: Style.spacing.barMarginRight
             }
 
             implicitHeight: barWindow.vertical ? 0 : Style.bar.sizeHorizontal
@@ -129,6 +142,14 @@ ShellRoot {
             // Declared before the sections so they sit above it: a widget's
             // own handler takes the press first and this only ever sees the
             // gaps between them.
+            // Square while the bar is flush with the screen: rounding a
+            // corner that has nothing behind it just eats the background.
+            Rectangle {
+                anchors.fill: parent
+                color: Color.background
+                radius: Style.spacing.barDetached ? Style.cornerRadius : 0
+            }
+
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
@@ -139,7 +160,7 @@ ShellRoot {
                 entries: Config.left
                 bar: barWindow
                 anchors.left: parent.left
-                anchors.leftMargin: Style.spacing.barGap
+                anchors.leftMargin: Style.spacing.barPadding
                 anchors.verticalCenter: parent.verticalCenter
             }
 
@@ -154,7 +175,7 @@ ShellRoot {
                 entries: Config.right
                 bar: barWindow
                 anchors.right: parent.right
-                anchors.rightMargin: Style.spacing.barGap
+                anchors.rightMargin: Style.spacing.barPadding
                 anchors.verticalCenter: parent.verticalCenter
             }
 

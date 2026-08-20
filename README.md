@@ -48,6 +48,42 @@ updates. You do not need to restart it.
 
 `position` takes `top`, `bottom`, `left`, or `right`.
 
+### Spacing
+
+Three distances, each with its own knob:
+
+| | | default |
+|---|---|---|
+| `gap` | between two widgets | `12` |
+| `padding` | from the bar's edge to the first or last widget | whatever `gap` is |
+| `margin` | from the screen edge to the bar | `0` |
+
+```json
+{
+  "gap": 6,
+  "padding": 4,
+  "margin": 8
+}
+```
+
+A non-zero `margin` lifts the bar off the screen and rounds its corners, and
+the compositor keeps the space reserved, so a maximised window stops outside
+the margin rather than sliding under it. A number margins every side; an
+object margins only the sides it names:
+
+```json
+{ "margin": { "top": 4, "left": 10, "right": 10 } }
+```
+
+Each widget also carries padding of its own, which is why the last widget does
+not sit flush against the bar's edge even at `"padding": 0`. That comes from
+`bar.icon-slot` being wider than `barIconSize`; override it under `shell` if
+you want the buttons themselves tighter:
+
+```json
+{ "shell": { "bar.icon-slot": 20 } }
+```
+
 `barIconSize` sets the pixel size of every icon drawn in the bar, defaulting to
 55% of the bar height. It covers the tray, battery and control centre together,
 so they stay in step. Icons inside popouts size themselves off the font instead
