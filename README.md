@@ -48,17 +48,60 @@ updates. You do not need to restart it.
 
 `position` takes `top`, `bottom`, `left`, or `right`.
 
+`barIconSize` sets the pixel size of every icon drawn in the bar, defaulting to
+55% of the bar height. It covers the tray, battery and control centre together,
+so they stay in step. Icons inside popouts size themselves off the font instead
+and are not affected. A widget can still override it: the tray takes `iconSize`
+for an exact size or `iconScale` for its own fraction of the bar height.
+
+## Colours from the wallpaper
+
+Set `theme` to `wallpaper` and point `wallpaper` at an image. qsbar runs
+[matugen](https://github.com/InioX/matugen) over it and fills in the colours you
+have not set yourself:
+
+```json
+{
+  "theme": "wallpaper",
+  "wallpaper": "~/wallpapers/black.jpg",
+  "mode": "dark"
+}
+```
+
+Anything you set explicitly still wins, so `"accent": "#89b4fa"` alongside the
+above keeps your accent and derives the rest.
+
+qsbar reads matugen's JSON straight off stdout rather than using its template
+and config files, so nothing is generated on disk and there is no second file to
+keep in sync. It maps `surface` to the background, `on_surface` to text,
+`primary` to the accent, `error` to urgent and `outline` to dimmed text.
+
+Because `config.json` reloads on save, a script that changes your wallpaper can
+rewrite the `wallpaper` field and the bar recolours itself. There is nothing to
+restart and no daemon watching anything.
+
+`mode` takes `dark` or `light`. `matugenScheme` picks the palette algorithm,
+defaulting to `scheme-tonal-spot`. `matugenPrefer` decides which source colour
+wins when an image has several candidates, defaulting to `saturation`; matugen
+refuses to guess without it when there is no terminal to ask.
+
+Needs `matugen` installed. Without it the configured colours are used and a
+warning is logged.
+
 ## Widgets
 
-Three are built in. Workspaces reads Hyprland's socket, the clock needs to tick
-every minute, and the tray has to speak the Status Notifier protocol over DBus.
-None of those work as a polled command.
+Seven are built in. These hold a live connection to something, a Hyprland socket,
+DBus, UPower, so none of them work as a polled command.
 
 | type | What it does |
 |---|---|
 | `workspaces` | Hyprland workspaces. Click one to switch. |
 | `clock` | `format` takes a Qt date format string. |
-| `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconSize` and `spacing` tune the layout. |
+| `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconScale`, `iconSize` and `spacing` tune the layout. |
+| `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
+| `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
+| `bluetooth` | Adapter state and connected devices, with battery level where the device reports it. Left click opens the panel to pair, connect and disconnect, right click toggles the radio. `showCount`, `maxDevices`. |
+| `controlCenter` | Everything in one panel: session header, volume and brightness sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
 
 Everything else is a program. Leave out `type` and give it an `exec`.
 
@@ -175,6 +218,48 @@ This covers widgets that draw in the bar. `BarWidget`, `WidgetButton`,
 singletons are implemented. Widgets that open a popup panel import roughly ten
 more types from Omarchy's UI kit, and those do not load here. Reimplementing
 all of it would mean rebuilding their shell, which is not what this is for.
+
+## Control centre
+
+One panel instead of four. The header shows who is logged in and how long the
+machine has been up, with lock, power and logout buttons. Below that are volume
+and brightness sliders, then a grid of tiles.
+
+Each tile has two targets, which is worth knowing before you use it. Clicking
+the icon square toggles that thing on or off. Clicking anywhere else opens its
+list: networks to join, devices to pair, or output and input devices to switch
+between. Splitting it that way means a mis-click never turns your Wi-Fi off when
+you meant to pick a network.
+
+```json
+{
+  "type": "controlCenter",
+  "name": "Prajwal",
+  "avatar": "/var/lib/AccountsService/icons/prajwal",
+  "nightMode": "hyprsunset -t 4000",
+  "lock": "loginctl lock-session",
+  "power": "systemctl poweroff",
+  "logout": "loginctl terminate-user $USER"
+}
+```
+
+Brightness needs `brightnessctl`. The slider hides itself if there is no
+backlight, so a desktop shows one slider rather than a broken one.
+
+Night mode has no standard tool, so it is whatever command you give it and the
+tile is hidden until you set `nightMode`. Dark mode toggles the GTK
+`color-scheme` unless you override `darkModeCommand`.
+
+## Icons
+
+Widgets use icons from your icon theme by name, so they follow whatever you
+have set rather than shipping their own artwork. Only standard freedesktop
+names are used, which every mainstream theme provides.
+
+Qt needs a platform theme to know which icon theme is in use. Without one it
+finds almost nothing, so `shell.qml` sets `QT_QPA_PLATFORMTHEME=gtk3`, which
+reads the GTK setting. If your icons are missing, that is the first thing to
+check.
 
 ## A widget in Go
 

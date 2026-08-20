@@ -20,7 +20,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "workspaces" || modelData.type === "tray")
+                if (modelData.type === "clock" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
@@ -47,6 +47,14 @@ Row {
                         return workspacesComponent;
                     case "tray":
                         return trayComponent;
+                    case "battery":
+                        return batteryComponent;
+                    case "network":
+                        return networkComponent;
+                    case "bluetooth":
+                        return bluetoothComponent;
+                    case "controlCenter":
+                        return controlCenterComponent;
                     default:
                         return procComponent;
                     }
@@ -98,6 +106,22 @@ Row {
     Component {
         id: trayComponent
         Tray {}
+    }
+    Component {
+        id: batteryComponent
+        Battery {}
+    }
+    Component {
+        id: networkComponent
+        Network {}
+    }
+    Component {
+        id: bluetoothComponent
+        Bluetooth {}
+    }
+    Component {
+        id: controlCenterComponent
+        ControlCenter {}
     }
     Component {
         id: procComponent
