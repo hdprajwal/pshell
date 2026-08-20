@@ -53,12 +53,12 @@ Panel {
     // Reports the things people glance at the bar for. Bluetooth only earns
     // its place when something is actually connected, otherwise it is a
     // permanent reminder of a radio nobody is using.
-    readonly property var iconSources: {
+    readonly property var iconNames: {
         const list = [];
-        list.push(wifiOn ? Icons.wifi(activeWifi ? activeWifi.signalStrength : 0) : Icons.wifiOff());
+        list.push(Glyphs.wifi(wifiOn, activeWifi !== null, activeWifi ? activeWifi.signalStrength : 0));
         if (btConnected.length > 0)
-            list.push(Icons.bluetooth(true, true));
-        list.push(Icons.first(Audio.muted ? ["audio-volume-muted-symbolic", "audio-volume-muted"] : ["audio-volume-high-symbolic", "audio-volume-high"]));
+            list.push(Glyphs.bluetooth(true, true));
+        list.push(Glyphs.volume(Audio.muted, Audio.volume));
         return list;
     }
 
@@ -102,7 +102,7 @@ Panel {
         // Padded the same as a single-icon slot, so a widget carrying
         // three icons sits the same distance from its neighbour as one
         // carrying one.
-        iconSources: root.iconSources
+        iconNames: root.iconNames
 
         onPressed: b => {
             if (b === Qt.RightButton) {
@@ -179,31 +179,40 @@ Panel {
                             Repeater {
                                 model: [
                                     {
-                                        icon: "󰌾",
+                                        icon: Glyphs.lock,
                                         cmd: root.cfg.lock || "loginctl lock-session",
                                         tip: "Lock"
                                     },
                                     {
-                                        icon: "󰐥",
+                                        icon: Glyphs.powerOff,
                                         cmd: root.cfg.power || "systemctl poweroff",
                                         tip: "Power off"
                                     },
                                     {
-                                        icon: "󰍃",
+                                        icon: Glyphs.logout,
                                         cmd: root.cfg.logout || "loginctl terminate-user $USER",
                                         tip: "Log out"
                                     }
                                 ]
 
+                                // The glyph is a child rather than `iconText`
+                                // because that draws in the button's own font,
+                                // which is also the tooltip's.
                                 PanelActionButton {
                                     required property var modelData
 
                                     foreground: Color.popups.text
-                                    iconText: modelData.icon
                                     tooltipText: modelData.tip
                                     onClicked: {
                                         root.run(modelData.cmd);
                                         root.close();
+                                    }
+
+                                    MaterialIcon {
+                                        anchors.centerIn: parent
+                                        name: modelData.icon
+                                        size: Style.font.icon
+                                        color: Color.popups.text
                                     }
                                 }
                             }
@@ -216,12 +225,13 @@ Panel {
                     width: parent.width
                     height: volumeSlider.implicitHeight
 
-                    BarIcon {
+                    MaterialIcon {
                         id: volumeIcon
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        iconSource: Icons.first(Audio.muted ? ["audio-volume-muted-symbolic", "audio-volume-muted"] : ["audio-volume-high-symbolic", "audio-volume-high"])
+                        name: Glyphs.volume(Audio.muted, Audio.volume)
                         size: Math.round(Style.font.body * 1.4)
+                        color: Color.popups.text
                         opacity: Audio.muted ? 0.45 : 1
                     }
 
@@ -248,12 +258,13 @@ Panel {
                     visible: Brightness.available
                     height: visible ? brightnessSlider.implicitHeight : 0
 
-                    BarIcon {
+                    MaterialIcon {
                         id: brightnessIcon
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        iconSource: Icons.first(["display-brightness-symbolic", "brightness-high-symbolic", "video-display"])
+                        name: Glyphs.brightness(Brightness.fraction)
                         size: Math.round(Style.font.body * 1.4)
+                        color: Color.popups.text
                     }
 
                     PanelSlider {
@@ -289,7 +300,7 @@ Panel {
 
                         ControlTile {
                             width: parent.parent.cellWidth
-                            iconSource: root.wifiOn ? Icons.wifi(root.activeWifi ? root.activeWifi.signalStrength : 0) : Icons.wifiOff()
+                            iconName: Glyphs.wifi(root.wifiOn, root.activeWifi !== null, root.activeWifi ? root.activeWifi.signalStrength : 0)
                             title: root.wifiOn ? (root.activeWifi ? root.activeWifi.name : "Not connected") : "Wi-Fi"
                             subtitle: root.wifiOn ? (root.activeWifi ? Math.round(root.activeWifi.signalStrength * 100) + "%" : "On") : "Off"
                             active: root.wifiOn
@@ -300,7 +311,7 @@ Panel {
 
                         ControlTile {
                             width: parent.parent.cellWidth
-                            iconSource: Icons.bluetooth(root.btOn, root.btConnected.length > 0)
+                            iconName: Glyphs.bluetooth(root.btOn, root.btConnected.length > 0)
                             title: root.btOn ? (root.btConnected.length > 0 ? root.btConnected[0].deviceName || root.btConnected[0].name : "Bluetooth") : "Disabled"
                             subtitle: root.btOn ? (root.btConnected.length > 0 ? "Connected" : "On") : "Off"
                             active: root.btOn
@@ -327,7 +338,7 @@ Panel {
 
                         ControlTile {
                             width: parent.parent.cellWidth
-                            iconSource: Icons.first(Audio.muted ? ["audio-volume-muted-symbolic"] : ["audio-volume-high-symbolic", "audio-speakers-symbolic"])
+                            iconName: Glyphs.volume(Audio.muted, Audio.volume)
                             title: Audio.sinkName
                             subtitle: Math.round(Audio.volume * 100) + "%"
                             active: !Audio.muted
@@ -338,7 +349,7 @@ Panel {
 
                         ControlTile {
                             width: parent.parent.cellWidth
-                            iconSource: Icons.microphone(Audio.micMuted)
+                            iconName: Glyphs.microphone(Audio.micMuted)
                             title: Audio.sourceName
                             subtitle: Math.round(Audio.micVolume * 100) + "%"
                             active: !Audio.micMuted
@@ -369,7 +380,7 @@ Panel {
                     ControlTile {
                         width: parent.cellWidth
                         visible: parent.hasNight
-                        iconSource: Icons.first(["night-light-symbolic", "weather-clear-night-symbolic", "weather-clear-night"])
+                        iconName: Glyphs.nightMode
                         title: "Night Mode"
                         hasDetail: false
                         onToggled: root.run(String(root.cfg.nightMode))
@@ -378,7 +389,7 @@ Panel {
                     ControlTile {
                         width: parent.cellWidth
                         visible: root.cfg.darkMode !== false
-                        iconSource: Icons.first(["dark-mode-symbolic", "weather-clear-night-symbolic", "preferences-desktop-theme"])
+                        iconName: Glyphs.darkMode
                         title: "Dark Mode"
                         hasDetail: false
                         onToggled: root.run(root.cfg.darkModeCommand || "gsettings set org.gnome.desktop.interface color-scheme \"$(test \"$(gsettings get org.gnome.desktop.interface color-scheme)\" = \"'prefer-dark'\" && echo prefer-light || echo prefer-dark)\"")
@@ -462,7 +473,7 @@ Panel {
     component ControlTile: BorderSurface {
         id: tile
 
-        property string iconSource: ""
+        property string iconName: ""
         property string title: ""
         property string subtitle: ""
         property bool active: false
@@ -514,9 +525,12 @@ Panel {
                 color: tile.active ? Style.selectedStateColor(Color.popups.text, Color.accent) : (iconHover.containsMouse ? Style.selectedFillFor(Color.popups.text, Color.accent) : Style.hoverFillFor(Color.popups.text, Color.accent))
                 borderSpec: Border.none()
 
-                BarIcon {
+                // Material Symbols carry a solid cut of most icons, so "on"
+                // is a filled glyph as well as a filled box.
+                MaterialIcon {
                     anchors.centerIn: parent
-                    iconSource: tile.iconSource
+                    name: tile.iconName
+                    filled: tile.active
                     size: Math.round(Style.font.body * 1.4)
                     color: tile.active ? Color.background : Color.popups.text
                 }

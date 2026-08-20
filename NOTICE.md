@@ -19,9 +19,9 @@ icons, an icon beside a label -- had to compute its own slot width and widen
 that canvas to match, and several of qsbar's got it wrong in different
 directions. It now lays its content out as one centred row and takes its width
 from that, the way qsbar's own bar button did before this kit replaced it.
-`iconSources`, `iconSource`, `label` and `iconColor` are additions;
-`text` still means the glyph and still goes through the same optically
-centred canvas, so an Omarchy widget behaves exactly as before.
+`iconSources`, `iconSource`, `iconNames`, `iconName`, `label` and `iconColor`
+are additions; `text` still means the glyph and still goes through the same
+optically centred canvas, so an Omarchy widget behaves exactly as before.
 `Ui/BarIcon.qml` is qsbar's own, not Omarchy's: it draws a recoloured icon
 from the icon theme, which Omarchy has no equivalent for because it uses
 glyphs throughout.
@@ -46,6 +46,22 @@ is what bridges a widget written for one shell onto the other.
 
 The manifest format for widgets under `~/.config/qsbar/widgets/` is Omarchy's,
 as are the `qs.Commons` and `qs.Ui` module names.
+
+## Material Symbols
+
+`assets/fonts/material-symbols/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf`
+is Google's [Material Symbols](https://github.com/google/material-design-icons)
+Rounded variable font, Apache 2.0. The full licence text is in
+[`licenses/LICENSE.material-symbols`](licenses/LICENSE.material-symbols). It is
+shipped rather than depended on so the control centre looks right without an
+icon theme or a font package installed.
+
+`Services/Glyphs.qml` is qsbar's own code, but the mapping it encodes — which
+symbol stands for 40% battery, where the Wi-Fi signal bands fall, what a
+headset looks like next to a monitor — is
+[DMS](https://github.com/AvengeMedia/DankMaterialShell)'s, MIT licensed,
+copyright Avenge Media LLC. Following it means an icon means the same thing in
+both shells.
 
 ## Simple Icons
 

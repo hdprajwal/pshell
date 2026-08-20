@@ -158,9 +158,9 @@ Column {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Style.spacing.md
 
-                BarIcon {
+                MaterialIcon {
                     anchors.verticalCenter: parent.verticalCenter
-                    iconSource: Icons.wifi(netRow.modelData.signalStrength)
+                    name: Glyphs.wifi(true, true, netRow.modelData.signalStrength)
                     size: Math.round(Style.font.body * 1.1)
                     color: Color.popups.text
                 }

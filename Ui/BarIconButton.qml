@@ -15,11 +15,15 @@ WidgetButton {
   // widgets got that subtly wrong in different directions.
   //
   // `iconSources` is several themed icons side by side. `iconSource` is the
-  // single-icon case. `text` stays the Nerd Font glyph, as Omarchy means it,
-  // drawn through the same optically-centred canvas. `label` is trailing
-  // text. `iconComponent` still takes anything none of these covers.
+  // single-icon case. `iconNames`/`iconName` are the same two cases in
+  // Material Symbols, named rather than looked up in the icon theme. `text`
+  // stays the Nerd Font glyph, as Omarchy means it, drawn through the same
+  // optically-centred canvas. `label` is trailing text. `iconComponent`
+  // still takes anything none of these covers.
   property var iconSources: []
   property string iconSource: ""
+  property var iconNames: []
+  property string iconName: ""
   property string label: ""
 
   property real slotSize: Style.bar.iconSlot
@@ -29,7 +33,8 @@ WidgetButton {
   readonly property real slotPadding: Style.bar.iconSlot - Style.bar.iconCanvas
 
   readonly property bool usingImages: iconSources.length > 0 || iconSource !== ""
-  readonly property bool usingCanvas: iconComponent !== null || (!usingImages && text !== "")
+  readonly property bool usingSymbols: iconNames.length > 0 || iconName !== ""
+  readonly property bool usingCanvas: iconComponent !== null || (!usingImages && !usingSymbols && text !== "")
   property color iconColor: active && useActiveColor ? activeColor : foreground
 
   property bool debugOpticalBounds: Quickshell.env("OMARCHY_DEBUG_BAR_ICONS") === "1"
@@ -39,7 +44,7 @@ WidgetButton {
   readonly property int glyphFontSize: glyph.visible ? glyph.renderedFontSize : 0
 
   labelVisible: false
-  hasVisualContent: text !== "" || iconComponent !== null || usingImages || label !== ""
+  hasVisualContent: text !== "" || iconComponent !== null || usingImages || usingSymbols || label !== ""
   fontSize: Style.bar.iconFont
   fixedWidth: vertical ? -1 : Math.max(slotSize, content.implicitWidth + slotPadding)
   fixedHeight: vertical ? Math.max(slotSize, content.implicitHeight + slotPadding) : -1
@@ -66,6 +71,27 @@ WidgetButton {
       anchors.verticalCenter: parent.verticalCenter
       visible: root.iconSources.length === 0 && root.iconSource !== ""
       iconSource: root.iconSource
+      size: root.opticalSize
+      color: root.iconColor
+    }
+
+    Repeater {
+      model: root.iconNames
+
+      MaterialIcon {
+        required property string modelData
+
+        anchors.verticalCenter: parent.verticalCenter
+        name: modelData
+        size: root.opticalSize
+        color: root.iconColor
+      }
+    }
+
+    MaterialIcon {
+      anchors.verticalCenter: parent.verticalCenter
+      visible: root.iconNames.length === 0 && root.iconName !== ""
+      name: root.iconName
       size: root.opticalSize
       color: root.iconColor
     }

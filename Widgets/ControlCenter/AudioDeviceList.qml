@@ -63,10 +63,11 @@ Column {
             visible: root.settingsCommand !== ""
             color: gearHover.containsMouse ? Style.selectedFill : "transparent"
 
-            BarIcon {
+            MaterialIcon {
                 anchors.centerIn: parent
-                iconSource: Icons.first(["preferences-system-symbolic", "emblem-system-symbolic", "applications-system"])
+                name: Glyphs.settings
                 size: Math.round(Style.font.body * 1.1)
+                color: Color.foreground
                 opacity: 0.7
             }
 
@@ -85,12 +86,13 @@ Column {
         visible: root.input
         height: micSlider.implicitHeight
 
-        BarIcon {
+        MaterialIcon {
             id: micIcon
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            iconSource: Icons.microphone(Audio.micMuted)
+            name: Glyphs.microphone(Audio.micMuted)
             size: Math.round(Style.font.body * 1.4)
+            color: Color.foreground
             opacity: Audio.micMuted ? 0.45 : 1
         }
 
@@ -150,10 +152,14 @@ Column {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 8
 
-                    BarIcon {
+                    // Pipewire says what a device actually is -- a headset,
+                    // a monitor over HDMI -- so the row shows that rather
+                    // than one speaker icon for everything.
+                    MaterialIcon {
                         anchors.verticalCenter: parent.verticalCenter
-                        iconSource: root.input ? Icons.microphone(false) : Icons.first(["audio-speakers-symbolic", "audio-volume-high-symbolic"])
+                        name: root.input ? Glyphs.source(devRow.modelData) : Glyphs.sink(devRow.modelData)
                         size: Math.round(Style.font.body * 1.2)
+                        color: Color.foreground
                         opacity: 0.85
                     }
 
@@ -195,10 +201,12 @@ Column {
                         anchors.centerIn: parent
                         spacing: 4
 
-                        BarIcon {
+                        MaterialIcon {
                             anchors.verticalCenter: parent.verticalCenter
-                            iconSource: Icons.first(["pin-symbolic", "view-pin-symbolic", "gnome-panel-pin"])
+                            name: Glyphs.pin
+                            filled: devRow.pinned
                             size: Math.round(Style.font.body * 0.95)
+                            color: Color.foreground
                             opacity: devRow.pinned ? 1 : 0.7
                         }
 

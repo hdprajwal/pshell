@@ -96,6 +96,7 @@ Services/            singletons: config, theme, icons, audio, brightness
 Components/          the shared chrome: sections, buttons, popouts, sliders
 Widgets/<Name>/      one directory per widget, holding its panels too
 Commons/  Ui/        the Omarchy compatibility modules
+assets/              fonts qsbar ships rather than asks fontconfig for
 ```
 
 Quickshell exposes every directory as a module, so `Widgets/Network/` is
@@ -422,14 +423,38 @@ tile is hidden until you set `nightMode`. Dark mode toggles the GTK
 
 ## Icons
 
-Widgets use icons from your icon theme by name, so they follow whatever you
-have set rather than shipping their own artwork. Only standard freedesktop
-names are used, which every mainstream theme provides.
+Two sets, addressed two ways.
+
+Most widgets use icons from your icon theme by name, so they follow whatever
+you have set rather than shipping their own artwork. Only standard freedesktop
+names are used, which every mainstream theme provides. `Services/Icons.qml`
+resolves a name to a file and `Ui/BarIcon.qml` draws it, recoloured to the
+foreground.
+
+The control centre uses [Material
+Symbols](https://fonts.google.com/icons) Rounded instead — the same set, and
+the same choice of icon for each state, that
+[DMS](https://github.com/AvengeMedia/DankMaterialShell) draws with. The font is
+shipped in `assets/`, so that half of the shell looks right on a machine with
+no icon theme installed at all. `Services/Glyphs.qml` names a glyph and
+`Ui/MaterialIcon.qml` draws it:
+
+```qml
+MaterialIcon {
+    name: Glyphs.battery(45, false)   // "battery_3_bar"
+    filled: true
+    size: 18
+}
+```
+
+`Ui/BarIconButton.qml` takes either kind: `iconSource`/`iconSources` for themed
+files, `iconName`/`iconNames` for symbols.
 
 Qt needs a platform theme to know which icon theme is in use. Without one it
 finds almost nothing, so `shell.qml` sets `QT_QPA_PLATFORMTHEME=gtk3`, which
-reads the GTK setting. If your icons are missing, that is the first thing to
-check.
+reads the GTK setting. If your themed icons are missing, that is the first
+thing to check; Material Symbols are unaffected, because they never leave the
+repository.
 
 ## A widget in Go
 

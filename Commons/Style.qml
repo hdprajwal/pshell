@@ -293,6 +293,12 @@ QtObject {
     // widget legible. Omarchy has no equivalent and never asks for it.
     readonly property string iconFontFamily: styleString("icon-family", Config.iconFont)
 
+    // Material Symbols Rounded, the set DMS draws with, shipped in-tree so it
+    // is always there. Separate from iconFamily because the two are addressed
+    // differently: a Nerd Font icon is a codepoint, a Material Symbol is a
+    // ligature spelled out ("wifi", "battery_5_bar").
+    readonly property string symbolFontFamily: styleString("symbol-family", Fonts.symbols)
+
     property int fontBaseSize: 12
 
     property var fontOverrides: ({})
@@ -337,6 +343,7 @@ QtObject {
         readonly property string resolvedFamily: root.resolvedFontFamily
         readonly property string menuFamily: root.menuFontFamily
         readonly property string iconFamily: root.iconFontFamily
+        readonly property string symbolFamily: root.symbolFontFamily
         readonly property int baseSize: root.fontBaseSize
 
         readonly property int caption: root.fontToken("caption", root.fontPx(0.833))
