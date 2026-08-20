@@ -60,7 +60,7 @@ BarWidget {
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.max(root.barSize - 8, button.implicitWidth)
                 height: root.barSize - 8
-                radius: height / 2
+                radius: 2
                 // Focused beats hover; hover beats idle. Never routed through
                 // WidgetButton's own `active`, which means "open panel" and
                 // paints urgent — a focused workspace is not an error state.
