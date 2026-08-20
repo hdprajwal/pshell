@@ -119,7 +119,14 @@ Row {
                 const hint = activeItem && key in activeItem ? activeItem[key] : undefined;
                 if (hint !== undefined && hint !== null && hint > 0)
                     return Math.round(hint);
-                return Math.max(Style.space(10), Math.round((root.vertical ? slot.height : slot.width) * 0.55));
+                // Otherwise the slot less the breathing room every bar button
+                // carries, which is what the widget actually paints. Omarchy
+                // takes a fixed fraction of the slot instead, which is right
+                // for the one glyph its buttons hold and too short for a slot
+                // sized to two icons or an icon beside a label.
+                const padding = Style.bar.iconSlot - Style.bar.iconCanvas;
+                const extent = (root.vertical ? slot.height : slot.width) - padding;
+                return Math.max(Style.space(10), Math.round(extent));
             }
 
             Rectangle {

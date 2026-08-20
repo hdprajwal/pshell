@@ -133,7 +133,6 @@ Panel {
 
     // A percentage sits well past an icon's width, so the open-panel mark
     // should track what's painted rather than the whole (widened) slot.
-    readonly property real openPanelIndicatorWidth: showPercent && !button.vertical ? button.width : 0
 
     onOpenedChanged: {
         if (opened) {
