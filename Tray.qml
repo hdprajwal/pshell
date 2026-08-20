@@ -9,9 +9,9 @@ Row {
     property var cfg: ({})
     property var bar: null
 
-    // Sized off the bar so the icons keep a margin at any bar height. Set
-    // iconScale to retune it, or iconSize to pin an exact pixel size.
-    readonly property int iconSize: cfg.iconSize || Math.round(Config.size * (cfg.iconScale || 0.6))
+    // Follows the shared barIconSize unless this widget overrides it, either
+    // with an exact iconSize or a scale against the bar height.
+    readonly property int iconSize: cfg.iconSize || (cfg.iconScale !== undefined ? Math.round(Config.size * cfg.iconScale) : Config.barIconSize)
 
     // Icon themes only ship a few fixed sizes, and a request that falls
     // between them misses. Status icons in particular are commonly 22 and 24
@@ -40,24 +40,11 @@ Row {
     // Status Notifier icons arrive in three shapes: a bare theme name, an
     // absolute path, or a name with the search directory bolted on as a
     // "?path=" query. Only the last one needs unpicking.
-    // Resolve a theme icon name to a real file, or "" when the theme does not
-    // have it. Asking the image provider directly is no good here: a missing
-    // icon comes back as a magenta placeholder with a Ready status, so there
-    // is nothing to react to. iconPath with check=true answers honestly.
-    function themed(name) {
-        if (!name)
-            return "";
-        const path = Quickshell.iconPath(String(name), true);
-        if (path === "")
-            return "";
-        return path.charAt(0) === "/" ? "file://" + path : path;
-    }
-
     // Apps advertise an icon name their own theme ships but yours may not.
     // Flameshot asks for "flameshot-tray", which only breeze has, so fall
     // back to the plain app id and pick up Papirus's "flameshot.svg".
     function byId(item) {
-        return root.themed(String((item && item.id) || ""));
+        return Icons.path(String((item && item.id) || ""));
     }
 
     function iconSource(item) {
@@ -79,7 +66,7 @@ Row {
         if (icon.charAt(0) === "/")
             return "file://" + icon;
 
-        const resolved = root.themed(icon);
+        const resolved = Icons.path(icon);
         return resolved !== "" ? resolved : root.byId(item);
     }
 
@@ -173,7 +160,7 @@ Row {
 
                     if (mouse.button === Qt.RightButton) {
                         if (entry.modelData.hasMenu)
-                            trayMenu.openFor(entry.modelData, entry, root.menuEdge);
+                            trayMenu.openFor(entry.modelData, entry);
                         return;
                     }
 
@@ -186,7 +173,7 @@ Row {
                     // the menu to be the whole interface.
                     if (entry.modelData.onlyMenu) {
                         if (entry.modelData.hasMenu)
-                            trayMenu.openFor(entry.modelData, entry, root.menuEdge);
+                            trayMenu.openFor(entry.modelData, entry);
                     } else {
                         entry.modelData.activate();
                     }
@@ -208,5 +195,6 @@ Row {
     // per icon sitting idle.
     TrayMenu {
         id: trayMenu
+        bar: root.bar
     }
 }

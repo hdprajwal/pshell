@@ -1,3 +1,8 @@
+// Without a platform theme, Qt does not know which icon theme is in use and
+// resolves almost nothing: only hicolor icons are found, so battery, network
+// and bluetooth all come back empty. gtk3 makes it read the GTK icon theme,
+// which is where Papirus and friends are configured.
+//@ pragma Env QT_QPA_PLATFORMTHEME=gtk3
 //@ pragma UseQApplication
 
 import QtQuick
@@ -24,8 +29,22 @@ ShellRoot {
             readonly property color urgent: Config.urgent
             readonly property string fontFamily: Config.fontFamily
 
+            // Which way a panel should open, given the edge the bar is on.
+            readonly property int popoutEdge: {
+                switch (Config.position) {
+                case "bottom":
+                    return Edges.Top;
+                case "left":
+                    return Edges.Right;
+                case "right":
+                    return Edges.Left;
+                default:
+                    return Edges.Bottom;
+                }
+            }
+
             property var moduleWidgetMap: ({})
-            property var activePopout: null
+            readonly property var activePopout: PopoutManager.current
 
             function run(command) {
                 Quickshell.execDetached(["bash", "-lc", String(command)]);
@@ -43,17 +62,15 @@ ShellRoot {
                     tooltip.target = null;
             }
 
-            // One popup at a time. A widget opening its panel closes whatever
-            // was open before.
+            // Part of the contract Omarchy widgets expect. Both defer to the
+            // same coordinator the built-in panels use, so a third-party
+            // widget's popup closes the battery panel and vice versa.
             function requestPopout(owner) {
-                if (activePopout && activePopout !== owner && activePopout.close)
-                    activePopout.close();
-                activePopout = owner;
+                PopoutManager.open(owner);
             }
 
             function releasePopout(owner) {
-                if (activePopout === owner)
-                    activePopout = null;
+                PopoutManager.release(owner);
             }
 
             function registerModuleWidget(name, item) {
