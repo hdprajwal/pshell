@@ -71,7 +71,11 @@ PanelWindow {
     // the bars stay clickable because this window never covers them.
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.namespace: "qsbar:popout"
-    WlrLayershell.layer: WlrLayer.Overlay
+    // Top, not Overlay. On Overlay this window sits above other shells'
+    // dialogs, so its dismiss layer swallowed clicks meant for them: clicking
+    // a wifi password field closed this panel and never reached the field.
+    // DMS defaults its popouts to Top for the same reason.
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
     // Anything not on the card dismisses.
