@@ -12,7 +12,7 @@
   ],
 
   "center": [
-    { "type": "clock", "format": "ddd dd MMM  HH:mm" }
+    { "type": "calendar", "format": "ddd dd MMM  HH:mm" }
   ],
 
   "right": [

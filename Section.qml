@@ -20,7 +20,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
+                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
@@ -43,6 +43,8 @@ Row {
                     switch (slot.kind) {
                     case "clock":
                         return clockComponent;
+                    case "calendar":
+                        return calendarComponent;
                     case "workspaces":
                         return workspacesComponent;
                     case "tray":
@@ -98,6 +100,10 @@ Row {
     Component {
         id: clockComponent
         Clock {}
+    }
+    Component {
+        id: calendarComponent
+        Calendar {}
     }
     Component {
         id: workspacesComponent

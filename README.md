@@ -90,13 +90,15 @@ warning is logged.
 
 ## Widgets
 
-Seven are built in. These hold a live connection to something, a Hyprland socket,
-DBus, UPower, so none of them work as a polled command.
+Eight are built in. These hold something a polled command cannot: a live
+connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
+single run.
 
 | type | What it does |
 |---|---|
 | `workspaces` | Hyprland workspaces. Click one to switch. |
 | `clock` | `format` takes a Qt date format string. |
+| `calendar` | The same clock, but clicking it opens the time and a full month. Page with the arrows or the scroll wheel, click the month name to come back to today. `timeFormat`, `dateFormat`, `firstDayOfWeek`. |
 | `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconScale`, `iconSize` and `spacing` tune the layout. |
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
@@ -218,6 +220,34 @@ This covers widgets that draw in the bar. `BarWidget`, `WidgetButton`,
 singletons are implemented. Widgets that open a popup panel import roughly ten
 more types from Omarchy's UI kit, and those do not load here. Reimplementing
 all of it would mean rebuilding their shell, which is not what this is for.
+
+## Calendar
+
+`clock` prints the time and nothing else. `calendar` looks the same in the bar
+and opens a panel: the time large at the top, the date under it, then the month.
+
+The arrows either side of the month name page through it, and so does the scroll
+wheel over the days. Once you have paged away, clicking the month name comes
+back to today, and so does closing and reopening the panel, so it never comes up
+showing last March.
+
+```json
+{
+  "type": "calendar",
+  "format": "ddd dd MMM  HH:mm",
+  "timeFormat": "HH:mm",
+  "dateFormat": "dddd, d MMMM yyyy",
+  "firstDayOfWeek": "monday"
+}
+```
+
+`format` is the bar label, the other two are the panel. All three take a Qt date
+format string. `firstDayOfWeek` takes `monday` or `sunday`, and follows your
+locale if you leave it out.
+
+The grid is always six rows. A month that spills into a seventh week would
+otherwise make the panel taller than the one before it, and a panel that changes
+height as you page through it is worse than one mostly empty row.
 
 ## Control centre
 
