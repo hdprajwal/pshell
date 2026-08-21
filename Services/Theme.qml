@@ -18,7 +18,7 @@ Singleton {
     property var palette: ({})
     property bool available: false
 
-    readonly property bool enabled: Config.theme === "wallpaper" && Config.wallpaper !== ""
+    readonly property bool enabled: Config.theme === "wallpaper" && Config.wallpaperPath !== ""
 
     readonly property string bg: palette.bg || ""
     readonly property string fg: palette.fg || ""
@@ -39,9 +39,13 @@ Singleton {
     onEnabledChanged: refresh()
     Component.onCompleted: refresh()
 
+    // wallpaperPath, not wallpaper: the two are separate bindings, and the
+    // notification for the one being edited arrives before the one derived
+    // from it has been re-evaluated. Watching `wallpaper` meant refresh() read
+    // last wallpaper's path and matugen re-ran on the image just replaced.
     Connections {
         target: Config
-        function onWallpaperChanged() {
+        function onWallpaperPathChanged() {
             root.refresh();
         }
         function onModeChanged() {
