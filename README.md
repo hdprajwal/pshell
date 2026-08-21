@@ -157,7 +157,7 @@ This is the shape Omarchy's own shell uses, which is not a coincidence either.
 
 ## Widgets
 
-Thirteen are built in. These hold something a polled command cannot: a live
+Fourteen are built in. These hold something a polled command cannot: a live
 connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
 single run.
 
@@ -175,6 +175,7 @@ single run.
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
 | `bluetooth` | Adapter state and connected devices, with battery level where the device reports it. Left click opens the panel to pair, connect and disconnect, right click toggles the radio. `showCount`, `maxDevices`. |
+| `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where Omarchy's agent tooling is not installed. |
 | `controlCenter` | Everything in one panel: session header, volume and brightness sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
 
 Everything else is a program. Leave out `type` and give it an `exec`.
@@ -467,6 +468,75 @@ it unless you have pinned `mode`.
 
 Both tiles have no detail list, so the whole tile is the button rather than
 just its icon.
+
+## AI usage
+
+How much of your coding agents' allowances you have spent, in the bar and in a
+panel. It parses nothing itself. Omarchy's `omarchy-agent-usage-update` already
+walks Claude Code's session logs, Codex's rollouts and the Fireworks billing
+API, and writes one JSON record per provider into
+`~/.local/state/omarchy/agents/usage/`. qsbar reads those files, watches them,
+and runs that updater on a timer. Without it on your PATH the widget takes
+itself out of the bar rather than showing an error.
+
+```json
+{
+  "type": "aiUsage",
+  "refreshIntervalSec": 900,
+  "barSource": "max",
+  "warnThreshold": 85,
+  "defaultTab": "",
+  "hideWhenIdle": false
+}
+```
+
+Which providers exist is whatever is in that directory. Drop a fourth record in
+and a fourth tab appears; nothing here carries a list of providers to keep in
+step with the tool that writes them.
+
+`barSource` decides what the bar says. `max`, the default, is the single
+tightest window anywhere, wearing that provider's mark — the number that is
+actually about to stop you, whoever it belongs to. A provider id pins the bar to
+that one. `all` puts every provider up there, tightest first, which is the
+widest option and the only one that tells you nothing new at a glance. The
+number turns red past `warnThreshold`, and reads `—` for a provider that reports
+no window at all. The tooltip spells out which window it is and when it comes
+back.
+
+The panel opens on a tab strip of one tab per provider, each wearing its mark
+and nothing else, because a row of names is a row too wide for the gauges
+underneath. Left and right walk the strip. `defaultTab` takes a provider id;
+left unset the panel opens on whichever provider is closest to its limit, which
+is the one the bar is already pointing at, so the click answers the question the
+bar just raised.
+
+A tab leads with its provider's name and plan, then its windows with the reset
+spelled out. Providers report different numbers of them — Claude three, Codex
+one, Fireworks none — so a tab lays out however many there are rather than
+assuming a pair. A provider with none says so; Fireworks bills a balance and has
+nothing to run out of, which is an answer rather than a gap. Then seven days of
+tokens as seven columns. The columns are
+scaled against the tallest day in the window rather than any absolute figure,
+since the comparison anyone actually makes is against their own week. Today is
+drawn in the accent colour, so a short column late in the evening reads as the
+day it is rather than as the week's quietest. Below that is
+where the tokens went, by model, and the day's sessions.
+
+The panel is one width on every tab. Only the height changes, and it eases, so
+moving between tabs reads as the same panel rather than one jumping out from
+under the pointer.
+
+Records are watched, so a run of the updater redraws the panel without anything
+polling it. The timer defaults to fifteen minutes, and opening the panel is
+worth a run on top of that. Set `hideWhenIdle` to take the widget out of the bar
+until something has actually been spent.
+
+The marks are shipped in `Widgets/AiUsage/assets/`, keyed by the provider id.
+They keep their brand colour rather than being tinted to the foreground: five
+identical grey shapes is not something you can read at a glance. Codex's is a
+monochrome glyph and ships in both cuts, so it follows the palette the rest of
+the shell is drawn in. A provider with no mark of ours falls back to a Material
+Symbol, so a record we have never seen still gets a row.
 
 ## Icons
 

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Widgets.ActiveWindow
+import qs.Widgets.AiUsage
 import qs.Widgets.Microphone
 import qs.Widgets.Privacy
 import qs.Widgets.IdleInhibitor
@@ -76,7 +77,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "activeWindow" || modelData.type === "microphone" || modelData.type === "privacy" || modelData.type === "idleInhibitor" || modelData.type === "tailscale" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
+                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "aiUsage" || modelData.type === "activeWindow" || modelData.type === "microphone" || modelData.type === "privacy" || modelData.type === "idleInhibitor" || modelData.type === "tailscale" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
@@ -115,6 +116,8 @@ Row {
                         return clockComponent;
                     case "calendar":
                         return calendarComponent;
+                    case "aiUsage":
+                        return aiUsageComponent;
                     case "activeWindow":
                         return activeWindowComponent;
                     case "microphone":
@@ -195,6 +198,10 @@ Row {
     Component {
         id: calendarComponent
         Calendar {}
+    }
+    Component {
+        id: aiUsageComponent
+        AiUsage {}
     }
     Component {
         id: activeWindowComponent

@@ -68,3 +68,15 @@ both shells.
 `Widgets/Tailscale/tailscale.svg` is the Tailscale mark from
 [Simple Icons](https://simpleicons.org), CC0 1.0. The mark itself is a
 trademark of Tailscale Inc., used only to refer to the service.
+
+## Provider marks
+
+`Widgets/AiUsage/assets/*.svg` are the Claude, Codex and Fireworks marks, taken
+from the assets of Omarchy's `omarchy-agents` widget, MIT licensed. Each mark is
+a trademark of its owner -- Anthropic, OpenAI and Fireworks AI respectively --
+used only to refer to that service. `codex-light.svg` is the same artwork in the
+cut meant for a light background.
+
+`Services/AgentUsage.qml` reads the files `omarchy-agent-usage-update` writes.
+That tool is Omarchy's and is not vendored here; the record format it writes is
+the interface between the two, and qsbar does none of the extraction itself.
