@@ -81,9 +81,19 @@ BarWidget {
                     opacity: pill.focused ? 1 : (pill.occupied ? 0.75 : 0.4)
                     horizontalMargin: 6
                     verticalPadding: 4
+                    // Hyprland 0.5x moved dispatch to Lua: the request is
+                    // evaluated as `hl.dispatch(<request>)`, so the old
+                    // `workspace 3` reaches it as a bare identifier and dies
+                    // on a syntax error. Dispatchers are now tables under
+                    // `hl.dsp`, and switching workspace lives on focus rather
+                    // than under workspace, which only renames and moves.
+                    // `usingLua` is Quickshell's own flag for which IPC a
+                    // running Hyprland speaks, so both stay supported without
+                    // parsing a version.
                     onPressed: b => {
-                        if (b === Qt.LeftButton)
-                            Hyprland.dispatch("workspace " + pill.modelData);
+                        if (b !== Qt.LeftButton)
+                            return;
+                        Hyprland.dispatch(Hyprland.usingLua ? "hl.dsp.focus{workspace=" + pill.modelData + "}" : "workspace " + pill.modelData);
                     }
                 }
             }
