@@ -36,6 +36,29 @@ Singleton {
         _save();
     }
 
+    // Where the settings window was last left. Zero means "never opened", so
+    // the window picks its own first size rather than opening at 0x0.
+    readonly property string settingsTab: data.settingsTab || ""
+    readonly property int settingsWidth: data.settingsWidth || 0
+    readonly property int settingsHeight: data.settingsHeight || 0
+
+    function setSettingsTab(tabId) {
+        const next = Object.assign({}, root.data);
+        next.settingsTab = String(tabId);
+        root.data = next;
+        _save();
+    }
+
+    function setSettingsSize(w, h) {
+        if (w <= 0 || h <= 0)
+            return;
+        const next = Object.assign({}, root.data);
+        next.settingsWidth = Math.round(w);
+        next.settingsHeight = Math.round(h);
+        root.data = next;
+        _save();
+    }
+
     function _save() {
         if (!_loaded)
             return;
