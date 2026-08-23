@@ -162,8 +162,17 @@ Singleton {
         });
     }
 
+    // `device show` with no -f leaves out the driver and the link speed;
+    // `-f ALL` puts them in and brings twenty-one access points with them.
+    // Naming the fields is the only form that is both complete and small.
+    //
+    // Note this still comes back in the profile-dump grammar -- unescaped,
+    // one key/value per line -- so parseProfile is right here and parseTable
+    // would be wrong, even though -f is involved.
+    readonly property string deviceDetailFields: "GENERAL.DEVICE,GENERAL.TYPE,GENERAL.VENDOR,GENERAL.PRODUCT,GENERAL.DRIVER,GENERAL.HWADDR,GENERAL.MTU,GENERAL.STATE,GENERAL.CONNECTION,GENERAL.NM-MANAGED,GENERAL.METERED,CAPABILITIES.SPEED,WIFI-PROPERTIES.AP,IP4.ADDRESS,IP4.GATEWAY,IP4.DNS,IP6.ADDRESS,IP6.GATEWAY"
+
     function deviceDetail(device, callback) {
-        run(["-t", "device", "show", device], function (code, out, err) {
+        run(["-t", "-f", root.deviceDetailFields, "device", "show", device], function (code, out, err) {
             if (code !== 0) {
                 callback(null, err);
                 return;

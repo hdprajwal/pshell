@@ -3,6 +3,7 @@ pragma Singleton
 import QtCore
 import Quickshell
 import Quickshell.Io
+import "ConfigPath.js" as ConfigPath
 
 Singleton {
     id: root
@@ -139,19 +140,100 @@ Singleton {
     readonly property var center: data.center || []
     readonly property var right: data.right || []
 
+    // -------------------------------------------------------------- writing
+    //
+    // This reverses the invariant Prefs.qml was created to protect. Until
+    // now nothing in the shell ever rewrote config.json, so a hand-edited
+    // file was safe from the shell's own opinions, and anything the shell
+    // needed to remember went to state.json instead.
+    //
+    // The settings app changes that: it owns config.json and may rewrite it.
+    // The visible consequence, recorded here so it is not discovered later as
+    // a bug: the first write normalises the file to two-space JSON. Nothing
+    // is lost semantically -- JSON has no comments -- but key order and hand
+    // formatting will not survive it.
+    //
+    // state.json keeps its role for shell-owned runtime state: pinned sinks,
+    // and the settings window's last tab and size.
+
+    property bool _loaded: false
+    property bool _writing: false
+
+    function set(dottedPath, value) {
+        if (!root._loaded)
+            return;
+        root.data = ConfigPath.setPath(root.data, dottedPath, value);
+        _save();
+    }
+
+    function setWidgetSetting(widgetId, key, value) {
+        if (!root._loaded)
+            return;
+        root.data = ConfigPath.setWidgetSetting(root.data, widgetId, key, value);
+        _save();
+    }
+
+    function hasWidget(widgetId) {
+        return ConfigPath.findWidget(root.data, widgetId) !== null;
+    }
+
+    function widgetSetting(widgetId, key, fallback) {
+        const found = ConfigPath.findWidget(root.data, widgetId);
+        if (found === null)
+            return fallback;
+        const value = root.data[found.section][found.index][key];
+        return value === undefined || value === null ? fallback : value;
+    }
+
+    // The guard exists so an early write cannot truncate a config that has
+    // not finished loading -- the same reason Prefs.qml carries one.
+    function _save() {
+        root._writing = true;
+        configFile.setText(JSON.stringify(root.data, null, 2));
+    }
+
     FileView {
+        id: configFile
+
         path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/qsbar/config.json"
         watchChanges: true
         blockLoading: true
+        atomicWrites: true
+        blockWrites: false
         printErrors: false
 
-        onFileChanged: reload()
+        // Our own write fires the watcher a moment later. Reloading then is
+        // not wrong -- the file says what we just put in it -- but with two
+        // writes in flight the reload can land between them and hand `data`
+        // back the older of the two, undoing a setting the user just
+        // changed. Skipping the reload we caused avoids the race entirely;
+        // an edit made in a text editor still reloads, which is the point of
+        // watching.
+        onFileChanged: {
+            if (root._writing)
+                return;
+            reload();
+        }
+
+        onSaved: root._writing = false
+
+        onSaveFailed: error => {
+            root._writing = false;
+            console.warn("qsbar: could not write config.json —", error);
+        }
+
         onLoaded: {
             try {
                 root.data = JSON.parse(text());
             } catch (e) {
                 console.warn("qsbar: bad config.json —", e);
             }
+            root._loaded = true;
         }
+
+        // No config file yet is a normal first run, not an error -- but the
+        // shell must still know loading finished, or the first write would be
+        // refused forever.
+        onLoadFailed: root._loaded = true
     }
 }

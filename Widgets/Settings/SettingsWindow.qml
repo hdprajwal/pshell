@@ -3,6 +3,7 @@ import Quickshell
 import qs.Services
 import qs.Commons
 import qs.Ui
+import qs.Widgets.Settings.Network
 
 // A plain xdg-toplevel, not a layer-shell surface. The settings window is an
 // application window and should behave like one: placed by whatever Hyprland
@@ -79,12 +80,19 @@ FloatingWindow {
         // is free.
         sourceComponent: {
             switch (SettingsApp.currentTab) {
+            case "network.status":
+                return statusComponent;
             case "about":
                 return aboutComponent;
             default:
                 return null;
             }
         }
+    }
+
+    Component {
+        id: statusComponent
+        StatusTab {}
     }
 
     Component {

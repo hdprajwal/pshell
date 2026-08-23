@@ -469,6 +469,20 @@ it unless you have pinned `mode`.
 Both tiles have no detail list, so the whole tile is the button rather than
 just its icon.
 
+## Settings
+
+`qsbar` ships a settings window. Open it from the gear in the bar
+(`{ "type": "settings" }`), from the control centre, or with:
+
+    qs -p ~/path/to/qsbar ipc call qsbar.settings toggle
+
+**It writes `config.json`.** Until this existed, nothing in the shell ever
+rewrote your config, and the only thing qsbar saved for itself went to
+`state.json`. That has changed: the settings app owns `config.json`. The
+first time it saves, the file is normalised to two-space JSON. Nothing is
+lost — JSON has no comments — but your key order and hand formatting will
+not survive it.
+
 ## AI usage
 
 How much of your coding agents' allowances you have spent, in the bar and in a
