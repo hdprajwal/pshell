@@ -13,6 +13,21 @@ import qs.Services
 import qs.Commons
 
 ShellRoot {
+    // Keeps the settings app's IPC handler alive for the whole session.
+    //
+    // QML brings a singleton to life on the first access that actually runs,
+    // not on a mention of it inside a handler body. Both doors into settings
+    // are such mentions: the control centre's gear calls SettingsApp from an
+    // onClicked, and the settings widget only exists once it is placed in a
+    // section. A shell with neither therefore answered `ipc call
+    // qsbar.settings toggle` with "Target not found", which is the one way
+    // in that a first-time user has — the README hands it to them before
+    // they have added the widget.
+    //
+    // Reading it here is the access, and it costs nothing: the window is
+    // behind a LazyLoader that stays inactive until something opens it.
+    readonly property var settingsApp: SettingsApp
+
     Variants {
         model: Quickshell.screens
 
