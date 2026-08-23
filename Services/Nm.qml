@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "NmParse.js" as NmParse
+import "Proc.js" as Proc
 
 // Everything Quickshell.Networking cannot reach, which is most of
 // NetworkManager: the stored profiles, IP configuration, VPN, hidden SSIDs.
@@ -221,7 +222,7 @@ Singleton {
     Process {
         id: monitor
         running: root.active
-        command: ["nmcli", "monitor"]
+        command: Proc.supervised(["nmcli", "monitor"])
 
         stdout: SplitParser {
             splitMarker: "\n"
@@ -234,14 +235,12 @@ Singleton {
         // restarts, and staying dead through that is the one moment watching
         // would have mattered most.
         //
-        // Recorded because it looks like a bug in the refcount and is not:
-        // dropping the last ref does stop this process, verified. But SIGTERM
-        // to the shell while a ref is held leaves `nmcli monitor` alive and
-        // reparented to init. That is Quickshell's behaviour for any
-        // long-lived Process, not something this file causes -- killing the
-        // bar orphans Services/SystemTheme.qml's `gsettings monitor` in
-        // exactly the same way. Do not try to fix it here; if it is ever
-        // worth fixing it belongs wherever both of them can be fixed at once.
+        // Dropping the last ref stops this process. A SIGTERM to the shell
+        // did not: the child was reparented to init and outlived the bar,
+        // one stray `nmcli monitor` per run. Proc.supervised on the command
+        // above is the fix, and SystemTheme's `gsettings monitor` -- which
+        // leaked the same way, thirty-one deep on the development machine --
+        // now goes through the same helper.
         onExited: {
             if (root.active)
                 respawn.restart();

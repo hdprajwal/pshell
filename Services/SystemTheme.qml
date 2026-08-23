@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "Proc.js" as Proc
 
 // The desktop's light/dark preference, read from the GTK setting that the
 // control centre's Dark Mode tile writes.
@@ -54,10 +55,12 @@ Singleton {
     }
 
     // Long-lived: it prints a line every time the setting changes and is
-    // expected to run for as long as the shell does.
+    // expected to run for as long as the shell does -- and no longer, which
+    // is what Proc.supervised is for. Killing the bar used to orphan this to
+    // init, one stray process per run.
     Process {
         running: true
-        command: ["gsettings", "monitor", "org.gnome.desktop.interface", "color-scheme"]
+        command: Proc.supervised(["gsettings", "monitor", "org.gnome.desktop.interface", "color-scheme"])
 
         stdout: SplitParser {
             splitMarker: "\n"
