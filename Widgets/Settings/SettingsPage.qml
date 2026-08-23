@@ -20,7 +20,11 @@ Item {
     property string subtitle: ""
     property string error: ""
 
-    default property alias content: column.children
+    // `data` and not `children`: a page declares Connections, Timers and
+    // inline Components alongside its sections, and a `children` alias
+    // refuses anything that is not a QQuickItem. `data` takes both and the
+    // Column still only lays out the visual half.
+    default property alias content: column.data
 
     Column {
         id: header
@@ -97,5 +101,21 @@ Item {
             width: parent.width
             spacing: Style.spacing.xxl
         }
+    }
+
+    // Anything that has to cover the page rather than take a place in the
+    // scrolling column -- a ConfirmDialog, in practice.
+    //
+    // It needs a slot of its own because the default property is an alias
+    // into that Column, and a Column does two unhelpful things to a dialog
+    // dropped into it: it lays it out as another row, and it refuses
+    // `anchors.fill` on a child outright. Declared last so it stacks above
+    // the Flickable, and empty of anything that grabs input, so it costs
+    // nothing on a page with no dialog.
+    property alias overlay: overlayItem.data
+
+    Item {
+        id: overlayItem
+        anchors.fill: parent
     }
 }

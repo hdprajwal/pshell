@@ -82,6 +82,8 @@ FloatingWindow {
             switch (SettingsApp.currentTab) {
             case "network.status":
                 return statusComponent;
+            case "network.wifi":
+                return wifiComponent;
             case "about":
                 return aboutComponent;
             default:
@@ -93,6 +95,11 @@ FloatingWindow {
     Component {
         id: statusComponent
         StatusTab {}
+    }
+
+    Component {
+        id: wifiComponent
+        WifiTab {}
     }
 
     Component {
