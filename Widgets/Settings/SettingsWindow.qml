@@ -84,6 +84,10 @@ FloatingWindow {
                 return statusComponent;
             case "network.wifi":
                 return wifiComponent;
+            case "network.ethernet":
+                return ethernetComponent;
+            case "network.vpn":
+                return vpnComponent;
             case "about":
                 return aboutComponent;
             default:
@@ -100,6 +104,16 @@ FloatingWindow {
     Component {
         id: wifiComponent
         WifiTab {}
+    }
+
+    Component {
+        id: ethernetComponent
+        EthernetTab {}
+    }
+
+    Component {
+        id: vpnComponent
+        VpnTab {}
     }
 
     Component {
