@@ -14,6 +14,7 @@ import qs.Widgets.Clock
 import qs.Widgets.ControlCenter
 import qs.Widgets.Network
 import qs.Widgets.ProcWidget
+import qs.Widgets.Settings
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
 import qs.Commons
@@ -77,7 +78,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "aiUsage" || modelData.type === "activeWindow" || modelData.type === "microphone" || modelData.type === "privacy" || modelData.type === "idleInhibitor" || modelData.type === "tailscale" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter")
+                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "aiUsage" || modelData.type === "activeWindow" || modelData.type === "microphone" || modelData.type === "privacy" || modelData.type === "idleInhibitor" || modelData.type === "tailscale" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter" || modelData.type === "settings")
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
@@ -140,6 +141,8 @@ Row {
                         return bluetoothComponent;
                     case "controlCenter":
                         return controlCenterComponent;
+                    case "settings":
+                        return settingsComponent;
                     default:
                         return procComponent;
                     }
@@ -246,6 +249,10 @@ Row {
     Component {
         id: controlCenterComponent
         ControlCenter {}
+    }
+    Component {
+        id: settingsComponent
+        Settings {}
     }
     Component {
         id: procComponent

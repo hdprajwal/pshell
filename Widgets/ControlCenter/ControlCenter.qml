@@ -176,6 +176,28 @@ Panel {
                         Row {
                             spacing: Style.spacing.sm
 
+                            // Ahead of the session buttons, and separated
+                            // from them by nothing but order: settings is a
+                            // place you go, and lock/power/logout are things
+                            // that end your session. Sitting the gear at the
+                            // far end next to "power off" is how a mis-click
+                            // becomes a shutdown.
+                            PanelActionButton {
+                                foreground: Color.popups.text
+                                tooltipText: "Settings"
+                                onClicked: {
+                                    SettingsApp.open("");
+                                    root.close();
+                                }
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    name: Glyphs.settings
+                                    size: Style.font.icon
+                                    color: Color.popups.text
+                                }
+                            }
+
                             Repeater {
                                 model: [
                                     {
@@ -427,12 +449,41 @@ Panel {
             Item {
                 id: detailColumn
                 width: parent.width
-                implicitHeight: netList.visible ? netList.implicitHeight : (btList.visible ? btList.implicitHeight : (sinkList.visible ? sinkList.implicitHeight : sourceList.implicitHeight))
+                implicitHeight: {
+                    if (root.detail === "wifi")
+                        return wifiPane.implicitHeight;
+                    if (root.detail === "bluetooth")
+                        return btList.implicitHeight;
+                    if (root.detail === "sink")
+                        return sinkList.implicitHeight;
+                    return sourceList.implicitHeight;
+                }
 
-                NetworkList {
-                    id: netList
+                // The Wi-Fi pane is two things now, so it needs a container,
+                // and the moment it had one the old `netList.visible` height
+                // would have been reading a value it also sets. Keying off
+                // root.detail keeps the size an input rather than a loop.
+                Column {
+                    id: wifiPane
+                    width: detailColumn.width
                     visible: root.detail === "wifi"
-                    rowWidth: detailColumn.width
+                    spacing: Style.spacing.md
+
+                    NetworkList {
+                        id: netList
+                        rowWidth: wifiPane.width
+                    }
+
+                    Button {
+                        width: parent.width
+                        leftAlign: true
+                        text: "Network settings"
+                        foreground: Color.popups.text
+                        onClicked: {
+                            SettingsApp.open("network.wifi");
+                            root.close();
+                        }
+                    }
                 }
 
                 BluetoothList {
