@@ -7,12 +7,12 @@ import Quickshell.Io
 // Coding-agent usage, read off the files `omarchy-agent-usage-update` leaves
 // in the state directory. Nothing here extracts anything: that tool already
 // walks Claude Code's session logs, Codex's rollouts and the Fireworks
-// billing API and writes one JSON record per provider. qsbar discovers those
+// billing API and writes one JSON record per provider. pshell discovers those
 // records, watches them, and runs the updater on a timer -- no daemon, no
 // socket, no parser of its own.
 //
 // Which providers exist is whatever is on disk. A hardcoded list would mean
-// a provider the updater learns about next month stays invisible until qsbar
+// a provider the updater learns about next month stays invisible until pshell
 // is taught about it too, and the record format already carries everything a
 // panel needs to draw one.
 //
@@ -108,7 +108,7 @@ Singleton {
                 parsed.id = String(id);
             return parsed;
         } catch (e) {
-            console.warn("qsbar: ignoring unreadable usage record", id, e);
+            console.warn("pshell: ignoring unreadable usage record", id, e);
             return null;
         }
     }
@@ -145,7 +145,7 @@ Singleton {
             onStreamFinished: {
                 const message = String(text || "").trim();
                 if (message !== "")
-                    console.warn("qsbar: agent usage update:", message);
+                    console.warn("pshell: agent usage update:", message);
             }
         }
     }

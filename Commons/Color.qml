@@ -11,7 +11,7 @@ import "BorderGeometry.js" as Geometry
 // Structure, token names and resolution rules are Omarchy's, so a widget
 // written for that shell finds what it expects. What differs is where the
 // values come from: Omarchy reads a theme's colors.toml and shell.toml, while
-// qsbar takes the foundational palette from config.json (or matugen, when the
+// pshell takes the foundational palette from config.json (or matugen, when the
 // theme is derived from the wallpaper) and expresses the rest of config.json
 // as Omarchy tokens.
 //
@@ -151,7 +151,7 @@ QtObject {
     }
 
     // Where Omarchy keeps its own theme, for a widget that wants to load an
-    // asset out of it. qsbar takes no colour from here — the palette comes
+    // asset out of it. pshell takes no colour from here — the palette comes
     // from config.json and matugen — but the paths are the same ones.
     readonly property string home: Quickshell.env("HOME") || ""
     readonly property string stateHome: (Quickshell.env("XDG_STATE_HOME") || home + "/.local/state")
@@ -218,7 +218,7 @@ QtObject {
     }
 
     // Omarchy's shell reads a theme's shell.toml and pushes it in here on a
-    // theme switch. qsbar has no theme switcher of its own, but the entry
+    // theme switch. pshell has no theme switcher of its own, but the entry
     // point works, so anything driving one gets the same result.
     function loadShell(raw) {
         pushedShellValues = parseShell(raw);
@@ -231,7 +231,7 @@ QtObject {
     // works here, which is how a token with no config.json key of its own
     // still gets tuned.
     property FileView userShellFile: FileView {
-        path: Quickshell.env("HOME") + "/.config/qsbar/shell.toml"
+        path: Quickshell.env("HOME") + "/.config/pshell/shell.toml"
         watchChanges: true
         printErrors: false
         onLoaded: root.loadUserShell(text())

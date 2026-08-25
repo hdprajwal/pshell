@@ -13,7 +13,7 @@
 //
 // Quickshell kills a Process when its `running` goes false, but a SIGTERM to
 // the shell itself never gets that far: the child is reparented to init and
-// survives. For a one-shot read that is invisible. qsbar has two children
+// survives. For a one-shot read that is invisible. pshell has two children
 // meant to outlive nothing but the session -- SystemTheme's `gsettings
 // monitor` and Nm's `nmcli monitor` -- and those leak one stray process per
 // run. Thirty-one abandoned `gsettings monitor` processes were found on the

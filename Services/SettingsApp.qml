@@ -79,7 +79,7 @@ Singleton {
     }
 
     IpcHandler {
-        target: "qsbar.settings"
+        target: "pshell.settings"
 
         // Quickshell dispatches by name, so the no-argument form needs a name
         // of its own. `show` is kept because every other panel in the repo
@@ -88,7 +88,7 @@ Singleton {
         // It cannot be reached from the command line, though, and that is not
         // this handler's fault: `qs ipc call <target> show` collides with the
         // `qs ipc show` subcommand and prints the target listing instead of
-        // calling anything. The same is true of qsbar.calendar and every
+        // calling anything. The same is true of pshell.calendar and every
         // other Ui/Panel target, so it predates this file. Reach for
         // `toggle`, or `open <tab>`, from a terminal.
         function open(tab: string): void {

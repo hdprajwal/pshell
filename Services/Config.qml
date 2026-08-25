@@ -21,7 +21,7 @@ Singleton {
     readonly property string fontFamily: data.font || "monospace"
     readonly property int fontSize: data.fontSize || 12
     // Glyph font for widget icons. Nerd Fonts are the least intrusive choice
-    // here: they are usually already installed, so qsbar ships no font of its own.
+    // here: they are usually already installed, so pshell ships no font of its own.
     // Size of icons drawn in the bar itself. Popout and panel icons size
     // themselves off the font instead, so this does not touch them.
     readonly property int barIconSize: data.barIconSize || Math.round(size * 0.55)
@@ -97,10 +97,10 @@ Singleton {
     readonly property bool scaleWithFont: data.scaleWithFont !== false
 
     // config.json expressed in Omarchy's token vocabulary. Color merges this
-    // under ~/.config/qsbar/shell.toml and hands the result to Style, so one
+    // under ~/.config/pshell/shell.toml and hands the result to Style, so one
     // dictionary drives both qs.Components and every qs.Ui widget.
     //
-    // Only tokens where qsbar wants something other than Omarchy's built-in
+    // Only tokens where pshell wants something other than Omarchy's built-in
     // default belong here; anything absent falls through to that default.
     readonly property var shellDefaults: {
         const out = {
@@ -118,7 +118,7 @@ Singleton {
             "spacing.scale-with-font": scaleWithFont ? "true" : "false",
             // A panel edge that states itself quietly. Omarchy's default is a
             // solid 2px accent, which reads as a highlight rather than a
-            // container next to qsbar's flat bar.
+            // container next to pshell's flat bar.
             "popups.border": "foreground",
             "popups.border-alpha": "0.15",
             "popups.border-width": "1",
@@ -195,7 +195,7 @@ Singleton {
     FileView {
         id: configFile
 
-        path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/qsbar/config.json"
+        path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/pshell/config.json"
         watchChanges: true
         blockLoading: true
         atomicWrites: true
@@ -219,14 +219,14 @@ Singleton {
 
         onSaveFailed: error => {
             root._writing = false;
-            console.warn("qsbar: could not write config.json —", error);
+            console.warn("pshell: could not write config.json —", error);
         }
 
         onLoaded: {
             try {
                 root.data = JSON.parse(text());
             } catch (e) {
-                console.warn("qsbar: bad config.json —", e);
+                console.warn("pshell: bad config.json —", e);
             }
             root._loaded = true;
         }

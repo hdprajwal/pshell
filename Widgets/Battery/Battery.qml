@@ -7,8 +7,8 @@ import qs.Ui
 
 Panel {
     id: root
-    moduleName: "qsbar.battery"
-    ipcTarget: "qsbar.battery"
+    moduleName: "pshell.battery"
+    ipcTarget: "pshell.battery"
 
     property var cfg: ({})
 

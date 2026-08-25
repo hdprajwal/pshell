@@ -10,7 +10,7 @@ import qs.Services
 // scale. Colour lives in Color; the two are fed from the same dictionary.
 //
 // Token names and resolution are Omarchy's so its widgets resolve here. The
-// inputs are qsbar's: config.json supplies the type scale and bar size, and
+// inputs are pshell's: config.json supplies the type scale and bar size, and
 // rounding and the screen-edge gap are read back from Hyprland so panels
 // match window decoration instead of being told the same number twice.
 QtObject {
@@ -275,7 +275,7 @@ QtObject {
         readonly property int panelGap: root.spacingToken("panel-gap", 14)
         readonly property int panelPadding: root.spacingToken("panel-padding", 18)
         readonly property int popupPadding: root.spacingToken("popup-padding", 14)
-        // Distance between adjacent widgets in a bar section. qsbar's own
+        // Distance between adjacent widgets in a bar section. pshell's own
         // token; Omarchy lays its bar out from iconSlot instead.
         readonly property int barGap: root.spacingToken("bar-gap", 12)
         // Inside the bar, from its edge to the first or last widget.
@@ -298,7 +298,7 @@ QtObject {
     // resolvedFamily only to *display* what is drawing.
     property string resolvedFontFamily: Config.fontFamily
 
-    // Glyph font for bar icons. qsbar's own token: an icon theme cannot
+    // Glyph font for bar icons. pshell's own token: an icon theme cannot
     // always answer, and a Nerd Font glyph is the fallback that keeps a
     // widget legible. Omarchy has no equivalent and never asks for it.
     readonly property string iconFontFamily: styleString("icon-family", Config.iconFont)

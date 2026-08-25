@@ -6,7 +6,7 @@ import Quickshell
 // Material Symbols names, picked the way DMS picks them.
 //
 // The companion to Icons: that one asks the icon theme for a file, this one
-// names a glyph in the font qsbar ships. Both answer the same questions --
+// names a glyph in the font pshell ships. Both answer the same questions --
 // "which battery icon for 40% while charging?" -- so a call site swaps one
 // for the other without restating the thresholds.
 //

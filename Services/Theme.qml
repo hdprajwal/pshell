@@ -6,7 +6,7 @@ import Quickshell.Io
 
 // Colours derived from the wallpaper with matugen.
 //
-// matugen prints the whole palette as JSON, so qsbar runs it and reads stdout
+// matugen prints the whole palette as JSON, so pshell runs it and reads stdout
 // rather than going through matugen's template and config files. Nothing is
 // written to disk and there is no file to keep in sync.
 //
@@ -66,7 +66,7 @@ Singleton {
                 try {
                     parsed = JSON.parse(raw);
                 } catch (e) {
-                    console.warn("qsbar: matugen output was not JSON:", e);
+                    console.warn("pshell: matugen output was not JSON:", e);
                     return;
                 }
 
@@ -99,7 +99,7 @@ Singleton {
 
         onExited: code => {
             if (code !== 0)
-                console.warn("qsbar: matugen failed with exit", code, "- falling back to configured colours");
+                console.warn("pshell: matugen failed with exit", code, "- falling back to configured colours");
         }
     }
 }

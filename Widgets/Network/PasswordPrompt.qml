@@ -4,7 +4,7 @@ import qs.Services
 import qs.Commons
 import qs.Ui
 
-// Password entry for a secured network qsbar has no saved secret for.
+// Password entry for a secured network pshell has no saved secret for.
 //
 // A KeyboardPanel gives this the same layer-shell focus priming every other
 // panel gets (see the comment block at the top of Ui/KeyboardPanel.qml), so

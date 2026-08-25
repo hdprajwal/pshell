@@ -8,7 +8,7 @@ import qs.Commons
 // The drop-in counterpart to BarIcon: same `size`/`color` contract, so a
 // call site swaps one for the other by changing `iconSource:` to `name:`.
 // BarIcon asks the icon theme for a file and tints it; this draws a glyph
-// from the font qsbar ships, which is why it can never come up empty.
+// from the font pshell ships, which is why it can never come up empty.
 //
 // FILL, GRAD, opsz and wght are the font's variable axes. `filled` picks the
 // solid cut of an icon and is what a "this is on" state uses. GRAD leans the

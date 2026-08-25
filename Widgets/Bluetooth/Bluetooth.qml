@@ -10,8 +10,8 @@ import qs.Ui
 // paints the bar slot, and a KeyboardPanel is the popup surface.
 Panel {
     id: root
-    moduleName: "qsbar.bluetooth"
-    ipcTarget: "qsbar.bluetooth"
+    moduleName: "pshell.bluetooth"
+    ipcTarget: "pshell.bluetooth"
 
     property var cfg: ({})
 

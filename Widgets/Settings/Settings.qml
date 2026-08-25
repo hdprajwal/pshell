@@ -9,7 +9,7 @@ import qs.Ui
 // and this widget owns nothing -- the window belongs to SettingsApp, because
 // the widget itself exists once per monitor and the window must not.
 //
-// So there is no ipcTarget here either. `qsbar.settings` is registered by the
+// So there is no ipcTarget here either. `pshell.settings` is registered by the
 // singleton, which is the thing that can actually service it.
 Item {
     id: root

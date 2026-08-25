@@ -13,7 +13,7 @@ import qs.Ui
 // window is focused, so it would not have worked anyway.
 BarWidget {
     id: root
-    moduleName: "qsbar.active-window"
+    moduleName: "pshell.active-window"
 
     property var cfg: ({})
 

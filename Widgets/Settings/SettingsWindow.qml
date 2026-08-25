@@ -8,12 +8,12 @@ import qs.Widgets.Settings.Network
 // A plain xdg-toplevel, not a layer-shell surface. The settings window is an
 // application window and should behave like one: placed by whatever Hyprland
 // rule the user already has for application windows, with their own
-// decoration. qsbar deliberately passes no floating hint of its own --
+// decoration. pshell deliberately passes no floating hint of its own --
 // guessing at window management is the compositor's job.
 FloatingWindow {
     id: win
 
-    title: "qsbar settings"
+    title: "pshell settings"
     color: Color.background
     visible: SettingsApp.visible
 

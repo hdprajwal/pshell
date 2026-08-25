@@ -6,12 +6,12 @@ import Quickshell
 import Quickshell.Io
 
 // Finds QML widgets on disk. A widget is a directory under
-// ~/.config/qsbar/widgets/ holding a manifest.json, which is the same layout
+// ~/.config/pshell/widgets/ holding a manifest.json, which is the same layout
 // Omarchy uses, so its widgets can be cloned straight in.
 Singleton {
     id: root
 
-    readonly property string widgetsDir: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/qsbar/widgets"
+    readonly property string widgetsDir: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/pshell/widgets"
 
     // id -> { id, dir, entry, manifest, defaultSection, defaults, allowMultiple }
     property var widgets: ({})
@@ -56,13 +56,13 @@ Singleton {
 
     Process {
         id: scanner
-        command: ["sh", "-c", 'dir="$HOME/.config/qsbar/widgets"; [ -d "$dir" ] || exit 0; for f in "$dir"/*/manifest.json; do [ -f "$f" ] || continue; echo "===QSBAR==="; dirname "$f"; cat "$f"; done']
+        command: ["sh", "-c", 'dir="$HOME/.config/pshell/widgets"; [ -d "$dir" ] || exit 0; for f in "$dir"/*/manifest.json; do [ -f "$f" ] || continue; echo "===PSHELL==="; dirname "$f"; cat "$f"; done']
 
         stdout: StdioCollector {
             onStreamFinished: {
                 const found = {};
                 const problems = [];
-                const blocks = String(text || "").split("===QSBAR===");
+                const blocks = String(text || "").split("===PSHELL===");
 
                 for (var i = 0; i < blocks.length; i++) {
                     const block = blocks[i].trim();
@@ -118,9 +118,9 @@ Singleton {
 
                 const names = Object.keys(found);
                 if (names.length > 0)
-                    console.info("qsbar: loaded widgets:", names.join(", "));
+                    console.info("pshell: loaded widgets:", names.join(", "));
                 for (var p = 0; p < problems.length; p++)
-                    console.warn("qsbar:", problems[p]);
+                    console.warn("pshell:", problems[p]);
 
                 root.scanned();
             }

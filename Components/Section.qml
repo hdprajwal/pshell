@@ -31,7 +31,7 @@ Row {
     // report, and goes uninteractive with it — so an idle inhibitor that is
     // off could never be switched back on without somewhere to reveal it.
     // Omarchy answers that with a grouped Indicators widget that reveals its
-    // dimmed members while the pointer is over them; qsbar keeps indicators
+    // dimmed members while the pointer is over them; pshell keeps indicators
     // as ordinary bar entries, so the section itself plays that part.
     property bool indicatorAreaHovered: false
     property bool indicatorItemHovered: false
@@ -166,7 +166,7 @@ Row {
             }
 
             // A widget discovered on disk. Loading by path is what lets an
-            // Omarchy widget drop in without being compiled into qsbar.
+            // Omarchy widget drop in without being compiled into pshell.
             Loader {
                 id: qmlLoader
                 anchors.verticalCenter: parent.verticalCenter

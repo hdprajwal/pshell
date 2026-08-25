@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // Backlight via brightnessctl. There is no Wayland protocol for this and no
-// Quickshell service, so it shells out, which is what qsbar does anyway.
+// Quickshell service, so it shells out, which is what pshell does anyway.
 Singleton {
     id: root
 

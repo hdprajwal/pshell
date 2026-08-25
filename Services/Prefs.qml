@@ -5,7 +5,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Small bag of things qsbar remembers between runs, kept apart from
+// Small bag of things pshell remembers between runs, kept apart from
 // config.json so hand-edited config is never rewritten by the shell.
 Singleton {
     id: root
@@ -68,7 +68,7 @@ Singleton {
     FileView {
         id: file
 
-        path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/qsbar/state.json"
+        path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/pshell/state.json"
         watchChanges: true
         blockWrites: false
         atomicWrites: true

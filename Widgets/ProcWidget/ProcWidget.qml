@@ -5,7 +5,7 @@ import qs.Services
 import qs.Commons
 import qs.Ui
 
-// The whole point of qsbar: a widget is a program.
+// The whole point of pshell: a widget is a program.
 //
 //   interval > 0  ->  run it every N seconds, read its last output
 //   interval == 0 ->  keep it running, read one line per update
@@ -14,7 +14,7 @@ import qs.Ui
 //   {"text": "42%", "tooltip": "cpu", "class": "warn"}
 BarWidget {
     id: root
-    moduleName: "qsbar.proc"
+    moduleName: "pshell.proc"
 
     property var cfg: ({})
 

@@ -13,8 +13,8 @@ import qs.Ui
 // surface. All the reading of files happens in Services/AgentUsage.
 Panel {
     id: root
-    moduleName: "qsbar.aiusage"
-    ipcTarget: "qsbar.aiusage"
+    moduleName: "pshell.aiusage"
+    ipcTarget: "pshell.aiusage"
 
     property var cfg: ({})
 

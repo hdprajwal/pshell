@@ -11,7 +11,7 @@ import "Proc.js" as Proc
 // Quickshell.Networking keeps its job -- live state for the bar -- and this
 // singleton is only for the parts it has no API for.
 //
-// The hard rule this whole file is shaped by: qsbar has no backend daemon,
+// The hard rule this whole file is shaped by: pshell has no backend daemon,
 // and it is not getting one. Every read here is a short-lived `nmcli` child
 // process, exactly like a streaming script widget, and the single long-lived
 // process is `nmcli monitor` -- a reader, not a server, holding no state.
@@ -268,20 +268,20 @@ Singleton {
 
     // The data layer's only window before there is any UI, and it stays
     // afterwards: when a profile looks wrong in the settings app, this is how
-    // you diff qsbar's view of NetworkManager against nmcli's own without
+    // you diff pshell's view of NetworkManager against nmcli's own without
     // guessing which of the two is lying.
     IpcHandler {
-        target: "qsbar.nm"
+        target: "pshell.nm"
 
         function refresh(): void {
             root.refresh();
         }
 
         function dump(): void {
-            console.log("qsbar.nm general:", JSON.stringify(root.general));
-            console.log("qsbar.nm devices:", JSON.stringify(root.devices));
-            console.log("qsbar.nm connections:", JSON.stringify(root.connections));
-            console.log("qsbar.nm refs:", root.refs, "lastError:", JSON.stringify(root.lastError));
+            console.log("pshell.nm general:", JSON.stringify(root.general));
+            console.log("pshell.nm devices:", JSON.stringify(root.devices));
+            console.log("pshell.nm connections:", JSON.stringify(root.connections));
+            console.log("pshell.nm refs:", root.refs, "lastError:", JSON.stringify(root.lastError));
         }
     }
 }

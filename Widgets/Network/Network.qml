@@ -10,8 +10,8 @@ import qs.Ui
 // bar slot, and a KeyboardPanel is the popup surface.
 Panel {
     id: root
-    moduleName: "qsbar.network"
-    ipcTarget: "qsbar.network"
+    moduleName: "pshell.network"
+    ipcTarget: "pshell.network"
 
     property var cfg: ({})
 

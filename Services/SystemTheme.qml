@@ -13,7 +13,7 @@ import "Proc.js" as Proc
 // so the initial value comes from a separate `get`.
 //
 // Absent gsettings, or a scheme of "default" (no preference expressed), both
-// leave this at "dark", which is what qsbar assumed before it asked.
+// leave this at "dark", which is what pshell assumed before it asked.
 Singleton {
     id: root
 
@@ -50,7 +50,7 @@ Singleton {
 
         onExited: code => {
             if (code !== 0)
-                console.warn("qsbar: gsettings unavailable, colours stay on the configured mode");
+                console.warn("pshell: gsettings unavailable, colours stay on the configured mode");
         }
     }
 

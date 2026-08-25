@@ -52,7 +52,7 @@ BarIndicator {
             // No exclusive zone, or this would push every other window over by
             // a pixel each time it was switched on.
             exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.namespace: "qsbar:idle-inhibit"
+            WlrLayershell.namespace: "pshell:idle-inhibit"
             // Overlay rather than Top: it has to stay unoccluded above a
             // fullscreen window for the inhibitor to keep counting.
             WlrLayershell.layer: WlrLayer.Overlay

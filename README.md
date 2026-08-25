@@ -1,4 +1,4 @@
-# qsbar
+# pshell
 
 My own Wayland status bar, built on Quickshell. Inspired by Omarchy and
 DankMaterialShell.
@@ -11,10 +11,10 @@ About 300 lines of QML.
 ## Install
 
 ```sh
-git clone https://github.com/hdprajwal/qsbar ~/.config/quickshell/qsbar
-mkdir -p ~/.config/qsbar
-cp ~/.config/quickshell/qsbar/config.example.json ~/.config/qsbar/config.json
-qs -p ~/.config/quickshell/qsbar
+git clone https://github.com/hdprajwal/pshell ~/.config/quickshell/pshell
+mkdir -p ~/.config/pshell
+cp ~/.config/quickshell/pshell/config.example.json ~/.config/pshell/config.json
+qs -p ~/.config/quickshell/pshell
 ```
 
 You need `quickshell` installed.
@@ -22,12 +22,12 @@ You need `quickshell` installed.
 To start it with Hyprland, add this to `~/.config/hypr/hyprland.conf`:
 
 ```
-exec-once = qs -p ~/.config/quickshell/qsbar
+exec-once = qs -p ~/.config/quickshell/pshell
 ```
 
 ## Config
 
-Everything is in `~/.config/qsbar/config.json`. Save the file and the bar
+Everything is in `~/.config/pshell/config.json`. Save the file and the bar
 updates. You do not need to restart it.
 
 ```json
@@ -41,7 +41,7 @@ updates. You do not need to restart it.
   "center": [ { "type": "clock", "format": "ddd dd MMM  HH:mm" } ],
   "right":  [
     { "exec": "free -h | awk '/^Mem:/ {print \"mem \" $3}'", "interval": 5 },
-    { "exec": "qsbar-battery", "interval": 30, "onClick": "gnome-power-statistics" }
+    { "exec": "my-battery", "interval": 30, "onClick": "gnome-power-statistics" }
   ]
 }
 ```
@@ -92,7 +92,7 @@ for an exact size or `iconScale` for its own fraction of the bar height.
 
 ## Colours from the wallpaper
 
-Set `theme` to `wallpaper` and point `wallpaper` at an image. qsbar runs
+Set `theme` to `wallpaper` and point `wallpaper` at an image. pshell runs
 [matugen](https://github.com/InioX/matugen) over it and fills in the colours you
 have not set yourself:
 
@@ -107,7 +107,7 @@ have not set yourself:
 Anything you set explicitly still wins, so `"accent": "#89b4fa"` alongside the
 above keeps your accent and derives the rest.
 
-qsbar reads matugen's JSON straight off stdout rather than using its template
+pshell reads matugen's JSON straight off stdout rather than using its template
 and config files, so nothing is generated on disk and there is no second file to
 keep in sync. It maps `surface` to the background, `on_surface` to text,
 `primary` to the accent, `error` to urgent and `outline` to dimmed text.
@@ -116,12 +116,12 @@ Because `config.json` reloads on save, a script that changes your wallpaper can
 rewrite the `wallpaper` field and the bar recolours itself. There is nothing to
 restart and no daemon watching anything.
 
-`mode` takes `dark` or `light`. Leave it out and qsbar follows the desktop
+`mode` takes `dark` or `light`. Leave it out and pshell follows the desktop
 instead, reading the GTK `color-scheme` setting and re-deriving the palette
 whenever it changes — so the control centre's Dark Mode tile, GNOME settings or
 any script that writes that key restyles the shell as well as your apps.
 Setting `mode` pins it and the desktop is ignored. Needs `gsettings`; without
-it, or with a scheme of `default`, qsbar stays dark.
+it, or with a scheme of `default`, pshell stays dark.
 
 `matugenScheme` picks the palette algorithm,
 defaulting to `scheme-tonal-spot`. `matugenPrefer` decides which source colour
@@ -139,7 +139,7 @@ Services/            singletons: config, theme, icons, audio, brightness
 Components/          the shared chrome: sections, buttons, popouts, sliders
 Widgets/<Name>/      one directory per widget, holding its panels too
 Commons/  Ui/        the Omarchy compatibility modules
-assets/              fonts qsbar ships rather than asks fontconfig for
+assets/              fonts pshell ships rather than asks fontconfig for
 ```
 
 Quickshell exposes every directory as a module, so `Widgets/Network/` is
@@ -196,7 +196,7 @@ Run the command every N seconds and draw what it prints.
 
 ### Streaming
 
-Set `interval` to 0 and qsbar keeps the process running. Every line it prints
+Set `interval` to 0 and pshell keeps the process running. Every line it prints
 is one update. This is the better option for anything that reacts to events.
 Updates show up right away, and nothing runs in between.
 
@@ -227,10 +227,10 @@ without changes.
 
 A stdout script cannot hold live state, so anything that needs a system
 connection is a QML file instead. Put it in its own directory under
-`~/.config/qsbar/widgets/` with a `manifest.json`:
+`~/.config/pshell/widgets/` with a `manifest.json`:
 
 ```
-~/.config/qsbar/widgets/gpu/
+~/.config/pshell/widgets/gpu/
   manifest.json
   Widget.qml
 ```
@@ -276,14 +276,14 @@ BarWidget {
 
 ## Omarchy widgets
 
-That manifest format is Omarchy's, and it is not a coincidence. qsbar ships
+That manifest format is Omarchy's, and it is not a coincidence. pshell ships
 `Commons` and `Ui` modules using the same type and token names, so an Omarchy
-bar widget resolves `import qs.Commons` and `import qs.Ui` against qsbar
+bar widget resolves `import qs.Commons` and `import qs.Ui` against pshell
 instead. Clone one in and it runs:
 
 ```sh
 git clone https://github.com/ragnacron/omarchy-workspaces-per-monitor \
-  ~/.config/qsbar/widgets/omarchy-workspaces-per-monitor
+  ~/.config/pshell/widgets/omarchy-workspaces-per-monitor
 ```
 
 Then add `{ "id": "ragnacron.workspaces-per-monitor" }` to a section.
@@ -294,11 +294,11 @@ rather than reimplemented: `Panel`, `KeyboardPanel`, `Button`, `TextField`,
 the same. Copying is deliberate. A reimplementation drifts, and every drift is
 a widget that works there and not here.
 
-What is qsbar's own is the bridge underneath. `Color`, `Style` and `Util`
+What is pshell's own is the bridge underneath. `Color`, `Style` and `Util`
 implement the same interface Omarchy's do, but read `config.json` and the
 matugen palette instead of Omarchy's theme files, so a widget written for one
 shell is themed by the other. Omarchy names the readable colour `text` and
-qsbar named it `foreground`; both resolve.
+pshell named it `foreground`; both resolve.
 
 See [NOTICE.md](NOTICE.md) for what came from where.
 
@@ -455,7 +455,7 @@ that runs whatever you give it, for example `pavucontrol`.
 
 Pinning a device floats it to the top of the list, which keeps a headset you
 switch between from sinking under everything Pipewire enumerates. Pins persist
-in `~/.config/qsbar/state.json`, kept separate from `config.json` so the shell
+in `~/.config/pshell/state.json`, kept separate from `config.json` so the shell
 never rewrites a file you hand-edited.
 
 Brightness needs `brightnessctl`. The slider hides itself if there is no
@@ -463,7 +463,7 @@ backlight, so a desktop shows one slider rather than a broken one.
 
 Night mode has no standard tool, so it is whatever command you give it and the
 tile is hidden until you set `nightMode`. Dark mode toggles the GTK
-`color-scheme` unless you override `darkModeCommand`, and qsbar recolours with
+`color-scheme` unless you override `darkModeCommand`, and pshell recolours with
 it unless you have pinned `mode`.
 
 Both tiles have no detail list, so the whole tile is the button rather than
@@ -471,13 +471,13 @@ just its icon.
 
 ## Settings
 
-`qsbar` ships a settings window. Open it from the gear in the bar
+`pshell` ships a settings window. Open it from the gear in the bar
 (`{ "type": "settings" }`), from the control centre, or with:
 
-    qs -p ~/path/to/qsbar ipc call qsbar.settings toggle
+    qs -p ~/path/to/pshell ipc call pshell.settings toggle
 
 **It writes `config.json`.** Until this existed, nothing in the shell ever
-rewrote your config, and the only thing qsbar saved for itself went to
+rewrote your config, and the only thing pshell saved for itself went to
 `state.json`. That has changed: the settings app owns `config.json`. The
 first time it saves, the file is normalised to two-space JSON. Nothing is
 lost — JSON has no comments — but your key order and hand formatting will
@@ -489,7 +489,7 @@ How much of your coding agents' allowances you have spent, in the bar and in a
 panel. It parses nothing itself. Omarchy's `omarchy-agent-usage-update` already
 walks Claude Code's session logs, Codex's rollouts and the Fireworks billing
 API, and writes one JSON record per provider into
-`~/.local/state/omarchy/agents/usage/`. qsbar reads those files, watches them,
+`~/.local/state/omarchy/agents/usage/`. pshell reads those files, watches them,
 and runs that updater on a timer. Without it on your PATH the widget takes
 itself out of the bar rather than showing an error.
 
@@ -611,7 +611,7 @@ what I used before this. It is around 500 QML files on top of a Go daemon. Its
 AxisContext is the simplest way I have seen to support all four screen edges
 without writing every widget twice. One object holds the edge name and a flag
 for whether the bar is vertical, and each widget reads it to pick a row or a
-column. qsbar copies that idea.
+column. pshell copies that idea.
 
 [Omarchy](https://github.com/basecamp/omarchy) 4 (MIT) replaced Waybar, Walker,
 Mako, SwayOSD, hyprlock, hypridle and swaybg with one Quickshell process. Its
@@ -637,7 +637,7 @@ speak DBus, and volume has to hold a Pipewire handle. Polling a script cannot
 do either, so those are QML.
 
 Rather than invent a format for the QML half, I used Omarchy's, which means
-their widgets work here too. Reusing a format costs me nothing and gets qsbar a
+their widgets work here too. Reusing a format costs me nothing and gets pshell a
 widget ecosystem it did not have to grow.
 
 The script half has a real cost. A polled widget runs on a timer whether

@@ -3,7 +3,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 
-// The menu a tray icon opens on right click, drawn by qsbar rather than
+// The menu a tray icon opens on right click, drawn by pshell rather than
 // handed to QsMenuAnchor, so it picks up the bar's colours and font.
 //
 // Submenus drill in and out in place instead of flying out sideways. A

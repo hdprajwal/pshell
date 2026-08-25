@@ -16,7 +16,7 @@ import qs.Ui
 // constraint.
 BarWidget {
     id: root
-    moduleName: "qsbar.microphone"
+    moduleName: "pshell.microphone"
 
     property var cfg: ({})
 

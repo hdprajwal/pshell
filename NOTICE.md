@@ -1,4 +1,4 @@
-# Third-party code in qsbar
+# Third-party code in pshell
 
 ## Omarchy
 
@@ -16,19 +16,19 @@ files below, which makes updating them a copy rather than a merge.
 `Ui/BarIconButton.qml` is modified. Omarchy's fits exactly one Nerd Font
 glyph in a square canvas, so a widget wanting anything else -- several themed
 icons, an icon beside a label -- had to compute its own slot width and widen
-that canvas to match, and several of qsbar's got it wrong in different
+that canvas to match, and several of pshell's got it wrong in different
 directions. It now lays its content out as one centred row and takes its width
-from that, the way qsbar's own bar button did before this kit replaced it.
+from that, the way pshell's own bar button did before this kit replaced it.
 `iconSources`, `iconSource`, `iconNames`, `iconName`, `label` and `iconColor`
 are additions; `text` still means the glyph and still goes through the same
 optically centred canvas, so an Omarchy widget behaves exactly as before.
-`Ui/BarIcon.qml` is qsbar's own, not Omarchy's: it draws a recoloured icon
+`Ui/BarIcon.qml` is pshell's own, not Omarchy's: it draws a recoloured icon
 from the icon theme, which Omarchy has no equivalent for because it uses
 glyphs throughout.
 
 `Ui/KeyboardPanel.qml` and `Ui/PopupCard.qml` are modified. Both placed their
 card by measuring down from the top of the output — `barH + gap` for a top bar
-— which assumes the bar's own surface starts at the screen edge. qsbar can sit
+— which assumes the bar's own surface starts at the screen edge. pshell can sit
 below another shell's bar, and then the panel is drawn that much too high, over
 the bar it belongs under. Both now anchor a layer surface to all four edges and
 honour exclusive zones, so the compositor sizes the surface to what every bar
@@ -39,12 +39,12 @@ to reach past its own overlay are gone. Both also gained a
 already had, for panels that size themselves from their content. Nothing
 either of them already exposed has changed.
 
-`Commons/Color.qml`, `Commons/Style.qml` and `Commons/Util.qml` are qsbar's
-own. They implement the same interface as Omarchy's, but read qsbar's
+`Commons/Color.qml`, `Commons/Style.qml` and `Commons/Util.qml` are pshell's
+own. They implement the same interface as Omarchy's, but read pshell's
 `config.json` and its matugen palette instead of Omarchy's theme files, which
 is what bridges a widget written for one shell onto the other.
 
-The manifest format for widgets under `~/.config/qsbar/widgets/` is Omarchy's,
+The manifest format for widgets under `~/.config/pshell/widgets/` is Omarchy's,
 as are the `qs.Commons` and `qs.Ui` module names.
 
 ## Material Symbols
@@ -56,7 +56,7 @@ Rounded variable font, Apache 2.0. The full licence text is in
 shipped rather than depended on so the control centre looks right without an
 icon theme or a font package installed.
 
-`Services/Glyphs.qml` is qsbar's own code, but the mapping it encodes — which
+`Services/Glyphs.qml` is pshell's own code, but the mapping it encodes — which
 symbol stands for 40% battery, where the Wi-Fi signal bands fall, what a
 headset looks like next to a monitor — is
 [DMS](https://github.com/AvengeMedia/DankMaterialShell)'s, MIT licensed,
@@ -79,4 +79,4 @@ cut meant for a light background.
 
 `Services/AgentUsage.qml` reads the files `omarchy-agent-usage-update` writes.
 That tool is Omarchy's and is not vendored here; the record format it writes is
-the interface between the two, and qsbar does none of the extraction itself.
+the interface between the two, and pshell does none of the extraction itself.

@@ -148,7 +148,7 @@ PanelWindow {
   readonly property real availableCardHeight: surfaceH > 0 ? Math.max(120, surfaceH - margin * 2) : 0
   readonly property real verticalContentInset: padding * 2 + Border.top(borderSpec) + Border.bottom(borderSpec)
   // Symmetric with the vertical inset. Omarchy panels are all given a
-  // fixed contentWidth and never need this; qsbar sizes several panels
+  // fixed contentWidth and never need this; pshell sizes several panels
   // from what is in them, and they need the same allowance for chrome.
   readonly property real horizontalContentInset: padding * 2 + Border.left(borderSpec) + Border.right(borderSpec)
 

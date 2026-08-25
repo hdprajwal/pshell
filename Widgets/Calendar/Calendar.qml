@@ -13,8 +13,8 @@ import qs.Ui
 // open()/close()/toggle()/opened, so there is no state of its own to keep.
 Panel {
     id: root
-    moduleName: "qsbar.calendar"
-    ipcTarget: "qsbar.calendar"
+    moduleName: "pshell.calendar"
+    ipcTarget: "pshell.calendar"
 
     property var cfg: ({})
 

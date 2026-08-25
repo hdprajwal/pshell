@@ -13,8 +13,8 @@ import qs.Ui
 // bluetooth, audio devices and the session buttons.
 Panel {
     id: root
-    moduleName: "qsbar.controlcenter"
-    ipcTarget: "qsbar.controlcenter"
+    moduleName: "pshell.controlcenter"
+    ipcTarget: "pshell.controlcenter"
 
     property var cfg: ({})
 
@@ -417,7 +417,7 @@ Panel {
                         // Lit from the setting the default command writes. A
                         // custom darkModeCommand that writes somewhere else
                         // leaves the tile dark, which is honest: the state is
-                        // then something qsbar cannot see.
+                        // then something pshell cannot see.
                         active: SystemTheme.available && SystemTheme.scheme === "dark"
                         onToggled: root.run(root.cfg.darkModeCommand || "gsettings set org.gnome.desktop.interface color-scheme \"$(test \"$(gsettings get org.gnome.desktop.interface color-scheme)\" = \"'prefer-dark'\" && echo prefer-light || echo prefer-dark)\"")
                     }

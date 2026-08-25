@@ -16,12 +16,12 @@ SettingsPage {
 
         AboutRow {
             label: "Config"
-            value: Quickshell.env("HOME") + "/.config/qsbar/config.json"
+            value: Quickshell.env("HOME") + "/.config/pshell/config.json"
         }
 
         AboutRow {
             label: "State"
-            value: Quickshell.env("HOME") + "/.config/qsbar/state.json"
+            value: Quickshell.env("HOME") + "/.config/pshell/state.json"
         }
 
         AboutRow {

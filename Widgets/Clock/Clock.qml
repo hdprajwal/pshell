@@ -6,7 +6,7 @@ import qs.Ui
 
 BarWidget {
     id: root
-    moduleName: "qsbar.clock"
+    moduleName: "pshell.clock"
 
     property var cfg: ({})
     readonly property string format: cfg.format || "ddd dd MMM  HH:mm"

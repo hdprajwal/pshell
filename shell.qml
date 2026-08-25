@@ -20,7 +20,7 @@ ShellRoot {
     // are such mentions: the control centre's gear calls SettingsApp from an
     // onClicked, and the settings widget only exists once it is placed in a
     // section. A shell with neither therefore answered `ipc call
-    // qsbar.settings toggle` with "Target not found", which is the one way
+    // pshell.settings toggle` with "Target not found", which is the one way
     // in that a first-time user has — the README hands it to them before
     // they have added the widget.
     //
@@ -47,7 +47,7 @@ ShellRoot {
             readonly property color urgent: Color.urgent
             readonly property string fontFamily: Style.font.family
             // Omarchy's widgets animate their foreground unless the bar says
-            // not to. qsbar has no setting for it, so it is simply on.
+            // not to. pshell has no setting for it, so it is simply on.
             readonly property bool foregroundAnimationEnabled: true
 
             // Which way a panel should open, given the edge the bar is on.
@@ -143,7 +143,7 @@ ShellRoot {
             implicitHeight: barWindow.vertical ? 0 : Style.bar.sizeHorizontal
             implicitWidth: barWindow.vertical ? Style.bar.sizeVertical : 0
 
-            WlrLayershell.namespace: "qsbar"
+            WlrLayershell.namespace: "pshell"
             WlrLayershell.layer: WlrLayer.Top
 
             // Clicking the bar itself dismisses whatever panel is open.

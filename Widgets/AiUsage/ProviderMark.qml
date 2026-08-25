@@ -48,7 +48,7 @@ Item {
         asynchronous: true
     }
 
-    // A provider the updater learns about before qsbar has artwork for it
+    // A provider the updater learns about before pshell has artwork for it
     // still gets a row rather than a hole.
     MaterialIcon {
         anchors.centerIn: parent

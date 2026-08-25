@@ -7,7 +7,7 @@ import qs.Ui
 
 BarWidget {
     id: root
-    moduleName: "qsbar.tray"
+    moduleName: "pshell.tray"
 
     property var cfg: ({})
 

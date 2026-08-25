@@ -12,7 +12,7 @@ import qs.Ui
 // invert-on-focus scheme.
 BarWidget {
     id: root
-    moduleName: "qsbar.workspaces"
+    moduleName: "pshell.workspaces"
 
     property var cfg: ({})
 

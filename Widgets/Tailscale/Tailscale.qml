@@ -14,8 +14,8 @@ import qs.Ui
 // so a poll is the honest shape rather than a compromise.
 Panel {
     id: root
-    moduleName: "qsbar.tailscale"
-    ipcTarget: "qsbar.tailscale"
+    moduleName: "pshell.tailscale"
+    ipcTarget: "pshell.tailscale"
 
     property var cfg: ({})
 
