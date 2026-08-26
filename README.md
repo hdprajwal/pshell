@@ -132,6 +132,40 @@ so they stay in step. Icons inside popouts size themselves off the font instead
 and are not affected. A widget can still override it: the tray takes `iconSize`
 for an exact size or `iconScale` for its own fraction of the bar height.
 
+## Wallpaper
+
+pshell paints the desktop background itself: one window per screen, on the
+layer-shell background layer, under everything else. No swaybg, no hyprpaper,
+no daemon to restart on every change — the image named by `wallpaper` is
+drawn by the same shell that draws the bar, and changing it crossfades to the
+new picture instead of flashing through a process swap.
+
+| | | default |
+|---|---|---|
+| `wallpaper` | the image on screen | none — the background colour |
+| `wallpaperDir` | where the candidates live | `~/wallpapers` |
+
+With no `wallpaper` set, or a path that does not resolve to an image, the
+background is a flat `bg`-coloured surface rather than a hole.
+
+The settings app's Wallpaper page shows `wallpaperDir` as a grid of
+thumbnails; click one to set it. The same moves are scriptable through the
+`pshell.wallpaper` IPC target:
+
+```
+pshell wallpaper set ~/wallpapers/foo.png
+pshell wallpaper next                       cycle through the directory
+pshell wallpaper previous
+pshell wallpaper random                     never the one already up
+pshell wallpaper current
+pshell wallpaper list                       one path per line
+pshell wallpaper rescan                     after adding files to the directory
+```
+
+Every one of them is a single write of `wallpaper` in `config.json`, which is
+also why a wallpaper picked here re-themes everything below: the palette is
+derived from the same key.
+
 ## Colours from the wallpaper
 
 Set `theme` to `wallpaper` and point `wallpaper` at an image. pshell runs
@@ -244,6 +278,11 @@ light|dark|auto` (`auto` hands the choice back to the desktop), `reload` to
 re-run matugen by hand, and `current` to see what is in effect. The set*
 commands write `config.json`, so they are the same change as editing the file
 — and they refuse a scheme or prefer matugen would reject.
+
+Or pick all of it visually: the settings app's Theme page has the same
+scheme, prefer and mode as dropdowns, with a live swatch row showing what the
+palette resolves to. It goes through the same setters, so it can hold no
+value the command line would refuse.
 
 Needs `matugen` installed. Without it the configured colours are used and a
 warning is logged.
@@ -592,6 +631,11 @@ just its icon.
 (`{ "type": "settings" }`), from the control centre, or with:
 
     pshell settings toggle
+
+Three pages: **Wallpaper** — the thumbnail grid documented above —
+**Theme** — scheme, prefer, mode and the live palette — and **About**, the
+facts neofetch prints plus where pshell keeps its files. `pshell settings
+open theme` lands on a named page directly.
 
 **It writes `config.json`.** Until this existed, nothing in the shell ever
 rewrote your config, and the only thing pshell saved for itself went to
