@@ -483,6 +483,97 @@ first time it saves, the file is normalised to two-space JSON. Nothing is
 lost — JSON has no comments — but your key order and hand formatting will
 not survive it.
 
+## Lockscreen
+
+A lockscreen drawn by pshell itself, on `ext-session-lock`, authenticating
+against PAM. No `hyprlock`.
+
+    qs -p ~/path/to/pshell ipc call pshell.lock lock
+
+**pshell does not decide when to lock, and will not.** Omarchy splits that
+job — `hyprlock` draws and authenticates, `hypridle` owns every timer and
+bridges logind's `Lock` signal to it — and pshell takes only the first half.
+Screen blanking, keyboard backlight and sleep inhibition are a daemon's job.
+
+So keep `hypridle`, and point it here:
+
+    general {
+        lock_cmd = qs -p ~/path/to/pshell ipc call pshell.lock lock
+        before_sleep_cmd = loginctl lock-session
+        inhibit_sleep = 3
+    }
+
+That is the whole integration. Suspend, lid close and the idle timeout all
+already run through `loginctl lock-session` → `hypridle` → `lock_cmd`, so
+none of them need anything else. Locking twice is a no-op, which matters
+because an idle timeout landing on top of a manual lock is normal.
+
+### Looking at it without locking yourself out
+
+    qs -p ~/path/to/pshell ipc call pshell.lock preview
+
+Draws the lockscreen in an ordinary window with authentication stubbed —
+submitting always fails, so the error state is reachable without knowing a
+wrong password — and Esc closes it. It renders the same component the real
+surface does, so it cannot drift from the thing it is previewing.
+
+Use it. A native lock is the one part of a shell you cannot iterate on
+safely: if the QML is broken, `ext-session-lock` does exactly what it
+promises and the session stays locked and blank.
+
+**If that happens**, the way back is a TTY:
+
+    Ctrl+Alt+F2, log in, then:  loginctl unlock-session
+
+The real lock has no Esc, no grace period and no timeout. That is the point
+of it.
+
+### Settings
+
+Everything lives under `lock` in `config.json`, and every key is optional:
+
+```json
+{
+  "lock": {
+    "wallpaper": "~/Pictures/wall.png",
+    "blur": true,
+    "blurAmount": 0.75,
+    "dim": 0.45,
+    "showClock": true,
+    "clockFormat": "HH:mm",
+    "dateFormat": "dddd, d MMMM",
+    "showAvatar": true,
+    "showStatus": true,
+    "placeholder": "Enter Password",
+    "pamService": "login"
+  }
+}
+```
+
+| | | default |
+|---|---|---|
+| `wallpaper` | image behind the lock | whatever `wallpaper` is |
+| `blur` | blur that image | `true` |
+| `blurAmount` | how far, 0 to 1 | `0.75` |
+| `dim` | scrim over the image, 0 to 1 | `0.45` |
+| `showClock` | the time and date | `true` |
+| `showAvatar` | your picture and name | `true` |
+| `showStatus` | battery, network, layout | `true` |
+| `pamService` | which `/etc/pam.d` stack to run | `login` |
+
+The wallpaper defaults to the bar's own, which is the file matugen already
+derives the palette from — so the picture and the colours on top of it come
+from one source and cannot disagree. Colours are not settable here: the lock
+paints itself from the `lock.*` tokens, so it restyles with everything else.
+
+`pamService` is `login` because `/etc/pam.d/hyprlock` and
+`/etc/pam.d/swaylock` are both nothing but `auth include login`. It is the
+same stack they run, and it needs no file installed as root — which a shell
+you clone into `~/.config` cannot ask for.
+
+Your face comes from `/var/lib/AccountsService/icons/$USER`, then `~/.face`,
+then `~/.face.icon`. With none of them, the avatar is left out.
+
 ## AI usage
 
 How much of your coding agents' allowances you have spent, in the bar and in a
