@@ -1,0 +1,107 @@
+#!/bin/sh
+#
+# pshell - talk to the running shell.
+#
+# Every command here is one rewrite: `pshell lock` becomes
+# `qs -p <checkout> ipc call pshell.lock lock`. None of the work is done
+# here and none of it could be -- Quickshell's IPC socket protocol is
+# internal and unversioned, so anything speaking it directly would break on
+# upgrade. What this saves is knowing where the checkout lives, which is the
+# only part of those commands that was ever hard to remember.
+
+set -eu
+
+# The checkout this script shipped in, found from the script's own path.
+#
+# readlink -f, so a symlink into ~/.local/bin resolves back to here: the
+# command has to reach the checkout it came from rather than whichever
+# pshell is first on PATH. A worktree's copy therefore drives that worktree,
+# which is what makes it safe to try a branch without uninstalling anything.
+self=$(readlink -f "$0")
+dir=$(dirname "$(dirname "$self")")
+
+if [ ! -f "$dir/shell.qml" ]; then
+    echo "pshell: no shell.qml under $dir" >&2
+    echo "pshell: this script has to stay in the bin/ directory of a checkout" >&2
+    exit 1
+fi
+
+usage() {
+    cat <<'EOF'
+usage: pshell <command> [arguments]
+
+  lock                    lock the screen
+  preview                 draw the lockscreen in a window, without locking
+  run [qs options]        start the shell
+  ipc <arguments>         pass straight through to qs ipc
+
+  <target> <method> [..]  call any IPC target directly:
+                            pshell calendar toggle
+                            pshell settings open about
+                            pshell lock isLocked
+
+targets: aiusage battery bluetooth calendar controlcenter lock network
+         settings tailscale
+EOF
+}
+
+# qs answers a shell that is not running with "No running instances", which
+# reads as "you typed the command wrong" rather than "the thing you are
+# talking to is down". Say the second one, and say what to do about it.
+call() {
+    if out=$(qs -p "$dir" ipc call "$@" 2>&1); then
+        if [ -n "$out" ]; then
+            printf '%s\n' "$out"
+        fi
+        return 0
+    fi
+
+    case $out in
+    *"No running instances"*)
+        echo "pshell: the shell is not running. Start it with: pshell run" >&2
+        ;;
+    *)
+        printf '%s\n' "$out" >&2
+        ;;
+    esac
+    exit 1
+}
+
+if [ $# -eq 0 ]; then
+    usage
+    exit 0
+fi
+
+cmd=$1
+shift
+
+case $cmd in
+-h | --help | help)
+    usage
+    ;;
+run)
+    exec qs -p "$dir" "$@"
+    ;;
+ipc)
+    exec qs -p "$dir" ipc "$@"
+    ;;
+lock)
+    # Bare `pshell lock` locks. A method after it reaches the rest of the
+    # target, so `pshell lock isLocked` still means what it looks like.
+    call pshell.lock "${1:-lock}"
+    ;;
+preview)
+    call pshell.lock preview
+    ;;
+*)
+    # Anything else is a target name. Left unvalidated on purpose: the list
+    # of targets belongs to the QML, not to this file, and a copy here would
+    # be one more thing to forget to update. qs already answers an unknown
+    # one clearly.
+    if [ $# -eq 0 ]; then
+        echo "pshell: $cmd needs a method, eg. pshell $cmd toggle" >&2
+        exit 1
+    fi
+    call "pshell.$cmd" "$@"
+    ;;
+esac

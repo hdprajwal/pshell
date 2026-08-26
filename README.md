@@ -25,6 +25,31 @@ To start it with Hyprland, add this to `~/.config/hypr/hyprland.conf`:
 exec-once = qs -p ~/.config/quickshell/pshell
 ```
 
+### The `pshell` command
+
+Every door into the shell is an IPC call, and typing the path each time gets
+old. `bin/pshell` is a one-line wrapper around them:
+
+```sh
+ln -s ~/.config/quickshell/pshell/bin/pshell ~/.local/bin/pshell
+```
+
+```
+pshell lock                    lock the screen
+pshell preview                 draw the lockscreen without locking
+pshell run                     start the shell
+pshell settings toggle         any IPC target, by name
+pshell ipc show                straight through to qs ipc
+```
+
+It finds the checkout from its own location, following the symlink to get
+there — so it talks to the copy it shipped in, not to whichever one is first
+on `$PATH`. A second checkout's `bin/pshell` drives that second checkout,
+which is what makes it safe to try a branch without uninstalling anything.
+
+Everything below is written with this on your `$PATH`. Without it, every
+`pshell x y` is `qs -p ~/.config/quickshell/pshell ipc call pshell.x y`.
+
 ## Config
 
 Everything is in `~/.config/pshell/config.json`. Save the file and the bar
@@ -474,7 +499,7 @@ just its icon.
 `pshell` ships a settings window. Open it from the gear in the bar
 (`{ "type": "settings" }`), from the control centre, or with:
 
-    qs -p ~/path/to/pshell ipc call pshell.settings toggle
+    pshell settings toggle
 
 **It writes `config.json`.** Until this existed, nothing in the shell ever
 rewrote your config, and the only thing pshell saved for itself went to
@@ -488,7 +513,7 @@ not survive it.
 A lockscreen drawn by pshell itself, on `ext-session-lock`, authenticating
 against PAM. No `hyprlock`.
 
-    qs -p ~/path/to/pshell ipc call pshell.lock lock
+    pshell lock
 
 **pshell does not decide when to lock, and will not.** Omarchy splits that
 job — `hyprlock` draws and authenticates, `hypridle` owns every timer and
@@ -498,7 +523,7 @@ Screen blanking, keyboard backlight and sleep inhibition are a daemon's job.
 So keep `hypridle`, and point it here:
 
     general {
-        lock_cmd = qs -p ~/path/to/pshell ipc call pshell.lock lock
+        lock_cmd = pshell lock
         before_sleep_cmd = loginctl lock-session
         inhibit_sleep = 3
     }
@@ -508,9 +533,15 @@ already run through `loginctl lock-session` → `hypridle` → `lock_cmd`, so
 none of them need anything else. Locking twice is a no-op, which matters
 because an idle timeout landing on top of a manual lock is normal.
 
+If the machine stops locking on idle, check that `hypridle` can find the
+command: it is started by your session manager, not by your login shell, and
+does not necessarily have `~/.local/bin` on its `PATH`. Spell it out if not:
+
+    lock_cmd = ~/.config/quickshell/pshell/bin/pshell lock
+
 ### Looking at it without locking yourself out
 
-    qs -p ~/path/to/pshell ipc call pshell.lock preview
+    pshell preview
 
 Draws the lockscreen in an ordinary window with authentication stubbed —
 submitting always fails, so the error state is reachable without knowing a
