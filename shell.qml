@@ -11,6 +11,11 @@ import Quickshell.Wayland
 import qs.Components
 import qs.Services
 import qs.Commons
+// Qualified, because the unqualified name collides: qs.Services also has a
+// `Wallpaper` -- the singleton the keep-alive line below reads -- and two
+// modules both offering the name would leave this file using whichever one
+// QML resolved last.
+import qs.Widgets.Wallpaper as WallpaperLayer
 
 ShellRoot {
     // Keeps the settings app's IPC handler alive for the whole session.
@@ -54,6 +59,12 @@ ShellRoot {
     //
     // Costs nothing: the singleton holds a path list and two idle Processes.
     readonly property var wallpaper: Wallpaper
+
+    // The desktop background. A sibling of the bar's Variants, not inside
+    // it: the widget carries its own Variants over the screens, and nesting
+    // it under the bar's would make one background window per screen per
+    // screen.
+    WallpaperLayer.Wallpaper {}
 
     Variants {
         model: Quickshell.screens
