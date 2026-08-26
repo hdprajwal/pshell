@@ -18,3 +18,6 @@ config.json
 
 # Claude Code, which keeps its worktrees in here
 .claude/
+
+# Design notes, kept locally rather than in the repo
+docs/superpowers/
