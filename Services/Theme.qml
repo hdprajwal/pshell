@@ -1,5 +1,6 @@
 pragma Singleton
 
+import QtCore
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -50,6 +51,53 @@ Singleton {
 
     // From ~/.config/pshell/templates.json, validated before it gets here.
     property var userTemplates: []
+
+    // A malformed entry is skipped with a warning naming it; it never stops
+    // the built-ins from rendering. WidgetRegistry treats a broken manifest
+    // the same way, and for the same reason: one bad file the user is midway
+    // through editing should not take the whole feature down.
+    function _readUserTemplates(raw) {
+        var parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (e) {
+            console.warn("pshell: templates.json is not valid JSON —", e);
+            return [];
+        }
+        if (!Array.isArray(parsed)) {
+            console.warn("pshell: templates.json is not an array, ignored");
+            return [];
+        }
+
+        const out = [];
+        for (var i = 0; i < parsed.length; i++) {
+            const t = parsed[i];
+            const name = t && typeof t.name === "string" ? t.name : "";
+            if (!t || name === "" || typeof t.input !== "string" || t.input === "" || typeof t.output !== "string" || t.output === "") {
+                console.warn("pshell: templates.json entry", i + 1, name === "" ? "(unnamed)" : "(" + name + ")", "needs name, input and output, skipped");
+                continue;
+            }
+            const entry = {
+                name: name,
+                input: t.input,
+                output: t.output
+            };
+            if (typeof t.postHook === "string" && t.postHook !== "")
+                entry.postHook = t.postHook;
+            out.push(entry);
+        }
+        return out;
+    }
+
+    function _setUserTemplates(next) {
+        // Compared as JSON so the initial load -- which usually parses to the
+        // same list already in place -- does not queue a second matugen run
+        // on top of the one Component.onCompleted started.
+        if (JSON.stringify(next) === JSON.stringify(root.userTemplates))
+            return;
+        root.userTemplates = next;
+        root.refresh();
+    }
 
     // What refresh() asked configFile to write, promoted to _writtenConfig
     // once the save lands. Kept so a refresh that changes nothing in the
@@ -132,6 +180,24 @@ Singleton {
         onSaveFailed: error => {
             console.warn("pshell: could not write the matugen config —", error, "- colours will not refresh");
         }
+    }
+
+    // The user's own template list: ~/.config/pshell/templates.json names
+    // files in ~/.config/pshell/templates/ and where each should render to.
+    // Watched, so saving the file re-renders without a restart -- the same
+    // contract config.json already has.
+    FileView {
+        id: userTemplatesFile
+
+        path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/pshell/templates.json"
+        watchChanges: true
+        // A missing file is the normal case -- most users never write one --
+        // not an error.
+        printErrors: false
+
+        onLoaded: root._setUserTemplates(root._readUserTemplates(text()))
+        onFileChanged: reload()
+        onLoadFailed: root._setUserTemplates([])
     }
 
     Process {
