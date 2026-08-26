@@ -1,66 +1,28 @@
 import QtQuick
-import Quickshell
-import Quickshell.Wayland
 import qs.Services
 import qs.Commons
 import qs.Ui
 
-// Keep the screen awake.
-//
-// Wayland's idle inhibitor is attached to a surface and is only meant to count
-// while that surface is visible. A bar gets occluded the moment anything goes
-// fullscreen, which is exactly when you want this on, so the protocol alone is
-// not enough to trust.
-//
-// So the inhibitor here is held by its own surface rather than the bar's: a
-// one-pixel transparent window on the overlay layer, which sits above
-// fullscreen windows and is never occluded. It is created only while the
-// toggle is on, so nothing is on screen the rest of the time.
+// The bar's toggle for the idle inhibitor. Only the view lives here: the
+// state and the overlay surface that holds the actual inhibitor are in
+// Services/IdleInhibit.qml, because this widget exists once per monitor and
+// per-monitor copies of a whole-session toggle could disagree with each
+// other. Every instance reads and flips the same singleton, so the
+// indicators on every bar agree, and so does `pshell idle isInhibited`.
 BarIndicator {
     id: root
 
     property var cfg: ({})
 
-    // Off after a restart, always. A machine that silently refuses to sleep
-    // because of something you turned on last week is a bad surprise.
-    property bool inhibited: false
-
-    active: root.inhibited
+    active: IdleInhibit.inhibited
     activeTooltipText: "Allow the screen to sleep"
     inactiveTooltipText: "Keep the screen awake"
 
-    iconSource: Icons.first(root.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
-    iconColor: root.inhibited ? Color.accent : Color.foreground
+    iconSource: Icons.first(IdleInhibit.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
+    iconColor: IdleInhibit.inhibited ? Color.accent : Color.foreground
 
     onPressed: b => {
         if (b === Qt.LeftButton)
-            root.inhibited = !root.inhibited;
-    }
-
-    Loader {
-        active: root.inhibited
-
-        sourceComponent: PanelWindow {
-            // Anchored to one corner at one pixel so the compositor gives it a
-            // real surface to hang the inhibitor on without anything visible.
-            anchors.top: true
-            anchors.left: true
-            implicitWidth: 1
-            implicitHeight: 1
-            color: "transparent"
-
-            // No exclusive zone, or this would push every other window over by
-            // a pixel each time it was switched on.
-            exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.namespace: "pshell:idle-inhibit"
-            // Overlay rather than Top: it has to stay unoccluded above a
-            // fullscreen window for the inhibitor to keep counting.
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-
-            IdleInhibitor {
-                enabled: true
-            }
-        }
+            IdleInhibit.toggle();
     }
 }
