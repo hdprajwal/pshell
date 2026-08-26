@@ -30,22 +30,39 @@ exec-once = qs -p ~/.config/quickshell/pshell
 Every door into the shell is an IPC call, and typing the path each time gets
 old. `bin/pshell` is a one-line wrapper around them:
 
-```sh
-ln -s ~/.config/quickshell/pshell/bin/pshell ~/.local/bin/pshell
-```
-
 ```
 pshell lock                    lock the screen
+pshell unlock                  unlock it again
 pshell preview                 draw the lockscreen without locking
 pshell run                     start the shell
 pshell settings toggle         any IPC target, by name
 pshell ipc show                straight through to qs ipc
 ```
 
-It finds the checkout from its own location, following the symlink to get
-there — so it talks to the copy it shipped in, not to whichever one is first
-on `$PATH`. A second checkout's `bin/pshell` drives that second checkout,
-which is what makes it safe to try a branch without uninstalling anything.
+Symlink it, and it needs nothing else:
+
+```sh
+ln -s ~/.config/quickshell/pshell/bin/pshell ~/.local/bin/pshell
+```
+
+If you would rather it lived with the rest of your pshell things, copy it
+out of the checkout and say where the checkout is:
+
+```sh
+cp ~/.config/quickshell/pshell/bin/pshell ~/.config/pshell/pshell
+ln -s ~/.config/pshell/pshell ~/.local/bin/pshell
+export PSHELL_DIR=~/.config/quickshell/pshell   # in your shell rc
+```
+
+It looks for the shell in three places, in this order: the checkout the
+script sits in, then `$PSHELL_DIR`, then `~/.config/quickshell/pshell`.
+
+Location first is deliberate. A symlink is resolved before that check, so
+`<checkout>/bin/pshell` always drives its own checkout however you reached
+it — a second clone, or a worktree, answers for itself, which is what makes
+it safe to try a branch without uninstalling anything. `PSHELL_DIR` is for
+the copy that lives outside any checkout, and cannot silently redirect one
+checkout's own command at another.
 
 Everything below is written with this on your `$PATH`. Without it, every
 `pshell x y` is `qs -p ~/.config/quickshell/pshell ipc call pshell.x y`.

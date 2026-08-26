@@ -11,19 +11,65 @@
 
 set -eu
 
-# The checkout this script shipped in, found from the script's own path.
+# Which shell to talk to. Three answers, in this order:
 #
-# readlink -f, so a symlink into ~/.local/bin resolves back to here: the
-# command has to reach the checkout it came from rather than whichever
-# pshell is first on PATH. A worktree's copy therefore drives that worktree,
-# which is what makes it safe to try a branch without uninstalling anything.
+#   1. The checkout this script sits in, so <checkout>/bin/pshell always
+#      drives its own checkout. readlink -f resolves a symlink first, so a
+#      link into ~/.local/bin still reaches the copy it points at rather
+#      than whichever pshell is first on PATH -- which is what makes it
+#      safe to try a branch without uninstalling anything.
+#
+#   2. $PSHELL_DIR, for a copy installed somewhere that is not a checkout:
+#      ~/.config/pshell alongside config.json, say. This is the one to set
+#      if you keep your checkout somewhere of your own choosing.
+#
+#   3. The install path the README documents.
+#
+# Location beats the variable on purpose. Reaching for a specific
+# checkout's copy is a more specific request than an environment set once
+# in a shell rc, and the alternative -- a stale PSHELL_DIR silently
+# redirecting a worktree's own command at some other tree -- is exactly the
+# confusion this ordering exists to avoid.
 self=$(readlink -f "$0")
-dir=$(dirname "$(dirname "$self")")
+beside=$(dirname "$(dirname "$self")")
+fallback=${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/pshell
 
-if [ ! -f "$dir/shell.qml" ]; then
-    echo "pshell: no shell.qml under $dir" >&2
-    echo "pshell: this script has to stay in the bin/ directory of a checkout" >&2
+dir=""
+for candidate in "$beside" "${PSHELL_DIR:-}" "$fallback"; do
+    if [ -n "$candidate" ] && [ -f "$candidate/shell.qml" ]; then
+        dir=$candidate
+        break
+    fi
+done
+
+if [ -z "$dir" ]; then
+    echo "pshell: cannot find a pshell checkout." >&2
+    echo "pshell: looked beside this script ($beside)," >&2
+    echo "pshell: in \$PSHELL_DIR, and in $fallback" >&2
+    echo "pshell:" >&2
+    echo "pshell: point it at the directory holding shell.qml:" >&2
+    echo "pshell:   export PSHELL_DIR=~/src/pshell" >&2
     exit 1
+fi
+
+# A TTY has no WAYLAND_DISPLAY, and `qs ipc` will not look at an instance
+# running on a display it is not itself on -- it reports "No running
+# instances" and lists the others as being elsewhere.
+#
+# That breaks the one command that has to work from a TTY. If the lockscreen
+# will not take your password, a TTY is where you are, and `pshell unlock`
+# is the difference between getting your session back and ending it.
+#
+# So when the variable is missing, take it from the instance list.
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    found=$(qs list --all 2>/dev/null | awk -v want="$dir/shell.qml" '
+        $1 == "Config" && $3 == want { seen = 1; next }
+        seen && $1 == "Display" { sub(/.*\//, "", $3); print $3; exit }
+    ')
+    if [ -n "$found" ]; then
+        WAYLAND_DISPLAY=$found
+        export WAYLAND_DISPLAY
+    fi
 fi
 
 usage() {
