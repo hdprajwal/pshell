@@ -31,6 +31,30 @@ SettingsPage {
         }
     }
 
+    // The grid's fullscreen sibling, one click away. The carousel is not a
+    // mode of this page -- it is its own overlay surface, because it wants
+    // the whole screen and an exclusive keyboard grab, which a page inside
+    // an xdg toplevel cannot have. It opens over this window, and Escape
+    // lands you back here.
+    FormSection {
+        title: "Carousel"
+        help: "Browse the same images fullscreen, one at a time. Arrow keys move, Enter applies, Escape returns here. Also on `pshell wallpaper carousel`."
+
+        Button {
+            id: carouselButton
+
+            text: "Open carousel"
+            bordered: true
+            // Disabled, not hidden, on an empty directory: the sentence
+            // below already explains why there is nothing to browse, and a
+            // button that vanishes with it would look like a removed
+            // feature rather than an empty folder.
+            enabled: Wallpaper.entries.length > 0
+            opacity: carouselButton.enabled ? 1 : 0.4
+            onClicked: WallpaperCarousel.open()
+        }
+    }
+
     // A sentence, not a blank page: an empty grid without it looks like the
     // picker is broken rather than the directory being empty, and it has to
     // say which directory so the fix is obvious.
