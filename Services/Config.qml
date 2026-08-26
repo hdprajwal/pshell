@@ -1,6 +1,9 @@
 pragma Singleton
 
 import QtCore
+// For QtObject, which the `lock` group is. Config draws nothing, so QtQuick
+// would be the wrong import to reach it through.
+import QtQml
 import Quickshell
 import Quickshell.Io
 import "ConfigPath.js" as ConfigPath

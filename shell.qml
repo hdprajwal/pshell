@@ -28,6 +28,16 @@ ShellRoot {
     // behind a LazyLoader that stays inactive until something opens it.
     readonly property var settingsApp: SettingsApp
 
+    // Same reason, and a sharper one: the lock has no widget and no gear to
+    // be reached from at all. IPC is its only door -- it is what hypridle's
+    // lock_cmd calls -- so if nothing here referenced the singleton, `ipc
+    // call pshell.lock lock` would answer "Target not found" and the
+    // machine would never lock.
+    //
+    // Costs nothing until it is used: WlSessionLock builds no surface while
+    // unlocked, and the preview window is not visible.
+    readonly property var lock: Lock
+
     Variants {
         model: Quickshell.screens
 
