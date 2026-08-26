@@ -26,10 +26,6 @@ export function loadQmlJs(relativePath) {
   return new Function(`${source}\nreturn { ${names.join(", ")} };`)();
 }
 
-export function loadNmParse() {
-  return loadQmlJs("Services/NmParse.js");
-}
-
 export function loadConfigPath() {
   return loadQmlJs("Services/ConfigPath.js");
 }

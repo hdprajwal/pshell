@@ -11,7 +11,6 @@ ButtonGroup 1.0 ButtonGroup.qml
 ConfirmDialog 1.0 ConfirmDialog.qml
 CursorSurface 1.0 CursorSurface.qml
 Dropdown 1.0 Dropdown.qml
-FormRow 1.0 FormRow.qml
 FormSection 1.0 FormSection.qml
 KeyboardPanel 1.0 KeyboardPanel.qml
 MaterialIcon 1.0 MaterialIcon.qml

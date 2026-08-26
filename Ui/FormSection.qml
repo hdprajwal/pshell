@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Commons
 
-// A titled group of FormRows on one filled card.
+// A titled group of setting rows on one filled card.
 //
 // `rows` is a default property alias into the inner Column, which works
 // because a default alias only captures children a *consumer* declares --

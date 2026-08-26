@@ -459,10 +459,10 @@ Panel {
                     return sourceList.implicitHeight;
                 }
 
-                // The Wi-Fi pane is two things now, so it needs a container,
-                // and the moment it had one the old `netList.visible` height
-                // would have been reading a value it also sets. Keying off
-                // root.detail keeps the size an input rather than a loop.
+                // The container outlived the "Network settings" button it was
+                // added for, and it stays: keying visibility off root.detail
+                // rather than off `netList.visible` keeps the size an input
+                // rather than a value the pane also sets.
                 Column {
                     id: wifiPane
                     width: detailColumn.width
@@ -472,17 +472,6 @@ Panel {
                     NetworkList {
                         id: netList
                         rowWidth: wifiPane.width
-                    }
-
-                    Button {
-                        width: parent.width
-                        leftAlign: true
-                        text: "Network settings"
-                        foreground: Color.popups.text
-                        onClicked: {
-                            SettingsApp.open("network.wifi");
-                            root.close();
-                        }
                     }
                 }
 

@@ -7,7 +7,7 @@
 // already imports qs.Services (Color and Style both do); making Services
 // import qs.Commons back would close a module cycle that does not exist
 // today. A plain .js file has no module to cycle with, and Services already
-// uses the pattern -- Nm.qml imports NmParse.js the same way.
+// uses the pattern -- SystemTheme.qml imports this file the same way.
 
 // Wraps a long-lived child so it dies with the shell.
 //

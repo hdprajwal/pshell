@@ -35,10 +35,6 @@ Singleton {
         return connected ? "settings_ethernet" : "lan";
     }
 
-    function vpn(connected) {
-        return connected ? "vpn_key" : "vpn_key_off";
-    }
-
     // ----------------------------------------------------------- bluetooth
 
     function bluetooth(enabled, connected) {
@@ -191,31 +187,15 @@ Singleton {
     readonly property string nightMode: "nightlight"
     readonly property string darkMode: "contrast"
     readonly property string settings: "settings"
+    readonly property string edit: "edit"
     readonly property string pin: "push_pin"
     readonly property string lock: "lock"
     readonly property string powerOff: "power_settings_new"
     readonly property string logout: "logout"
-    readonly property string unknown: "help"
 
     // --------------------------------------------------- settings app
     //
-    // Named constants rather than string literals at the call site, for the
-    // same reason the rest of this file exists: when Material renames a
-    // symbol, one line changes instead of nine.
+    // One symbol, because the settings app is one page. The network pages
+    // took lan, ethernet, vpn and the expander arrows with them.
     readonly property string info: "info"
-    readonly property string ethernet: "settings_ethernet"
-    readonly property string lan: "lan"
-    readonly property string hotspot: "wifi_tethering"
-    readonly property string hiddenNetwork: "wifi_find"
-    readonly property string route: "alt_route"
-    readonly property string dns: "dns"
-    readonly property string proxy: "vpn_lock"
-    readonly property string back: "arrow_back"
-    readonly property string reveal: "visibility"
-    readonly property string conceal: "visibility_off"
-    readonly property string add: "add"
-    readonly property string remove: "close"
-    readonly property string warn: "warning"
-    readonly property string expandMore: "expand_more"
-    readonly property string expandLess: "expand_less"
 }

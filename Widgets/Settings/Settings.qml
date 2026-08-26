@@ -33,12 +33,8 @@ Item {
         active: SettingsApp.visible
         activeColor: Color.accent
 
-        onPressed: b => {
-            if (b === Qt.RightButton) {
-                SettingsApp.open("network.wifi");
-                return;
-            }
-            SettingsApp.toggle();
-        }
+        // Every button toggles. Right-click used to open straight onto the
+        // Wi-Fi page; with one page there is nowhere else to land.
+        onPressed: b => SettingsApp.toggle()
     }
 }

@@ -178,7 +178,7 @@ Column {
 
             Text {
                 anchors.right: parent.right
-                anchors.rightMargin: Style.spacing.md
+                anchors.rightMargin: Style.spacing.md + editSlot.width
                 anchors.verticalCenter: parent.verticalCenter
                 text: {
                     if (root.pending === netRow.modelData || netRow.modelData.state === ConnectionState.Connecting)
@@ -216,6 +216,52 @@ Column {
                         return;
                     }
                     root.join(netRow.modelData);
+                }
+            }
+
+            // NetworkManager's own editor, for a network you have saved. An
+            // unsaved one has no profile to edit, so the slot collapses to
+            // nothing rather than offering a button that cannot do anything --
+            // and the status text reads this width, so it reflows on its own.
+            //
+            // Declared *after* the row-wide MouseArea on purpose. QML stacks
+            // later siblings on top and delivers input to the topmost item
+            // first, so declaring this before `hover` put the pencil
+            // underneath a MouseArea filling the whole row -- which swallowed
+            // the click and, on a connected network, returned without doing
+            // anything. Same order AudioDeviceList puts its pin button in.
+            // The row joins, this edits, and one click means exactly one.
+            Item {
+                id: editSlot
+
+                anchors.right: parent.right
+                anchors.rightMargin: Style.spacing.xs
+                anchors.verticalCenter: parent.verticalCenter
+                width: netRow.modelData.known ? Math.round(Style.font.body * 1.8) : 0
+                height: width
+                visible: width > 0
+
+                BorderSurface {
+                    anchors.fill: parent
+                    radius: Style.cornerRadius
+                    color: editHover.containsMouse ? Style.hoverFill : "transparent"
+                    borderSpec: Border.none()
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: parent
+                    name: Glyphs.edit
+                    size: Math.round(Style.font.body * 0.95)
+                    color: Color.popups.text
+                    opacity: editHover.containsMouse ? 1 : 0.55
+                }
+
+                MouseArea {
+                    id: editHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Nm.openEditorForSsid(netRow.modelData.name)
                 }
             }
         }

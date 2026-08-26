@@ -3,7 +3,6 @@ import Quickshell
 import qs.Services
 import qs.Commons
 import qs.Ui
-import qs.Widgets.Settings.Network
 
 // A plain xdg-toplevel, not a layer-shell surface. The settings window is an
 // application window and should behave like one: placed by whatever Hyprland
@@ -24,18 +23,8 @@ FloatingWindow {
 
     // Closing from the titlebar is the same as closing from the bar button:
     // hidden, not destroyed. Rebuilding would throw away the scroll position
-    // and any half-typed field for no gain.
+    // for no gain.
     onClosed: SettingsApp.close()
-
-    // The data layer idles while nothing is looking. Holding the reference on
-    // window *visibility* rather than on construction is what makes that
-    // true: the window object outlives the first close.
-    onVisibleChanged: {
-        if (win.visible)
-            Nm.addRef();
-        else
-            Nm.removeRef();
-    }
 
     // A resize is a stream of width changes, and writing state.json on each
     // one would hammer the disk for the length of a drag.
@@ -65,59 +54,15 @@ FloatingWindow {
         width: Style.spacing.hairline
     }
 
-    Loader {
-        id: content
+    // About is the only page, so it is declared rather than routed. There was
+    // a Loader here keyed on SettingsApp.currentTab, which is the right shape
+    // for a switch over several pages and pure ceremony over one; the tab id
+    // still exists, because the sidebar has something to highlight and Prefs
+    // has something to remember, but nothing branches on it any more.
+    AboutPage {
         anchors.left: divider.right
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-
-        // One Loader keyed on the current tab, the way
-        // Components/Section.qml resolves a widget type. DMS gives each tab
-        // its own Loader gated on an index, which keeps every visited page
-        // resident; that is the right trade when a page is expensive and the
-        // wrong one here, where a page is a Column of rows and rebuilding it
-        // is free.
-        sourceComponent: {
-            switch (SettingsApp.currentTab) {
-            case "network.status":
-                return statusComponent;
-            case "network.wifi":
-                return wifiComponent;
-            case "network.ethernet":
-                return ethernetComponent;
-            case "network.vpn":
-                return vpnComponent;
-            case "about":
-                return aboutComponent;
-            default:
-                return null;
-            }
-        }
-    }
-
-    Component {
-        id: statusComponent
-        StatusTab {}
-    }
-
-    Component {
-        id: wifiComponent
-        WifiTab {}
-    }
-
-    Component {
-        id: ethernetComponent
-        EthernetTab {}
-    }
-
-    Component {
-        id: vpnComponent
-        VpnTab {}
-    }
-
-    Component {
-        id: aboutComponent
-        AboutPage {}
     }
 }
