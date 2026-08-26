@@ -42,6 +42,49 @@ Singleton {
     readonly property string urgent: palette.urgent || ""
     readonly property string dim: palette.dim || ""
 
+    // For the theme page's dropdowns. The menu offered and the allow-list
+    // enforced come from the same arrays in MatugenConfig.js, so the UI can
+    // never offer a value the setters below would refuse.
+    readonly property var schemes: MatugenConfig.SCHEMES
+    readonly property var prefers: MatugenConfig.PREFERS
+
+    // The setters live on the root, not the IpcHandler, so the settings page
+    // and the command line go through the same validation -- IdleInhibit's
+    // handler delegates to root functions for the same reason. They write
+    // through Config.set(), so the change lands in config.json and the
+    // Connections below re-run matugen: the same path an edit in a text
+    // editor takes.
+    function setScheme(name) {
+        if (!MatugenConfig.isValidScheme(name)) {
+            console.warn("pshell: unknown matugen scheme:", name);
+            return;
+        }
+        Config.set("matugenScheme", name);
+    }
+
+    function setPrefer(name) {
+        if (!MatugenConfig.isValidPrefer(name)) {
+            console.warn("pshell: unknown matugen prefer:", name);
+            return;
+        }
+        Config.set("matugenPrefer", name);
+    }
+
+    // `auto` clears the pin: Config.mode only honours the literal strings
+    // "light" and "dark" and falls back to SystemTheme.scheme for anything
+    // else, so writing "" hands the choice back to the desktop.
+    function setMode(mode) {
+        if (mode === "auto") {
+            Config.set("mode", "");
+            return;
+        }
+        if (mode !== "light" && mode !== "dark") {
+            console.warn("pshell: unknown mode:", mode, "- expected light, dark or auto");
+            return;
+        }
+        Config.set("mode", mode);
+    }
+
     // A flat file directly in the runtime directory, not a subdirectory:
     // $XDG_RUNTIME_DIR always exists and a subdirectory would need creating.
     readonly property string matugenConfigPath: {
@@ -261,38 +304,16 @@ Singleton {
             root.refresh();
         }
 
-        // The set* methods write through Config.set(), so the change lands in
-        // config.json and the existing Connections above re-run matugen --
-        // the same path an edit in a text editor takes.
         function setScheme(name: string): void {
-            if (!MatugenConfig.isValidScheme(name)) {
-                console.warn("pshell: unknown matugen scheme:", name);
-                return;
-            }
-            Config.set("matugenScheme", name);
+            root.setScheme(name);
         }
 
         function setPrefer(name: string): void {
-            if (!MatugenConfig.isValidPrefer(name)) {
-                console.warn("pshell: unknown matugen prefer:", name);
-                return;
-            }
-            Config.set("matugenPrefer", name);
+            root.setPrefer(name);
         }
 
-        // `auto` clears the pin: Config.mode only honours the literal strings
-        // "light" and "dark" and falls back to SystemTheme.scheme for
-        // anything else, so writing "" hands the choice back to the desktop.
         function setMode(mode: string): void {
-            if (mode === "auto") {
-                Config.set("mode", "");
-                return;
-            }
-            if (mode !== "light" && mode !== "dark") {
-                console.warn("pshell: unknown mode:", mode, "- expected light, dark or auto");
-                return;
-            }
-            Config.set("mode", mode);
+            root.setMode(mode);
         }
 
         function current(): string {

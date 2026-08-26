@@ -193,10 +193,18 @@ function buildConfig(options) {
 
 // What matugen 4.2.0 accepts, kept here so Theme.qml's IPC can reject a typo
 // before it reaches a process invocation, and so the lists are testable.
+//
+// Named lists rather than literals inside the validators, because the theme
+// settings page builds its dropdowns from them: the menu the user picks from
+// and the allow-list the setter checks against must be one list, or the two
+// drift and the UI offers a value the service refuses.
+var SCHEMES = ["scheme-content", "scheme-expressive", "scheme-fidelity", "scheme-fruit-salad", "scheme-monochrome", "scheme-neutral", "scheme-rainbow", "scheme-tonal-spot", "scheme-vibrant", "scheme-smart"];
+var PREFERS = ["darkness", "lightness", "saturation", "less-saturation", "value", "closest-to-fallback"];
+
 function isValidScheme(name) {
-    return ["scheme-content", "scheme-expressive", "scheme-fidelity", "scheme-fruit-salad", "scheme-monochrome", "scheme-neutral", "scheme-rainbow", "scheme-tonal-spot", "scheme-vibrant", "scheme-smart"].indexOf(String(name)) >= 0;
+    return SCHEMES.indexOf(String(name)) >= 0;
 }
 
 function isValidPrefer(name) {
-    return ["darkness", "lightness", "saturation", "less-saturation", "value", "closest-to-fallback"].indexOf(String(name)) >= 0;
+    return PREFERS.indexOf(String(name)) >= 0;
 }
