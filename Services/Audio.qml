@@ -1,6 +1,7 @@
 pragma Singleton
 
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Pipewire
 
 // Default sink and source, with their volumes bound live.
@@ -59,5 +60,62 @@ Singleton {
 
     PwObjectTracker {
         objects: [root.sink, root.source]
+    }
+
+    IpcHandler {
+        target: "pshell.audio"
+
+        // Percent at this boundary, fraction inside. A person typing
+        // `pshell audio setVolume 40` means forty percent; the 0-1 fraction
+        // is the service's convention, not the command line's. The
+        // service's own setters already clamp, so nothing is checked twice.
+        function volumeUp(): void {
+            root.setVolume(root.volume + 0.05);
+        }
+
+        function volumeDown(): void {
+            root.setVolume(root.volume - 0.05);
+        }
+
+        function setVolume(percent: int): void {
+            root.setVolume(percent / 100);
+        }
+
+        // The absolute forms, not just the toggle. A script that wants
+        // silence has to be able to ask for silence -- calling toggle from
+        // a script is a coin flip on whatever the current state is.
+        function mute(): void {
+            if (root.sinkReady)
+                root.sink.audio.muted = true;
+        }
+
+        function unmute(): void {
+            if (root.sinkReady)
+                root.sink.audio.muted = false;
+        }
+
+        function toggleMute(): void {
+            root.toggleMute();
+        }
+
+        function micToggleMute(): void {
+            root.toggleMicMute();
+        }
+
+        function micSetVolume(percent: int): void {
+            root.setMicVolume(percent / 100);
+        }
+
+        // One line a script can grep. "muted" sits directly after the
+        // percent it qualifies, so `pshell audio status | grep -q 'mic
+        // .* muted'` and friends work without parsing.
+        function status(): string {
+            return "volume " + Math.round(root.volume * 100) + "%"
+                + (root.muted ? " muted" : "")
+                + " sink \"" + root.sinkName + "\""
+                + " mic " + Math.round(root.micVolume * 100) + "%"
+                + (root.micMuted ? " muted" : "")
+                + " source \"" + root.sourceName + "\"";
+        }
     }
 }
