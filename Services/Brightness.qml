@@ -60,4 +60,29 @@ Singleton {
         onTriggered: if (!writer.running)
             root.refresh()
     }
+
+    IpcHandler {
+        target: "pshell.brightness"
+
+        // Five points per step, matching the control centre's slider, so
+        // the keybind and the mouse move the screen in the same increments.
+        // setFraction already clamps -- to a 0.01 floor, not zero, so `down`
+        // held too long dims the screen instead of turning it off.
+        function up(): void {
+            root.setFraction(root.fraction + 0.05);
+        }
+
+        function down(): void {
+            root.setFraction(root.fraction - 0.05);
+        }
+
+        // Percent at the boundary, fraction inside, same as pshell.audio.
+        function set(percent: int): void {
+            root.setFraction(percent / 100);
+        }
+
+        function get(): int {
+            return Math.round(root.fraction * 100);
+        }
+    }
 }
