@@ -20,4 +20,4 @@ config.json
 .claude/
 
 # Design notes, kept locally rather than in the repo
-docs/superpowers/
+docs/
