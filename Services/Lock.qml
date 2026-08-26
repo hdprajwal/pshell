@@ -118,6 +118,10 @@ Singleton {
     }
 
     function _reset() {
+        // Closing a preview mid-check leaves the stub's timer armed, and it
+        // would land a fake failure on whatever is on screen by then.
+        stub.stop();
+
         root.authState = "idle";
         root.message = "";
         root.attempts = 0;
