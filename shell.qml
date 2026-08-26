@@ -38,6 +38,15 @@ ShellRoot {
     // unlocked, and the preview window is not visible.
     readonly property var lock: Lock
 
+    // Same again for the idle inhibitor: its widget is optional, so a bar
+    // without one would leave the singleton unbuilt and `pshell idle
+    // toggle` answering "Target not found" -- which is the whole point of
+    // moving the state out of the widget.
+    //
+    // Costs nothing: the overlay surface is behind a Loader that stays
+    // inactive while `inhibited` is false, which it is after every start.
+    readonly property var idleInhibit: IdleInhibit
+
     Variants {
         model: Quickshell.screens
 
