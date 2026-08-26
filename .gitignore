@@ -15,3 +15,6 @@ config.json
 
 # OS
 .DS_Store
+
+# Claude Code, which keeps its worktrees in here
+.claude/
