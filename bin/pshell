@@ -11,6 +11,8 @@
 
 set -eu
 
+# ---------------------------------------------------------------- the shell
+
 # Which shell to talk to. Three answers, in this order:
 #
 #   1. The checkout this script sits in, so <checkout>/bin/pshell always
@@ -30,7 +32,14 @@ set -eu
 # in a shell rc, and the alternative -- a stale PSHELL_DIR silently
 # redirecting a worktree's own command at some other tree -- is exactly the
 # confusion this ordering exists to avoid.
-self=$(readlink -f "$0")
+
+# $0 is a bare name when the shell found us on PATH and a path otherwise,
+# and readlink -f resolves the second but not the first.
+case $0 in
+*/*) self=$(readlink -f "$0") ;;
+*) self=$(readlink -f "$(command -v -- "$0")") ;;
+esac
+
 beside=$(dirname "$(dirname "$self")")
 fallback=${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/pshell
 
@@ -52,6 +61,30 @@ if [ -z "$dir" ]; then
     exit 1
 fi
 
+# ------------------------------------------------------------------ display
+
+# The display an instance of our shell is running on, or nothing.
+#
+# Read line at a time rather than by awk field, because a checkout path with
+# a space in it is a path, not three fields.
+display_of() {
+    want=$1
+
+    qs list --all 2>/dev/null | while IFS= read -r line; do
+        case $line in
+        *"Config path: $want")
+            seen=1
+            ;;
+        *"Display connection: "*)
+            if [ "${seen:-0}" = 1 ]; then
+                printf '%s\n' "${line##*/}"
+                break
+            fi
+            ;;
+        esac
+    done
+}
+
 # A TTY has no WAYLAND_DISPLAY, and `qs ipc` will not look at an instance
 # running on a display it is not itself on -- it reports "No running
 # instances" and lists the others as being elsewhere.
@@ -60,18 +93,33 @@ fi
 # will not take your password, a TTY is where you are, and `pshell unlock`
 # is the difference between getting your session back and ending it.
 #
-# So when the variable is missing, take it from the instance list.
-if [ -z "${WAYLAND_DISPLAY:-}" ]; then
-    found=$(qs list --all 2>/dev/null | awk -v want="$dir/shell.qml" '
-        $1 == "Config" && $3 == want { seen = 1; next }
-        seen && $1 == "Display" { sub(/.*\//, "", $3); print $3; exit }
-    ')
+# Done here rather than at startup so that `pshell help`, and a bad command
+# line, cost nothing.
+ensure_display() {
+    if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+        return 0
+    fi
+
+    found=$(display_of "$dir/shell.qml")
     if [ -n "$found" ]; then
         WAYLAND_DISPLAY=$found
         export WAYLAND_DISPLAY
     fi
-fi
+}
 
+need_qs() {
+    if ! command -v qs >/dev/null 2>&1; then
+        echo "pshell: qs is not on your PATH. Quickshell is what runs the shell;" >&2
+        echo "pshell: pshell only tells it what to do." >&2
+        exit 1
+    fi
+}
+
+# -------------------------------------------------------------------- usage
+
+# No list of targets here. The targets belong to the QML that declares them,
+# and a copy in this file would be one more thing to forget to update --
+# `pshell ipc show` asks the shell itself, and cannot go stale.
 usage() {
     cat <<'EOF'
 usage: pshell <command> [arguments]
@@ -87,32 +135,56 @@ usage: pshell <command> [arguments]
                             pshell settings open about
                             pshell lock isLocked
 
-targets: aiusage battery bluetooth calendar controlcenter lock network
-         settings tailscale
+`pshell ipc show` lists every target the running shell has.
 EOF
 }
+
+no_arguments() {
+    if [ "$2" -ne 0 ]; then
+        echo "pshell: $1 takes no arguments" >&2
+        exit 1
+    fi
+}
+
+# --------------------------------------------------------------------- call
 
 # qs answers a shell that is not running with "No running instances", which
 # reads as "you typed the command wrong" rather than "the thing you are
 # talking to is down". Say the second one, and say what to do about it.
 call() {
-    if out=$(qs -p "$dir" ipc call "$@" 2>&1); then
-        if [ -n "$out" ]; then
-            printf '%s\n' "$out"
-        fi
-        return 0
-    fi
+    need_qs
+    ensure_display
 
+    status=0
+    out=$(qs -p "$dir" ipc call "$@" 2>&1) || status=$?
+
+    # The exit code is not enough on its own. qs answers an unknown target
+    # by printing "Target not found." and exiting 0, so a mistyped command
+    # -- or a shell running a branch that does not have the target yet --
+    # would otherwise look like it worked, and say so on stdout.
     case $out in
     *"No running instances"*)
         echo "pshell: the shell is not running. Start it with: pshell run" >&2
+        exit 1
         ;;
-    *)
-        printf '%s\n' "$out" >&2
+    *"Target not found"*)
+        echo "pshell: this shell has no '$1' target." >&2
+        echo "pshell: run 'pshell ipc show' to see the ones it does have." >&2
+        exit 1
         ;;
     esac
-    exit 1
+
+    if [ "$status" -ne 0 ]; then
+        printf '%s\n' "$out" >&2
+        exit 1
+    fi
+
+    if [ -n "$out" ]; then
+        printf '%s\n' "$out"
+    fi
 }
+
+# ----------------------------------------------------------------- dispatch
 
 if [ $# -eq 0 ]; then
     usage
@@ -127,27 +199,36 @@ case $cmd in
     usage
     ;;
 run)
+    need_qs
     exec qs -p "$dir" "$@"
     ;;
 ipc)
+    need_qs
+    ensure_display
     exec qs -p "$dir" ipc "$@"
     ;;
 lock)
-    # Bare `pshell lock` locks. A method after it reaches the rest of the
-    # target, so `pshell lock isLocked` still means what it looks like.
-    call pshell.lock "${1:-lock}"
+    # Bare `pshell lock` locks. Anything after it is a method on the same
+    # target and its arguments, so `pshell lock isLocked` still means what
+    # it looks like.
+    if [ $# -eq 0 ]; then
+        call pshell.lock lock
+    else
+        call pshell.lock "$@"
+    fi
     ;;
 unlock)
+    no_arguments unlock $#
     call pshell.lock unlock
     ;;
 preview)
+    no_arguments preview $#
     call pshell.lock preview
     ;;
 *)
-    # Anything else is a target name. Left unvalidated on purpose: the list
-    # of targets belongs to the QML, not to this file, and a copy here would
-    # be one more thing to forget to update. qs already answers an unknown
-    # one clearly.
+    # Anything else is a target name, left unvalidated for the same reason
+    # usage lists none: qs already answers an unknown one clearly, and this
+    # file should not carry a second copy of the QML's target list.
     if [ $# -eq 0 ]; then
         echo "pshell: $cmd needs a method, eg. pshell $cmd toggle" >&2
         exit 1
