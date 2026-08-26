@@ -161,5 +161,30 @@ Singleton {
         function rescan(): void {
             root.rescan();
         }
+
+        // The fullscreen picker's door, on this target rather than its own:
+        // one wallpaper noun on the command line -- `pshell wallpaper
+        // carousel` beside `pshell wallpaper next` -- and mentioning the
+        // singleton here is also what brings it to life, so shell.qml needs
+        // no keep-alive line for it. The carousel state itself stays in
+        // Services/WallpaperCarousel.qml; this handler only forwards.
+        //
+        // Open and close exist besides the toggle for the reason IdleInhibit
+        // gives for on/off: a script that wants the overlay up should ask
+        // for that, not for "the other thing".
+        function carousel(): string {
+            WallpaperCarousel.toggle();
+            return WallpaperCarousel.visible ? "opened" : "closed";
+        }
+
+        function carouselOpen(): string {
+            WallpaperCarousel.open();
+            return "opened";
+        }
+
+        function carouselClose(): string {
+            WallpaperCarousel.close();
+            return "closed";
+        }
     }
 }
