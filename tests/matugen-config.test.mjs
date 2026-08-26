@@ -171,6 +171,40 @@ test("a user template name that is not a bare TOML key is quoted, not emitted br
   assert.ok(toml["templates.pshell_user_my theme"], "quoted section key did not parse back");
 });
 
+test("two user templates sharing a name emit one section, and the first wins", () => {
+  const raw = Matugen.buildConfig({
+    ...OPTIONS,
+    userTemplates: [
+      { name: "w", input: "first.css", output: "/tmp/first.css" },
+      { name: "w", input: "second.css", output: "/tmp/second.css" }
+    ]
+  });
+  // Counted on the raw text: a duplicate table would overwrite silently in
+  // parseToml, which is exactly how this bug hid from structural assertions.
+  const headers = raw.split("\n").filter(l => l === "[templates.pshell_user_w]");
+  assert.equal(headers.length, 1, "duplicate name emitted two sections — matugen rejects that whole config");
+  const toml = parseToml(raw);
+  assert.equal(toml["templates.pshell_user_w"].input_path, "/home/u/.config/pshell/templates/first.css");
+});
+
+test("a user template named after a built-in neither displaces nor duplicates it", () => {
+  const raw = Matugen.buildConfig({
+    ...OPTIONS,
+    userTemplates: [{ name: "kitty", input: "kitty.conf", output: "/tmp/kitty.conf" }]
+  });
+  for (const section of ["[templates.pshell_kitty]", "[templates.pshell_user_kitty]"]) {
+    const count = raw.split("\n").filter(l => l === section).length;
+    assert.equal(count, 1, `${section} appeared ${count} times`);
+  }
+  const toml = parseToml(raw);
+  // The built-in kept its own definition -- hook included -- and the user's
+  // landed beside it under its own name.
+  assert.ok(toml["templates.pshell_kitty"].post_hook.includes("|| true"));
+  assert.equal(toml["templates.pshell_kitty"].input_path, "/opt/pshell/assets/matugen/templates/kitty.conf");
+  assert.equal(toml["templates.pshell_user_kitty"].input_path, "/home/u/.config/pshell/templates/kitty.conf");
+  assert.equal(toml["templates.pshell_user_kitty"].post_hook, undefined);
+});
+
 test("scheme and prefer validation accept matugen's lists and nothing else", () => {
   assert.equal(Matugen.isValidScheme("scheme-tonal-spot"), true);
   assert.equal(Matugen.isValidScheme("scheme-vibrant"), true);

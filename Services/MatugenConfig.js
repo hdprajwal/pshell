@@ -155,21 +155,37 @@ function buildConfig(options) {
     for (var name in ANSI)
         lines.push(name + " = { color = " + tomlString(ANSI[name]) + ", blend = true }");
 
+    // Every section name emitted so far. A duplicate table is a TOML error
+    // that takes the whole run down -- no palette, no built-ins -- so no
+    // section may ever be written twice, whatever the caller sent.
+    var used = {};
+
     // Built-ins first, in list order; user templates after, in the order
     // given. Nothing is sorted -- render order is declaration order.
     for (var i = 0; i < BUILTIN_TEMPLATES.length; i++) {
         var t = BUILTIN_TEMPLATES[i];
         if (disabled.indexOf(t.name) >= 0)
             continue;
+        used["pshell_" + t.name] = true;
         emitTemplate(lines, "pshell_" + t.name, opts.shellDir + "/assets/matugen/templates/" + t.input, opts.configDir + "/" + t.output, t.postHook);
     }
 
     // pshell_user_, not pshell_: a user template named "kitty" would
-    // otherwise duplicate the [templates.pshell_kitty] table, and a duplicate
-    // table is a TOML error that takes the whole run down with it.
+    // otherwise duplicate the [templates.pshell_kitty] table. Two user
+    // templates sharing a name are the same trap one namespace over, and
+    // Theme.qml's per-entry validation cannot see it -- each entry is fine
+    // alone. So the first of a name wins and the rest are skipped with a
+    // warning, the same contract a malformed entry gets: one bad line in
+    // templates.json must never cost the user their palette.
     for (var j = 0; j < userTemplates.length; j++) {
         var u = userTemplates[j];
-        emitTemplate(lines, "pshell_user_" + u.name, opts.userTemplateDir + "/" + u.input, expandHome(u.output, opts.home), u.postHook);
+        var section = "pshell_user_" + u.name;
+        if (used[section]) {
+            console.warn("pshell: user template \"" + u.name + "\" repeats an earlier name, skipped");
+            continue;
+        }
+        used[section] = true;
+        emitTemplate(lines, section, opts.userTemplateDir + "/" + u.input, expandHome(u.output, opts.home), u.postHook);
     }
 
     return lines.join("\n") + "\n";
