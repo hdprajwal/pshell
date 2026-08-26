@@ -149,14 +149,82 @@ have not set yourself:
 Anything you set explicitly still wins, so `"accent": "#89b4fa"` alongside the
 above keeps your accent and derives the rest.
 
-pshell reads matugen's JSON straight off stdout rather than using its template
-and config files, so nothing is generated on disk and there is no second file to
-keep in sync. It maps `surface` to the background, `on_surface` to text,
-`primary` to the accent, `error` to urgent and `outline` to dimmed text.
+One matugen run does two jobs: it prints the palette as JSON, which pshell
+reads off stdout and maps onto the bar — `surface` to the background,
+`on_surface` to text, `primary` to the accent, `error` to urgent, `outline` to
+dimmed text — and it renders a set of theme files to disk, so the terminal,
+GTK apps and btop wear the same colours as the bar. Same process, same
+palette; the two cannot drift.
 
 Because `config.json` reloads on save, a script that changes your wallpaper can
-rewrite the `wallpaper` field and the bar recolours itself. There is nothing to
-restart and no daemon watching anything.
+rewrite the `wallpaper` field and the bar recolours itself — and now the theme
+files re-render with it. There is nothing to restart and no daemon watching
+anything.
+
+`theme: "wallpaper"` is what switches all of this on. On `"manual"` nothing
+runs and nothing is generated — no files appear behind your back.
+
+### What gets generated, and how to use it
+
+pshell never edits an app's real config. Each template renders to a file that
+pshell alone owns and may overwrite — `pshell-colors.*`, or a theme named
+`pshell` in the app's theme directory — and your own config includes or
+selects it once. Terminals get a real ANSI set, not sixteen shades of the
+accent: pshell seeds matugen with the standard xterm sixteen and lets it blend
+each toward the wallpaper, so red stays in the red family. The achromatic
+slots — black, white, the greys — come from the palette's surface ramp
+instead, because a seed with no hue blends into a pastel of whatever hue
+matugen guesses.
+
+| name | writes | you add, once |
+|---|---|---|
+| `gtk3` | `~/.config/gtk-3.0/pshell-colors.css` | `@import url("pshell-colors.css");` in `~/.config/gtk-3.0/gtk.css` |
+| `gtk4` | `~/.config/gtk-4.0/pshell-colors.css` | `@import url("pshell-colors.css");` in `~/.config/gtk-4.0/gtk.css` |
+| `kitty` | `~/.config/kitty/pshell-colors.conf` | `include pshell-colors.conf` in `kitty.conf` — running kittys reload on their own |
+| `ghostty` | `~/.config/ghostty/themes/pshell` | `theme = pshell` in `~/.config/ghostty/config` |
+| `alacritty` | `~/.config/alacritty/pshell-colors.toml` | `[general]` `import = ["~/.config/alacritty/pshell-colors.toml"]` in `alacritty.toml` — alacritty live-reloads imports |
+| `btop` | `~/.config/btop/themes/pshell.theme` | `color_theme = "pshell"` in `btop.conf`, or pick it in Esc → Options |
+| `zed` | `~/.config/zed/themes/pshell.json` | `"theme": "pshell"` in Zed's `settings.json` |
+| `qtct` | `~/.config/qt6ct/colors/pshell.conf` | pick `pshell` as the colour scheme in qt6ct (needs `QT_QPA_PLATFORMTHEME=qt6ct` for Qt apps outside the shell) |
+
+GTK3 and GTK4 get the same colours from one shared template; only the
+directory each toolkit reads differs. Missing output directories are created;
+an app you don't have installed just gains an unused file, which is why none
+of this needs configuring per app.
+
+To keep pshell away from one of these — you have opinions about your kitty
+colours — list the names to skip:
+
+```json
+{ "disabledTemplates": ["kitty"] }
+```
+
+### Your own templates
+
+Drop template files in `~/.config/pshell/templates/` and declare them in
+`~/.config/pshell/templates.json`; they render after the built-ins from the
+same matugen run. `input` is relative to the templates directory, `output` is
+absolute or `~/`-prefixed, and `postHook` is an optional command run after
+rendering:
+
+```json
+[
+  {
+    "name": "waybar",
+    "input": "waybar-colors.css",
+    "output": "~/.config/waybar/pshell-colors.css",
+    "postHook": "pkill -SIGUSR2 waybar || true"
+  }
+]
+```
+
+Templates use matugen's own syntax — `{{colors.primary.default.hex}}`, and
+`{{colors.ansi_0.default.hex}}` through `ansi_15` for the blended terminal
+set. The file is watched: saving it re-renders everything. A malformed entry
+is skipped with a warning naming it and never stops the built-ins from
+rendering.
+
+### Scheme, mode and the rest
 
 `mode` takes `dark` or `light`. Leave it out and pshell follows the desktop
 instead, reading the GTK `color-scheme` setting and re-deriving the palette
@@ -169,6 +237,13 @@ it, or with a scheme of `default`, pshell stays dark.
 defaulting to `scheme-tonal-spot`. `matugenPrefer` decides which source colour
 wins when an image has several candidates, defaulting to `saturation`; matugen
 refuses to guess without it when there is no terminal to ask.
+
+All of it is drivable from a keybind or a script through the `pshell.theme`
+IPC target: `pshell theme setScheme scheme-vibrant`, `setPrefer`, `setMode
+light|dark|auto` (`auto` hands the choice back to the desktop), `reload` to
+re-run matugen by hand, and `current` to see what is in effect. The set*
+commands write `config.json`, so they are the same change as editing the file
+— and they refuse a scheme or prefer matugen would reject.
 
 Needs `matugen` installed. Without it the configured colours are used and a
 warning is logged.
