@@ -59,6 +59,9 @@ Singleton {
         return p;
     }
     readonly property string matugenScheme: data.matugenScheme || "scheme-tonal-spot"
+    // Built-in template names Theme should not render -- for the user who
+    // wants wallpaper colours everywhere except, say, their kitty config.
+    readonly property var disabledTemplates: data.disabledTemplates || []
     // matugen refuses to guess when an image has several candidate source
     // colours and no terminal to ask, so a preference is mandatory here.
     readonly property string matugenPrefer: data.matugenPrefer || "saturation"

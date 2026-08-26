@@ -3,14 +3,29 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "MatugenConfig.js" as MatugenConfig
 
 // Colours derived from the wallpaper with matugen.
 //
-// matugen prints the whole palette as JSON, so pshell runs it and reads stdout
-// rather than going through matugen's template and config files. Nothing is
-// written to disk and there is no file to keep in sync.
+// This used to read matugen's JSON off stdout *instead of* using its template
+// and config files: nothing was written to disk, so there was no second file
+// to keep in sync and the bar was the only thing themed. That was the right
+// trade while the bar was the only customer. It stopped being right when the
+// terminal, GTK apps and btop needed the same palette -- a bar that matches
+// the wallpaper next to a terminal that does not is worse than neither
+// matching.
 //
-// This is inert unless the config sets `theme: "wallpaper"`, and explicit
+// So the same single matugen run now also renders templates to disk: pshell
+// writes a config file naming them, and matugen prints the palette JSON to
+// stdout (read here, exactly as before) *and* renders every template in one
+// process. The cost is what the old comment prized the absence of: generated
+// files on disk. They are contained by ownership -- every output is a
+// pshell-colors.* or themes/pshell* file that pshell alone writes and may
+// overwrite, included from the user's real configs, never those configs
+// themselves.
+//
+// This is inert unless the config sets `theme: "wallpaper"` -- a user on
+// manual colours gets no files generated behind their back -- and explicit
 // colours in config.json always win over anything generated here.
 Singleton {
     id: root
@@ -26,12 +41,57 @@ Singleton {
     readonly property string urgent: palette.urgent || ""
     readonly property string dim: palette.dim || ""
 
+    // A flat file directly in the runtime directory, not a subdirectory:
+    // $XDG_RUNTIME_DIR always exists and a subdirectory would need creating.
+    readonly property string matugenConfigPath: {
+        const rt = Quickshell.env("XDG_RUNTIME_DIR");
+        return (rt && rt !== "" ? rt : "/tmp") + "/pshell-matugen.toml";
+    }
+
+    // From ~/.config/pshell/templates.json, validated before it gets here.
+    property var userTemplates: []
+
+    // What refresh() asked configFile to write, promoted to _writtenConfig
+    // once the save lands. Kept so a refresh that changes nothing in the
+    // config -- a mode flip changes only the command line -- can skip the
+    // write instead of trusting FileView to save unchanged text.
+    property string _pendingConfig: ""
+    property string _writtenConfig: ""
+
     function refresh() {
         if (!enabled) {
             palette = ({});
             return;
         }
-        generator.command = ["matugen", "image", Config.wallpaperPath, "--json", "hex", "--dry-run", "--prefer", Config.matugenPrefer, "--type", Config.matugenScheme, "--mode", Config.mode];
+
+        const home = Quickshell.env("HOME");
+        const xdg = Quickshell.env("XDG_CONFIG_HOME");
+        const configDir = xdg && xdg !== "" ? xdg : home + "/.config";
+        const toml = MatugenConfig.buildConfig({
+            shellDir: Quickshell.shellDir,
+            configDir: configDir,
+            home: home,
+            userTemplateDir: configDir + "/pshell/templates",
+            userTemplates: root.userTemplates,
+            disabled: Config.disabledTemplates
+        });
+
+        if (toml === root._writtenConfig) {
+            _run();
+            return;
+        }
+
+        // matugen starts from configFile.onSaved, not here: the config must
+        // exist on disk before matugen reads it, and setText is not
+        // synchronous.
+        root._pendingConfig = toml;
+        configFile.setText(toml);
+    }
+
+    function _run() {
+        if (!enabled)
+            return;
+        generator.command = ["matugen", "-c", root.matugenConfigPath, "image", Config.wallpaperPath, "--json", "hex", "--prefer", Config.matugenPrefer, "--type", Config.matugenScheme, "--mode", Config.mode];
         generator.running = false;
         generator.running = true;
     }
@@ -50,6 +110,27 @@ Singleton {
         }
         function onModeChanged() {
             root.refresh();
+        }
+        function onDisabledTemplatesChanged() {
+            root.refresh();
+        }
+    }
+
+    FileView {
+        id: configFile
+
+        path: root.matugenConfigPath
+        // Loading is pointless here -- this file is only ever written -- and a
+        // missing one on first start is the normal case, not an error.
+        printErrors: false
+
+        onSaved: {
+            root._writtenConfig = root._pendingConfig;
+            root._run();
+        }
+
+        onSaveFailed: error => {
+            console.warn("pshell: could not write the matugen config —", error, "- colours will not refresh");
         }
     }
 
@@ -100,6 +181,56 @@ Singleton {
         onExited: code => {
             if (code !== 0)
                 console.warn("pshell: matugen failed with exit", code, "- falling back to configured colours");
+        }
+    }
+
+    // No keep-alive line in shell.qml for this target, unlike pshell.lock and
+    // pshell.idle: Config's colour properties read Theme.bg, so bringing
+    // Config to life -- which the bar does on every start -- builds this
+    // singleton and registers the handler with it.
+    IpcHandler {
+        target: "pshell.theme"
+
+        function reload(): void {
+            root.refresh();
+        }
+
+        // The set* methods write through Config.set(), so the change lands in
+        // config.json and the existing Connections above re-run matugen --
+        // the same path an edit in a text editor takes.
+        function setScheme(name: string): void {
+            if (!MatugenConfig.isValidScheme(name)) {
+                console.warn("pshell: unknown matugen scheme:", name);
+                return;
+            }
+            Config.set("matugenScheme", name);
+        }
+
+        function setPrefer(name: string): void {
+            if (!MatugenConfig.isValidPrefer(name)) {
+                console.warn("pshell: unknown matugen prefer:", name);
+                return;
+            }
+            Config.set("matugenPrefer", name);
+        }
+
+        // `auto` clears the pin: Config.mode only honours the literal strings
+        // "light" and "dark" and falls back to SystemTheme.scheme for
+        // anything else, so writing "" hands the choice back to the desktop.
+        function setMode(mode: string): void {
+            if (mode === "auto") {
+                Config.set("mode", "");
+                return;
+            }
+            if (mode !== "light" && mode !== "dark") {
+                console.warn("pshell: unknown mode:", mode, "- expected light, dark or auto");
+                return;
+            }
+            Config.set("mode", mode);
+        }
+
+        function current(): string {
+            return "scheme=" + Config.matugenScheme + " prefer=" + Config.matugenPrefer + " mode=" + Config.mode + " wallpaper=" + (Config.wallpaperPath || "(none)");
         }
     }
 }
