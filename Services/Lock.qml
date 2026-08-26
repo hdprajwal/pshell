@@ -164,31 +164,21 @@ Singleton {
         root.message = text;
     }
 
-    // A stack installed by a packager, which beats the one pshell ships.
-    FileView {
-        id: systemPam
-
-        path: "/etc/pam.d/pshell"
-        printErrors: false
-    }
-
     PamContext {
         id: pam
 
-        config: Config.lock.pamService
-
-        // Where that service is looked up.
+        // /etc/pam.d/hyprlock and /etc/pam.d/swaylock are both nothing but
+        // `auth include login`, so this runs the identical stack without
+        // pshell needing a file installed as root.
         //
-        // The shipped stack in assets/pam is the default, because the
-        // system's is written for a root login and refuses an unprivileged
-        // locker in ways that look exactly like a wrong password. A stack
-        // at /etc/pam.d/pshell wins if someone installed one, and naming
-        // `lock.pamService` yourself means you want /etc/pam.d.
-        configDirectory: {
-            if (Config.lock.pamServiceExplicit || systemPam.loaded)
-                return "/etc/pam.d";
-            return Quickshell.shellDir + "/assets/pam";
-        }
+        // pshell briefly shipped a stack of its own here, the way
+        // DankMaterialShell does, on a theory that the system's refused an
+        // unprivileged locker. Measured against this machine, it does not:
+        // `login` authenticates fine from a user process. The shipped stack
+        // came back out, because it carried no pam_faillock and would have
+        // dropped the rate limit on guesses at the lock screen in exchange
+        // for solving nothing.
+        config: Config.lock.pamService
 
         // Left empty on purpose: PamContext defaults to the user running
         // the shell, which is the only user this lock is ever for.
