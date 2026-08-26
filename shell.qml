@@ -47,6 +47,14 @@ ShellRoot {
     // inactive while `inhibited` is false, which it is after every start.
     readonly property var idleInhibit: IdleInhibit
 
+    // And again for the wallpaper: it has no bar widget at all -- the
+    // background window below reads Config directly -- so IPC is its only
+    // door, exactly like the lock. Without this line `pshell wallpaper next`
+    // would answer "Target not found" on a bar without the settings app open.
+    //
+    // Costs nothing: the singleton holds a path list and two idle Processes.
+    readonly property var wallpaper: Wallpaper
+
     Variants {
         model: Quickshell.screens
 

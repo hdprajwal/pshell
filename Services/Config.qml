@@ -47,6 +47,10 @@ Singleton {
     }
     readonly property string wallpaper: data.wallpaper || ""
     readonly property string wallpaperPath: expandHome(wallpaper)
+    // Where the wallpaper service looks for candidates. A directory, not a
+    // list of files: pointing at a folder is how every wallpaper tool works,
+    // and it means dropping a new image in is all it takes to see it.
+    readonly property string wallpaperDir: expandHome(data.wallpaperDir || "~/wallpapers")
 
     // A leading ~/ is what anyone writes in a config file by hand, and
     // nothing downstream -- matugen, Image.source -- understands it. Shared

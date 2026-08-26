@@ -1,0 +1,165 @@
+pragma Singleton
+
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+// Which wallpaper is current, and what the candidates are.
+//
+// A singleton rather than state on the background window: the window exists
+// once per monitor under Variants, and "which wallpaper" is one fact per
+// session, not one per screen -- the same reasoning that moved the idle
+// inhibitor's state into Services/IdleInhibit.qml. Owning it here also gives
+// it one IPC target, so a keybind can cycle wallpapers with no widget on the
+// bar at all.
+Singleton {
+    id: root
+
+    // The config is the source of truth; this service keeps no second copy.
+    // Everything that changes the wallpaper goes through set() below, and
+    // everything that displays it reads this.
+    readonly property string current: Config.wallpaperPath
+
+    // Absolute paths of the images in Config.wallpaperDir, sorted.
+    property var entries: []
+
+    // One write, and that is the whole mechanism -- deliberately. Theme.qml
+    // already watches wallpaperPath and re-runs matugen, which recolours the
+    // bar and re-renders every template. Calling into Theme from here would
+    // be a second path to the same effect, and two paths is how the palette
+    // ends up disagreeing with the painted image.
+    function set(path) {
+        const p = Config.expandHome(String(path || ""));
+        if (p === "") {
+            console.warn("pshell: wallpaper set needs a path");
+            return;
+        }
+        // Checked before it is written, because a broken value in
+        // config.json outlives the typo that put it there: the background
+        // falls back to a flat colour and matugen starts failing on every
+        // refresh until someone finds the stale path by hand.
+        root._candidate = p;
+        checker.command = ["sh", "-c", 'test -f "$1"', "sh", p];
+        checker.running = false;
+        checker.running = true;
+    }
+
+    function next() {
+        _step(1);
+    }
+
+    function previous() {
+        _step(-1);
+    }
+
+    function _step(delta) {
+        if (root.entries.length === 0)
+            return;
+        const at = root.entries.indexOf(root.current);
+        // A current wallpaper set by hand from outside the directory is not
+        // in entries; start the cycle at the first one rather than failing.
+        if (at < 0) {
+            set(root.entries[0]);
+            return;
+        }
+        set(root.entries[(at + delta + root.entries.length) % root.entries.length]);
+    }
+
+    function random() {
+        if (root.entries.length === 0)
+            return;
+        if (root.entries.length === 1) {
+            set(root.entries[0]);
+            return;
+        }
+        // Never the one already up: "random" from a keybind means "surprise
+        // me", and the same picture again reads as the keybind not working.
+        var pick;
+        do {
+            pick = root.entries[Math.floor(Math.random() * root.entries.length)];
+        } while (pick === root.current);
+        set(pick);
+    }
+
+    function rescan() {
+        // The directory is an argument, not spliced into the script: a
+        // wallpaper directory with a space or a quote in its name is a
+        // path, not shell syntax.
+        scanner.command = ["sh", "-c", 'dir="$1"; [ -d "$dir" ] || exit 0; find "$dir" -maxdepth 1 -type f \\( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \\) | sort', "sh", Config.wallpaperDir];
+        scanner.running = false;
+        scanner.running = true;
+    }
+
+    Component.onCompleted: rescan()
+
+    Connections {
+        target: Config
+
+        function onWallpaperDirChanged() {
+            root.rescan();
+        }
+    }
+
+    property string _candidate: ""
+
+    Process {
+        id: checker
+
+        onExited: code => {
+            if (code === 0) {
+                Config.set("wallpaper", root._candidate);
+                return;
+            }
+            console.warn("pshell: no such wallpaper:", root._candidate);
+        }
+    }
+
+    Process {
+        id: scanner
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = String(text || "").split("\n");
+                const found = [];
+                for (var i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line !== "")
+                        found.push(line);
+                }
+                root.entries = found;
+            }
+        }
+    }
+
+    IpcHandler {
+        target: "pshell.wallpaper"
+
+        function set(path: string): void {
+            root.set(path);
+        }
+
+        function next(): void {
+            root.next();
+        }
+
+        function previous(): void {
+            root.previous();
+        }
+
+        function random(): void {
+            root.random();
+        }
+
+        function current(): string {
+            return root.current;
+        }
+
+        function list(): string {
+            return root.entries.join("\n");
+        }
+
+        function rescan(): void {
+            root.rescan();
+        }
+    }
+}
