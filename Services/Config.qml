@@ -93,10 +93,18 @@ Singleton {
             return typeof v === "string" && v !== "" ? v : fallback;
         }
 
-        // The auth stack to run. /etc/pam.d/hyprlock and /etc/pam.d/swaylock
-        // are both nothing but `auth include login`, so `login` is the same
-        // stack they use and needs no file installed as root.
-        readonly property string pamService: _str("pamService", "login")
+        // The auth stack to run.
+        //
+        // Defaults to the one pshell ships in assets/pam, not to the
+        // system's `login`. The system stack is written for a login running
+        // as root -- pam_nologin, pam_systemd_home, and pam_faillock twice
+        // as `required` -- and each of those can refuse an unprivileged
+        // screen locker a password that is correct.
+        //
+        // Naming a service here means you want one out of /etc/pam.d, and
+        // it is looked for there rather than beside the shipped file.
+        readonly property bool pamServiceExplicit: typeof raw.pamService === "string" && raw.pamService !== ""
+        readonly property string pamService: _str("pamService", "pshell")
 
         // Defaults to the bar's own wallpaper, so the lock shows the picture
         // its colours were derived from without being told twice.

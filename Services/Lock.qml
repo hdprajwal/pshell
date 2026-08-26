@@ -70,6 +70,27 @@ Singleton {
         root.locked = true;
     }
 
+    // The way out that does not involve ending your session.
+    //
+    // Without this, a lockscreen that will not accept a correct password
+    // leaves exactly one exit: a TTY and `loginctl terminate-session`, which
+    // throws away everything that was open. That is too sharp an edge for a
+    // lock you are still developing, and it is the edge this hit.
+    //
+    // It does mean anything running as you can unlock the screen. That is a
+    // real difference from hyprlock, and it is the same door
+    // `loginctl unlock-session` opens on any desktop that honours it: the
+    // threat this guards against is someone at the keyboard, who has no
+    // shell. Something already running as you can read your files, watch
+    // your keys and take your screen anyway.
+    function unlock() {
+        if (!root.locked)
+            return;
+
+        root._reset();
+        root.locked = false;
+    }
+
     function preview() {
         // Refused rather than stacked. Opening a fake lock over a real one
         // is how you end up typing a real password into a stub.
@@ -143,31 +164,58 @@ Singleton {
         root.message = text;
     }
 
+    // A stack installed by a packager, which beats the one pshell ships.
+    FileView {
+        id: systemPam
+
+        path: "/etc/pam.d/pshell"
+        printErrors: false
+    }
+
     PamContext {
         id: pam
 
-        // /etc/pam.d/hyprlock and /etc/pam.d/swaylock are both nothing but
-        // `auth include login`, so this runs the identical stack without
-        // pshell needing a file installed as root -- which a shell you
-        // clone into ~/.config cannot ask for.
         config: Config.lock.pamService
+
+        // Where that service is looked up.
+        //
+        // The shipped stack in assets/pam is the default, because the
+        // system's is written for a root login and refuses an unprivileged
+        // locker in ways that look exactly like a wrong password. A stack
+        // at /etc/pam.d/pshell wins if someone installed one, and naming
+        // `lock.pamService` yourself means you want /etc/pam.d.
+        configDirectory: {
+            if (Config.lock.pamServiceExplicit || systemPam.loaded)
+                return "/etc/pam.d";
+            return Quickshell.shellDir + "/assets/pam";
+        }
 
         // Left empty on purpose: PamContext defaults to the user running
         // the shell, which is the only user this lock is ever for.
 
-        // What PAM says as it says it. The prompt itself ("Password: ") is
-        // not shown -- the field already asks -- but an error is kept so a
-        // failure can be reported in PAM's words rather than in guesses
-        // about what went wrong.
+        // What PAM said that was not a prompt -- "Account locked", and the
+        // like. Kept so a failure can be reported in PAM's words rather
+        // than in a guess about what went wrong.
         property string lastError: ""
 
-        onPamMessage: {
-            if (pam.responseRequired) {
+        // Responding here rather than from onPamMessage.
+        //
+        // The prompt and the flag that says a response is wanted are two
+        // separate notifications, and answering from the message handler
+        // means answering before PAM has necessarily asked. This is the
+        // edge DankMaterialShell's Pam.qml responds on, for the same
+        // reason.
+        onResponseRequiredChanged: {
+            if (pam.responseRequired)
                 pam.respond(root._pending);
-                root._pending = "";
-            } else if (pam.messageIsError && pam.message !== "") {
+        }
+
+        // Anything that is not the prompt is worth keeping. The password
+        // buffer is not cleared here -- PAM may ask twice, and a stack that
+        // did would otherwise get an empty string the second time.
+        onPamMessage: {
+            if (!pam.responseRequired && pam.message !== "")
                 pam.lastError = pam.message;
-            }
         }
 
         onCompleted: result => {
@@ -199,6 +247,21 @@ Singleton {
 
         interval: 900
         onTriggered: root._fail("Incorrect password (preview)")
+    }
+
+    // If PAM never answers, the field stays read-only and greyed forever
+    // and the only way out is a TTY. A stack that stalls is rare; a
+    // lockscreen with no way to try again is not an acceptable response to
+    // it. DankMaterialShell carries the same guard at the same 15s.
+    Timer {
+        id: stall
+
+        running: root.authState === "checking" && !root.previewing
+        interval: 15000
+        onTriggered: {
+            pam.abort();
+            root._fail("Authentication timed out");
+        }
     }
 
     WlSessionLock {
@@ -286,6 +349,14 @@ Singleton {
         // keybind. Safe to call twice.
         function lock(): void {
             root.lock();
+        }
+
+        // Reachable from a TTY, which is the point: if the lock will not
+        // take your password, this is how you get your session back
+        // without ending it. Point hypridle's unlock_cmd at it and
+        // `loginctl unlock-session` works too.
+        function unlock(): void {
+            root.unlock();
         }
 
         // Draws the lockscreen in an ordinary window with auth stubbed, so

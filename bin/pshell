@@ -31,6 +31,7 @@ usage() {
 usage: pshell <command> [arguments]
 
   lock                    lock the screen
+  unlock                  unlock it, for when the password will not take
   preview                 draw the lockscreen in a window, without locking
   run [qs options]        start the shell
   ipc <arguments>         pass straight through to qs ipc
@@ -89,6 +90,9 @@ lock)
     # Bare `pshell lock` locks. A method after it reaches the rest of the
     # target, so `pshell lock isLocked` still means what it looks like.
     call pshell.lock "${1:-lock}"
+    ;;
+unlock)
+    call pshell.lock unlock
     ;;
 preview)
     call pshell.lock preview
