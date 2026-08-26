@@ -43,16 +43,77 @@ Singleton {
         return SystemTheme.scheme;
     }
     readonly property string wallpaper: data.wallpaper || ""
-    readonly property string wallpaperPath: {
-        const path = String(wallpaper);
-        if (path.indexOf("~/") === 0)
-            return Quickshell.env("HOME") + path.substring(1);
-        return path;
+    readonly property string wallpaperPath: expandHome(wallpaper)
+
+    // A leading ~/ is what anyone writes in a config file by hand, and
+    // nothing downstream -- matugen, Image.source -- understands it. Shared
+    // with the lock's own wallpaper setting, which takes paths from the same
+    // hands.
+    function expandHome(path) {
+        const p = String(path || "");
+        if (p.indexOf("~/") === 0)
+            return Quickshell.env("HOME") + p.substring(1);
+        return p;
     }
     readonly property string matugenScheme: data.matugenScheme || "scheme-tonal-spot"
     // matugen refuses to guess when an image has several candidate source
     // colours and no terminal to ask, so a preference is mandatory here.
     readonly property string matugenPrefer: data.matugenPrefer || "saturation"
+
+    // Everything the lockscreen reads, under one `lock` object.
+    //
+    // Grouped rather than flattened into `lockDim`, `lockBlur` and friends
+    // because this is the first part of the shell that is not the bar, and a
+    // flat namespace shared with `position` and `size` would stop saying
+    // which is which. Colours are not here: the lock paints itself from
+    // Color.lock.*, which is Omarchy's token group, so it restyles with the
+    // rest of the shell rather than carrying a second palette.
+    readonly property QtObject lock: QtObject {
+        // `raw`, not `data`: `data` is what the enclosing singleton calls the
+        // whole config, and two of them one scope apart reads as a bug.
+        readonly property var raw: root.data.lock && typeof root.data.lock === "object" ? root.data.lock : ({})
+
+        function _bool(key, fallback) {
+            const v = raw[key];
+            return typeof v === "boolean" ? v : fallback;
+        }
+
+        function _num(key, fallback, lo, hi) {
+            const v = Number(raw[key]);
+            if (!isFinite(v))
+                return fallback;
+            return Math.min(hi, Math.max(lo, v));
+        }
+
+        function _str(key, fallback) {
+            const v = raw[key];
+            return typeof v === "string" && v !== "" ? v : fallback;
+        }
+
+        // The auth stack to run. /etc/pam.d/hyprlock and /etc/pam.d/swaylock
+        // are both nothing but `auth include login`, so `login` is the same
+        // stack they use and needs no file installed as root.
+        readonly property string pamService: _str("pamService", "login")
+
+        // Defaults to the bar's own wallpaper, so the lock shows the picture
+        // its colours were derived from without being told twice.
+        readonly property string wallpaper: _str("wallpaper", root.wallpaper)
+        readonly property string wallpaperPath: root.expandHome(wallpaper)
+
+        readonly property bool blur: _bool("blur", true)
+        readonly property real blurAmount: _num("blurAmount", 0.75, 0, 1)
+        // Scrim over the wallpaper. Without one, a pale photograph makes
+        // every label on top of it unreadable.
+        readonly property real dim: _num("dim", 0.45, 0, 1)
+
+        readonly property bool showClock: _bool("showClock", true)
+        readonly property string clockFormat: _str("clockFormat", "HH:mm")
+        readonly property string dateFormat: _str("dateFormat", "dddd, d MMMM")
+        readonly property bool showAvatar: _bool("showAvatar", true)
+        readonly property bool showStatus: _bool("showStatus", true)
+        readonly property string placeholder: _str("placeholder", "Enter Password")
+    }
+
     // Three separate distances, which used to be one:
     //   gap     - between two widgets in a section
     //   padding - between the bar's own edge and the first or last widget
