@@ -5,17 +5,28 @@ import qs.Commons
 import qs.Ui
 
 // The page list. One level and no filter field: both existed to hold the four
-// network pages, and neither earns its keep over a single row.
+// network pages, and neither earns its keep over three rows.
 //
 // The model is a plain array literal rather than anything cleverer: it is the
-// same list SettingsApp.tabIds holds, and a JS array is the one shape a
-// Repeater already understands.
+// same list SettingsApp.tabIds holds, in the same order, and a JS array is
+// the one shape a Repeater already understands. A new page is one entry here
+// and one id there.
 Item {
     id: sidebar
 
     implicitWidth: Style.space(220)
 
     readonly property var pages: [
+        {
+            id: "wallpaper",
+            label: "Wallpaper",
+            icon: Glyphs.wallpaper
+        },
+        {
+            id: "theme",
+            label: "Theme",
+            icon: Glyphs.palette
+        },
         {
             id: "about",
             label: "About",

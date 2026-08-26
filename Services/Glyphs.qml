@@ -195,7 +195,11 @@ Singleton {
 
     // --------------------------------------------------- settings app
     //
-    // One symbol, because the settings app is one page. The network pages
-    // took lan, ethernet, vpn and the expander arrows with them.
+    // One symbol per page in the sidebar. This said "one symbol, because the
+    // settings app is one page" until the wallpaper and theme pages arrived;
+    // the network pages' lan, ethernet, vpn and expander arrows are still
+    // gone and stay gone until something draws them again.
+    readonly property string wallpaper: "wallpaper"
+    readonly property string palette: "palette"
     readonly property string info: "info"
 }

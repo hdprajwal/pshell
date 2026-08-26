@@ -20,7 +20,7 @@ import qs.Widgets.Settings
 Singleton {
     id: root
 
-    readonly property string defaultTab: "about"
+    readonly property string defaultTab: "wallpaper"
 
     // Every page the sidebar draws, in the order it draws them. This is the
     // authority on what a valid tab id is; the sidebar builds its list from
@@ -28,7 +28,7 @@ Singleton {
     // network pages -- "network.wifi", say -- is not in here, so setTab
     // refuses it and currentTab falls back to the default rather than
     // resolving to a page that no longer exists.
-    readonly property var tabIds: ["about"]
+    readonly property var tabIds: ["wallpaper", "theme", "about"]
 
     property string currentTab: Prefs.settingsTab !== "" && tabIds.indexOf(Prefs.settingsTab) >= 0 ? Prefs.settingsTab : defaultTab
     property bool visible: false

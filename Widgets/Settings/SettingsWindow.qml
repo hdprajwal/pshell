@@ -54,15 +54,44 @@ FloatingWindow {
         width: Style.spacing.hairline
     }
 
-    // About is the only page, so it is declared rather than routed. There was
-    // a Loader here keyed on SettingsApp.currentTab, which is the right shape
-    // for a switch over several pages and pure ceremony over one; the tab id
-    // still exists, because the sidebar has something to highlight and Prefs
-    // has something to remember, but nothing branches on it any more.
-    AboutPage {
+    // The Loader is back. It was removed when About became the only page --
+    // a switch over one case is ceremony -- and returns now that there are
+    // three. A later phase's page is one sidebar entry, one tab id and one
+    // case here; the default is About so an id this build does not know
+    // still lands somewhere rather than on a blank pane.
+    Loader {
         anchors.left: divider.right
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
+
+        sourceComponent: {
+            switch (SettingsApp.currentTab) {
+            case "wallpaper":
+                return wallpaperPage;
+            case "theme":
+                return themePage;
+            default:
+                return aboutPage;
+            }
+        }
+    }
+
+    Component {
+        id: wallpaperPage
+
+        WallpaperPage {}
+    }
+
+    Component {
+        id: themePage
+
+        ThemePage {}
+    }
+
+    Component {
+        id: aboutPage
+
+        AboutPage {}
     }
 }
