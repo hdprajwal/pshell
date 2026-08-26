@@ -120,7 +120,12 @@ Item {
 
             anchors.horizontalCenter: parent.horizontalCenter
 
-            placeholder: Config.lock.placeholder
+            // The preview says so in the field itself, not only on a badge
+            // in the corner. It refuses every password, including the right
+            // one, and a preview that looks exactly like the real lock while
+            // rejecting your actual password is indistinguishable from a
+            // lockscreen that is broken.
+            placeholder: root.preview ? "Preview - passwords are not checked" : Config.lock.placeholder
             busy: root.authState === "checking"
             failed: root.authState === "failed"
             capsLock: root.capsLock

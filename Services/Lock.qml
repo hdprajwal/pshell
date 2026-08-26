@@ -236,7 +236,9 @@ Singleton {
         id: stub
 
         interval: 900
-        onTriggered: root._fail("Incorrect password (preview)")
+        // Not "incorrect password", which is a lie about the password. The
+        // preview never checked it and never could.
+        onTriggered: root._fail("Preview only - no password is accepted here")
     }
 
     // If PAM never answers, the field stays read-only and greyed forever
