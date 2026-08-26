@@ -49,8 +49,15 @@ Column {
     signal submitted(string password)
     signal edited
 
+    // Guards `edited` while clearing. Without it, wiping the field after a
+    // rejection looks exactly like the user typing over the error, so the
+    // error the wipe was announcing would be erased in the same frame.
+    property bool _clearing: false
+
     function clear() {
+        root._clearing = true;
         input.text = "";
+        root._clearing = false;
     }
 
     function take() {
@@ -115,7 +122,10 @@ Column {
                     root.submitted(input.text);
             }
 
-            onTextChanged: root.edited()
+            onTextChanged: {
+                if (!root._clearing)
+                    root.edited();
+            }
 
             Text {
                 anchors.fill: parent

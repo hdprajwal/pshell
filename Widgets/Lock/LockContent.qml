@@ -36,6 +36,15 @@ Item {
         field.clear();
     }
 
+    // A rejected attempt empties the field, the way hyprlock's does.
+    // Leaving the old text there invites a second Enter on the same wrong
+    // password, and makes it ambiguous whether the failure belongs to what
+    // is currently on screen or to the try before it.
+    onAuthStateChanged: {
+        if (root.authState === "failed")
+            root.clearField();
+    }
+
     // Minutes, not seconds: a ticking seconds field on a lockscreen wakes
     // the GPU once a second for a digit nobody is reading.
     SystemClock {

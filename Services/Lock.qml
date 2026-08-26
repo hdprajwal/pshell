@@ -25,7 +25,17 @@ import qs.Widgets.Lock
 Singleton {
     id: root
 
-    readonly property bool locked: sessionLock.locked
+    // The intent to be locked, and the authority on it.
+    //
+    // WlSessionLock.locked is bound to this rather than assigned, because
+    // reading it back does not work: it notifies on the compositor's
+    // answer, not on the request, so a binding to it sits stale at false
+    // while a lock surface is demonstrably on screen -- which had
+    // `pshell.lock isLocked` reporting an unlocked machine to anything that
+    // asked. Driving the protocol from a property this file owns means the
+    // answer is whatever was last asked for, which is the truth.
+    property bool locked: false
+
     // What the compositor confirms, as opposed to what we asked for. False
     // for the moment between the two, and the honest thing to report.
     readonly property bool secure: sessionLock.secure
@@ -51,19 +61,19 @@ Singleton {
         // -- an idle timeout landing on top of a manual lock is the normal
         // case, not an edge one -- and restarting the surface under someone
         // mid-password would throw away what they had typed.
-        if (sessionLock.locked)
+        if (root.locked)
             return;
 
         // A preview must never be what is covering a locked screen.
         root.previewing = false;
         root._reset();
-        sessionLock.locked = true;
+        root.locked = true;
     }
 
     function preview() {
         // Refused rather than stacked. Opening a fake lock over a real one
         // is how you end up typing a real password into a stub.
-        if (sessionLock.locked)
+        if (root.locked)
             return;
 
         root._reset();
@@ -119,7 +129,7 @@ Singleton {
         root.authState = "idle";
         root.message = "";
         root.attempts = 0;
-        sessionLock.locked = false;
+        root.locked = false;
     }
 
     function _fail(text) {
@@ -189,6 +199,8 @@ Singleton {
 
     WlSessionLock {
         id: sessionLock
+
+        locked: root.locked
 
         LockSurface {}
     }
