@@ -128,6 +128,27 @@ Singleton {
     readonly property var popupIds: _popups.map(p => p.id)
 
     function _onNotification(n) {
+        // A config reload re-emits this signal once per notification that
+        // survived it: keepOnReload's reload path unsets `tracked` and
+        // fires `notification` again so the new generation can claim the
+        // old one. A survivor is not news -- it is already in history with
+        // its real arrival time, was already counted, and its toast already
+        // had its moment -- so recording it again would duplicate history
+        // and re-toast everything on screen every time config.json changes.
+        //
+        // Re-claiming it IS required, though: the reload path unset
+        // `tracked` immediately before re-emitting and deletes anything
+        // still unclaimed afterwards, so the early return without this
+        // line would silently drop every live notification on reload --
+        // the exact thing keepOnReload exists to prevent. Setting it is
+        // also what rejoins the survivor to the tracked model, which is
+        // what keeps its history row's action buttons invokable; only the
+        // popup list is deliberately left alone.
+        if (n.lastGeneration) {
+            n.tracked = true;
+            return;
+        }
+
         // Claimed first, before anything else: a notification is only kept
         // past this signal handler if `tracked` is set true during it --
         // DMS's handler opens the same way. Without this line the server
