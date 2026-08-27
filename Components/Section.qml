@@ -25,6 +25,17 @@ Row {
     property var entries: []
     property var bar: null
 
+    // Every built-in widget type a config entry can name. This used to be a
+    // fifteen-term || chain on one line inside `kind`, and every phase that
+    // added a widget grew it by one more `modelData.type === "..."` — a line
+    // that long stops being reviewable, and the next reader has to diff it
+    // by eye to find the new term. An array says the same thing and a new
+    // type is one entry here plus one case and one Component below.
+    //
+    // Order does not matter for the lookup, but it mirrors the switch in
+    // builtinLoader so the three lists stay checkable against each other.
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings"]
+
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
     // Indicator host. A BarIndicator conceals itself when it has nothing to
@@ -78,7 +89,7 @@ Row {
 
             readonly property string widgetId: String(modelData.id || "")
             readonly property string kind: {
-                if (modelData.type === "clock" || modelData.type === "calendar" || modelData.type === "aiUsage" || modelData.type === "activeWindow" || modelData.type === "microphone" || modelData.type === "privacy" || modelData.type === "idleInhibitor" || modelData.type === "tailscale" || modelData.type === "workspaces" || modelData.type === "tray" || modelData.type === "battery" || modelData.type === "network" || modelData.type === "bluetooth" || modelData.type === "controlCenter" || modelData.type === "settings")
+                if (root.builtinTypes.indexOf(modelData.type) >= 0)
                     return modelData.type;
                 if (WidgetRegistry.has(widgetId))
                     return "qml";
