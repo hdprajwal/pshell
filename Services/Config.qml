@@ -124,6 +124,64 @@ Singleton {
         readonly property string placeholder: _str("placeholder", "Enter Password")
     }
 
+    // Everything the notification server reads, under one `notifications`
+    // object -- grouped rather than flattened for the reason `lock` gives
+    // above: this is not the bar, and a flat namespace shared with
+    // `position` and `size` would stop saying which is which. Same shape as
+    // `lock`: a `raw` property and typed helpers, so a hand-typed string
+    // where a number belongs degrades to the default instead of NaN-ing a
+    // timer.
+    readonly property QtObject notifications: QtObject {
+        readonly property var raw: root.data.notifications && typeof root.data.notifications === "object" ? root.data.notifications : ({})
+
+        function _num(key, fallback, lo, hi) {
+            const v = Number(raw[key]);
+            if (!isFinite(v))
+                return fallback;
+            return Math.min(hi, Math.max(lo, v));
+        }
+
+        function _str(key, fallback) {
+            const v = raw[key];
+            return typeof v === "string" && v !== "" ? v : fallback;
+        }
+
+        // How many notifications history remembers, and how many toasts may
+        // be on screen before the stack shows "+N more" instead of filling
+        // the screen.
+        readonly property int historyDepth: _num("historyDepth", 100, 0, 1000)
+        readonly property int maxVisible: _num("maxVisible", 5, 1, 20)
+
+        // Toast lifetime per urgency, in seconds; zero means never
+        // auto-expire. Critical defaults to zero because a critical
+        // notification that quietly vanishes on its own defeats the point
+        // of the urgency level -- "your disk is failing" should still be on
+        // screen when you get back.
+        readonly property var _timeoutRaw: raw.timeout && typeof raw.timeout === "object" ? raw.timeout : ({})
+
+        function _sec(key, fallback) {
+            const v = Number(_timeoutRaw[key]);
+            if (!isFinite(v) || v < 0)
+                return fallback;
+            return Math.min(3600, v);
+        }
+
+        readonly property real timeoutLow: _sec("low", 5)
+        readonly property real timeoutNormal: _sec("normal", 5)
+        readonly property real timeoutCritical: _sec("critical", 0)
+
+        // Where the toast stack sits. "auto" means the corner opposite the
+        // bar, so a toast never lands on top of the widget that counts it.
+        readonly property string position: {
+            const v = _str("position", "auto");
+            return v === "top" || v === "bottom" ? v : "auto";
+        }
+
+        // desktopEntry values whose notifications go to history but never
+        // toast. appName stands in for senders that set no desktopEntry.
+        readonly property var muted: Array.isArray(raw.muted) ? raw.muted : []
+    }
+
     // Three separate distances, which used to be one:
     //   gap     - between two widgets in a section
     //   padding - between the bar's own edge and the first or last widget

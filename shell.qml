@@ -52,6 +52,15 @@ ShellRoot {
     // inactive while `inhibited` is false, which it is after every start.
     readonly property var idleInhibit: IdleInhibit
 
+    // And again for the notifications service, with the most at stake: this
+    // access is what builds the NotificationServer, and building it is what
+    // claims org.freedesktop.Notifications on DBus. Left to lazy
+    // initialisation, a bar without the notifications widget would never
+    // own the name and every notification on the machine would silently go
+    // nowhere -- and `pshell notifications toggle`, the keybind's door,
+    // would answer "Target not found" on top.
+    readonly property var notifications: Notifications
+
     // And again for the wallpaper: it has no bar widget at all -- the
     // background window below reads Config directly -- so IPC is its only
     // door, exactly like the lock. Without this line `pshell wallpaper next`
