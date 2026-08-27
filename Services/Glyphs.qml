@@ -192,6 +192,7 @@ Singleton {
     readonly property string lock: "lock"
     readonly property string powerOff: "power_settings_new"
     readonly property string logout: "logout"
+    readonly property string keyboard: "keyboard"
 
     // --------------------------------------------------- settings app
     //

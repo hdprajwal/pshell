@@ -304,6 +304,43 @@ Panel {
                     }
                 }
 
+                // ---------- Keyboard backlight ----------
+                //
+                // No mute or right-click behaviour: a keyboard backlight has
+                // no muted state, zero is just its lowest step.
+                Item {
+                    width: parent.width
+                    visible: Brightness.keyboardAvailable
+                    height: visible ? keyboardSlider.implicitHeight : 0
+
+                    MaterialIcon {
+                        id: keyboardIcon
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: Glyphs.keyboard
+                        size: Math.round(Style.font.body * 1.4)
+                        color: Color.popups.text
+                    }
+
+                    PanelSlider {
+                        id: keyboardSlider
+                        bar: root.bar
+                        anchors.left: keyboardIcon.right
+                        anchors.leftMargin: Style.spacing.lg
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        minimum: 0
+                        maximum: 1
+                        // One hardware step per notch, not 0.05: this device
+                        // is usually three steps, and a slider with finer
+                        // notches than the hardware jumps back under the
+                        // finger when the service rounds the write.
+                        step: Brightness.keyboardMax > 0 ? 1 / Brightness.keyboardMax : 1
+                        value: Brightness.keyboardFraction
+                        onMoved: v => Brightness.setKeyboardFraction(v)
+                    }
+                }
+
                 // ---------- Wifi / bluetooth / output / input tiles ----------
                 //
                 // Two rows of two, with the open list dropping in under the row
