@@ -28,6 +28,11 @@ Item {
             icon: Glyphs.palette
         },
         {
+            id: "notifications",
+            label: "Notifications",
+            icon: Glyphs.notifications
+        },
+        {
             id: "about",
             label: "About",
             icon: Glyphs.info

@@ -28,7 +28,7 @@ Singleton {
     // network pages -- "network.wifi", say -- is not in here, so setTab
     // refuses it and currentTab falls back to the default rather than
     // resolving to a page that no longer exists.
-    readonly property var tabIds: ["wallpaper", "theme", "about"]
+    readonly property var tabIds: ["wallpaper", "theme", "notifications", "about"]
 
     property string currentTab: Prefs.settingsTab !== "" && tabIds.indexOf(Prefs.settingsTab) >= 0 ? Prefs.settingsTab : defaultTab
     property bool visible: false

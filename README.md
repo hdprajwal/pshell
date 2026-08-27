@@ -649,6 +649,55 @@ it unless you have pinned `mode`.
 Both tiles have no detail list, so the whole tile is the button rather than
 just its icon.
 
+## Notifications
+
+pshell serves `org.freedesktop.Notifications` itself. No `mako`, no
+`swaync`, no `dunst` — the toasts are pshell widgets wearing pshell's
+palette, and if another daemon is running it must be stopped first, because
+two servers cannot hold the DBus name at once.
+
+Toasts stack in the corner opposite the bar, newest at the screen edge, on
+the overlay layer so a fullscreen window does not hide them. At most
+`maxVisible` are up at once (default 5); the rest wait behind a "+N more"
+row. Hovering a toast pauses its countdown. Left click invokes the
+notification's default action if it declared one and dismisses otherwise,
+middle click always dismisses, actions render as buttons, and a
+notification that takes an inline reply gets a text field — which only
+takes the keyboard when you click into it.
+
+Timeouts are per urgency, in seconds, and zero means never:
+
+```jsonc
+"notifications": {
+  "timeout": { "low": 5, "normal": 5, "critical": 0 },
+  "maxVisible": 5,
+  "historyDepth": 100,
+  "position": "auto",          // opposite the bar; or "top" / "bottom"
+  "muted": ["some-desktop-entry"]
+}
+```
+
+Critical defaults to zero on purpose: a critical notification that quietly
+vanishes defeats the urgency level.
+
+The bar widget is `{ "type": "notifications" }` — a bell with the unread
+count that opens the history panel: do-not-disturb, clear-all, and every
+kept notification grouped by app, with the actions still clickable while
+the notification is alive. History survives restarts in
+`~/.local/state/pshell/notifications.json`; do-not-disturb does not
+survive them, deliberately, and while it is on notifications still land in
+history — only the toast is suppressed. Muted apps behave the same way.
+
+Everything answers on one IPC target, widget or no widget:
+
+    pshell notifications toggle      # the history panel; bind SUPER+N to this
+    pshell notifications dnd toggle  # or: dnd on / dnd off
+    pshell notifications count       # unread since the panel was last open
+    pshell notifications dismissAll  # close every live notification
+    pshell notifications history 10  # the last ten, one per line
+    pshell notifications dismiss 42  # one, by id
+    pshell notifications invoke 42 default   # a notification's action, by name
+
 ## Settings
 
 `pshell` ships a settings window. Open it from the gear in the bar
@@ -656,10 +705,11 @@ just its icon.
 
     pshell settings toggle
 
-Three pages: **Wallpaper** — the thumbnail grid documented above —
-**Theme** — scheme, prefer, mode and the live palette — and **About**, the
-facts neofetch prints plus where pshell keeps its files. `pshell settings
-open theme` lands on a named page directly.
+Four pages: **Wallpaper** — the thumbnail grid documented above —
+**Theme** — scheme, prefer, mode and the live palette — **Notifications** —
+toast lifetimes, stack size, position, history depth and per-app muting —
+and **About**, the facts neofetch prints plus where pshell keeps its files.
+`pshell settings open theme` lands on a named page directly.
 
 **It writes `config.json`.** Until this existed, nothing in the shell ever
 rewrote your config, and the only thing pshell saved for itself went to
