@@ -15,6 +15,10 @@ import qs.Widgets.ControlCenter
 import qs.Widgets.Network
 import qs.Widgets.ProcWidget
 import qs.Widgets.Settings
+// Qualified because the unqualified name collides: qs.Services also exports a
+// Notifications -- the singleton -- and this file imports both modules. The
+// same answer shell.qml gives for Wallpaper.
+import qs.Widgets.Notifications as NotificationsWidget
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
 import qs.Commons
@@ -34,7 +38,7 @@ Row {
     //
     // Order does not matter for the lookup, but it mirrors the switch in
     // builtinLoader so the three lists stay checkable against each other.
-    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings"]
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications"]
 
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
@@ -154,6 +158,8 @@ Row {
                         return controlCenterComponent;
                     case "settings":
                         return settingsComponent;
+                    case "notifications":
+                        return notificationsComponent;
                     default:
                         return procComponent;
                     }
@@ -264,6 +270,10 @@ Row {
     Component {
         id: settingsComponent
         Settings {}
+    }
+    Component {
+        id: notificationsComponent
+        NotificationsWidget.Notifications {}
     }
     Component {
         id: procComponent

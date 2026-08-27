@@ -194,6 +194,16 @@ Singleton {
     readonly property string logout: "logout"
     readonly property string keyboard: "keyboard"
 
+    // The notification bell's three states: at rest, ringing (something
+    // unread), and struck out for do-not-disturb. Named here rather than at
+    // the call sites because the bar widget, the settings sidebar and the
+    // panel header all draw the same bell and must keep agreeing on it.
+    readonly property string notifications: "notifications"
+    readonly property string notificationsActive: "notifications_active"
+    readonly property string notificationsOff: "notifications_off"
+    // The history panel's group-collapse chevron; rotation does "collapsed".
+    readonly property string expandMore: "expand_more"
+
     // --------------------------------------------------- settings app
     //
     // One symbol per page in the sidebar. This said "one symbol, because the
