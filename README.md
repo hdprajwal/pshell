@@ -220,6 +220,7 @@ matugen guesses.
 | `btop` | `~/.config/btop/themes/pshell.theme` | `color_theme = "pshell"` in `btop.conf`, or pick it in Esc → Options |
 | `zed` | `~/.config/zed/themes/pshell.json` | `"theme": "pshell"` in Zed's `settings.json` |
 | `qtct` | `~/.config/qt6ct/colors/pshell.conf` | pick `pshell` as the colour scheme in qt6ct (needs `QT_QPA_PLATFORMTHEME=qt6ct` for Qt apps outside the shell) |
+| `swayosd` | `~/.config/swayosd/style.css` | nothing — that is the path swayosd reads, so pshell owns the file outright; restart `swayosd-server` after a theme change, it reads the stylesheet at start |
 
 GTK3 and GTK4 get the same colours from one shared template; only the
 directory each toolkit reads differs. Missing output directories are created;
@@ -332,7 +333,7 @@ single run.
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
 | `bluetooth` | Adapter state and connected devices, with battery level where the device reports it. Left click opens the panel to pair, connect and disconnect, right click toggles the radio. `showCount`, `maxDevices`. |
 | `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where Omarchy's agent tooling is not installed. |
-| `controlCenter` | Everything in one panel: session header, volume and brightness sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
+| `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
 
 Everything else is a program. Leave out `type` and give it an `exec`.
 
@@ -582,8 +583,8 @@ Copying needs `wl-copy`.
 ## Control centre
 
 One panel instead of four. The header shows who is logged in and how long the
-machine has been up, with lock, power and logout buttons. Below that are volume
-and brightness sliders, then a grid of tiles.
+machine has been up, with lock, power and logout buttons. Below that are
+volume, brightness and keyboard backlight sliders, then a grid of tiles.
 
 Each tile has two targets, which is worth knowing before you use it. Clicking
 the icon square toggles that thing on or off. Clicking anywhere else opens its
@@ -615,7 +616,30 @@ in `~/.config/pshell/state.json`, kept separate from `config.json` so the shell
 never rewrites a file you hand-edited.
 
 Brightness needs `brightnessctl`. The slider hides itself if there is no
-backlight, so a desktop shows one slider rather than a broken one.
+backlight, so a desktop shows one slider rather than a broken one. The
+keyboard backlight slider works the same way: it appears when
+`brightnessctl` lists an LED whose name ends in `kbd_backlight` — the
+vendor prefix (`asus::`, `tpacpi::`, none) does not matter — and hides
+otherwise. Keyboard backlights are usually a few coarse steps rather than a
+hundred, so that slider snaps to the hardware's real steps instead of
+pretending the range is continuous.
+
+Both backlights answer on the `pshell.brightness` IPC target, so a keybind
+reaches them without the panel:
+
+    pshell brightness up               screen, five points per step
+    pshell brightness down
+    pshell brightness set 40
+    pshell brightness get
+    pshell brightness keyboardUp       keyboard, always at least one step
+    pshell brightness keyboardDown
+    pshell brightness keyboardSet 50
+    pshell brightness keyboardGet
+
+The volume, mic, brightness and media *keys* themselves are not pshell's
+job: pshell expects [swayosd](https://github.com/ErikReider/SwayOSD) bound
+to them, and themes its OSD through the `swayosd` template above so the
+popup wears the bar's colours.
 
 Night mode has no standard tool, so it is whatever command you give it and the
 tile is hidden until you set `nightMode`. Dark mode toggles the GTK
