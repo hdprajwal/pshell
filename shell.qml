@@ -16,6 +16,10 @@ import qs.Commons
 // modules both offering the name would leave this file using whichever one
 // QML resolved last.
 import qs.Widgets.Wallpaper as WallpaperLayer
+// Qualified for the same collision, other direction: this module has a
+// `Notifications` too -- the bar widget -- and the keep-alive line below
+// must reach the qs.Services singleton, not the widget type.
+import qs.Widgets.Notifications as NotificationLayer
 
 ShellRoot {
     // Keeps the settings app's IPC handler alive for the whole session.
@@ -74,6 +78,14 @@ ShellRoot {
     // it under the bar's would make one background window per screen per
     // screen.
     WallpaperLayer.Wallpaper {}
+
+    // The toast layer, a sibling of the bar's Variants for the wallpaper's
+    // reason: it carries its own Variants over the screens, and nesting it
+    // under the bar's would make one stack per screen per screen. Declared
+    // here rather than by the bar widget because toasts must appear on a
+    // bar with no notifications widget at all -- the server is running
+    // either way.
+    NotificationLayer.ToastStack {}
 
     Variants {
         model: Quickshell.screens
