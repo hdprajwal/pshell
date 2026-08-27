@@ -22,9 +22,10 @@
 //   config file. pshell generates a file the user *includes*; it does not own
 //   anyone else's config. The README documents the include line for each.
 // - kitty is the only one needing a post_hook -- it reloads on SIGUSR1.
-//   Alacritty watches its own config file. btop, ghostty, zed and qt6ct read
-//   their theme at start. The `|| true` matters: pkill exits non-zero when no
-//   kitty is running, and matugen should not report that as a failure.
+//   Alacritty watches its own config file. btop, ghostty, zed, qt6ct and
+//   swayosd read their theme at start. The `|| true` matters: pkill exits
+//   non-zero when no kitty is running, and matugen should not report that as
+//   a failure.
 var BUILTIN_TEMPLATES = [
     {
         name: "gtk3",
@@ -66,6 +67,14 @@ var BUILTIN_TEMPLATES = [
         name: "qtct",
         input: "qtct-colors.conf",
         output: "qt6ct/colors/pshell.conf"
+    },
+    {
+        // Unlike the rest, style.css *is* the path swayosd reads -- it has
+        // no include mechanism to point at a pshell-colors file, so this is
+        // the one template whose output pshell owns outright.
+        name: "swayosd",
+        input: "swayosd.css",
+        output: "swayosd/style.css"
     }
 ];
 

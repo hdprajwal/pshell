@@ -65,7 +65,10 @@ const OPTIONS = {
   disabled: []
 };
 
-const BUILTINS = ["gtk3", "gtk4", "kitty", "ghostty", "alacritty", "btop", "zed", "qtct"];
+// Nine since Phase 3 added swayosd; a name missing here is a built-in the
+// assertions below silently stop covering, so the list tracks
+// BUILTIN_TEMPLATES by hand and on purpose.
+const BUILTINS = ["gtk3", "gtk4", "kitty", "ghostty", "alacritty", "btop", "zed", "qtct", "swayosd"];
 
 test("every built-in template appears, reading from the shell and writing under the config dir", () => {
   const toml = parseToml(Matugen.buildConfig(OPTIONS));
@@ -107,7 +110,7 @@ test("a path containing a single quote is emitted intact", () => {
   assert.equal(toml["templates.pshell_btop"].output_path, "/home/o'brien/.config/btop/themes/pshell.theme");
 });
 
-test("disabling kitty removes its section and leaves the other seven", () => {
+test("disabling kitty removes its section and leaves the other eight", () => {
   const toml = parseToml(Matugen.buildConfig({ ...OPTIONS, disabled: ["kitty"] }));
   assert.equal(toml["templates.pshell_kitty"], undefined);
   for (const name of BUILTINS.filter(n => n !== "kitty"))

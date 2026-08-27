@@ -118,7 +118,8 @@ test("matugen renders every template with real colours", { skip: noMatugen && "m
         "alacritty/pshell-colors.toml",
         "btop/themes/pshell.theme",
         "zed/themes/pshell.json",
-        "qt6ct/colors/pshell.conf"
+        "qt6ct/colors/pshell.conf",
+        "swayosd/style.css"
     ];
 
     for (const relative of expected) {
@@ -197,6 +198,34 @@ for e in errors:
         return; // No PyGObject here; the format is checked by the apps that do have a parser.
     assert.equal(result.status, 0, `GTK could not load the stylesheet at all: ${result.stderr}`);
     assert.match(result.stdout, /^ERRORS 0$/m, `GTK reported parse errors in our stylesheet:\n${result.stdout}`);
+});
+
+test("GTK parses the swayosd stylesheet", { skip: (noMatugen && "matugen not installed") || (!have("python3") && "python3 not installed") }, () => {
+    // Weaker than the checks above, and honestly so: swayosd is not
+    // installed on this machine, so nothing here can prove it *applies*
+    // these rules -- GTK's CSS parser accepts any selector, including a
+    // misspelled node name that would theme nothing. What contains that
+    // risk is the template itself: every selector in it is copied verbatim
+    // from swayosd 0.3.1's own data/style/style.scss rather than written
+    // from memory. What this test does prove is the half that matugen can
+    // break -- that the rendered values are CSS GTK4 (which swayosd links
+    // against) reads without a single parse error.
+    const path = output("dark", "swayosd/style.css");
+    const script = `import gi
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, GLib
+errors = []
+p = Gtk.CssProvider()
+p.connect("parsing-error", lambda prov, section, error: errors.append(error.message))
+p.load_from_path("${path}")
+print("ERRORS", len(errors))
+for e in errors:
+    print("  ", e)`;
+    const result = spawnSync("python3", ["-c", script], { encoding: "utf8" });
+    if (result.status !== 0 && /ModuleNotFoundError|ValueError: Namespace/.test(result.stderr))
+        return; // No PyGObject here; the render test above still guards the placeholders.
+    assert.equal(result.status, 0, `GTK could not load the stylesheet at all: ${result.stderr}`);
+    assert.match(result.stdout, /^ERRORS 0$/m, `GTK reported parse errors in the swayosd stylesheet:\n${result.stdout}`);
 });
 
 // ------------------------------------------------ formats with no CLI parser
