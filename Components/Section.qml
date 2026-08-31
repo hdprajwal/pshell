@@ -22,6 +22,9 @@ import qs.Widgets.Notifications as NotificationsWidget
 // Qualified for the same collision, third time: qs.Services also exports a
 // Weather -- the singleton this widget draws.
 import qs.Widgets.Weather as WeatherWidget
+// And a fourth: qs.Services exports the PowerMenu singleton that holds the
+// five session commands, and this module exports the widget that draws them.
+import qs.Widgets.PowerMenu as PowerMenuWidget
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
 import qs.Commons
@@ -41,7 +44,7 @@ Row {
     //
     // Order does not matter for the lookup, but it mirrors the switch in
     // builtinLoader so the three lists stay checkable against each other.
-    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather"]
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power"]
 
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
@@ -165,6 +168,8 @@ Row {
                         return notificationsComponent;
                     case "weather":
                         return weatherComponent;
+                    case "power":
+                        return powerMenuComponent;
                     default:
                         return procComponent;
                     }
@@ -283,6 +288,10 @@ Row {
     Component {
         id: weatherComponent
         WeatherWidget.Weather {}
+    }
+    Component {
+        id: powerMenuComponent
+        PowerMenuWidget.PowerMenu {}
     }
     Component {
         id: procComponent
