@@ -8,6 +8,10 @@
 # internal and unversioned, so anything speaking it directly would break on
 # upgrade. What this saves is knowing where the checkout lives, which is the
 # only part of those commands that was ever hard to remember.
+#
+# Two commands are not that: `launcher` and `clipboard` run walker, because
+# that is the one job pshell hands to someone else. The case block says why
+# they are here rather than in the keybind.
 
 set -eu
 
@@ -115,11 +119,36 @@ need_qs() {
     fi
 }
 
+# The same courtesy for walker, and it needs more of it: qs is in the README's
+# first paragraph, walker is a thing pshell delegates to and a user may never
+# have heard of. `exec: walker: not found` after a keypress would look like
+# pshell was broken rather than like something was missing, so say what to
+# install and say that elephant is the half that does the searching -- walker
+# without it starts and finds nothing.
+need_walker() {
+    if command -v walker >/dev/null 2>&1; then
+        return 0
+    fi
+
+    echo "pshell: walker is not on your PATH. pshell hands the launcher and the" >&2
+    echo "pshell: clipboard to walker rather than building its own." >&2
+    echo "pshell:" >&2
+    echo "pshell:   sudo pacman -S walker    # the window you type into" >&2
+    echo "pshell:   yay -S elephant-all-bin  # the backend it searches" >&2
+    echo "pshell:   elephant service enable && systemctl --user start elephant" >&2
+    exit 1
+}
+
 # -------------------------------------------------------------------- usage
 
 # No list of targets here. The targets belong to the QML that declares them,
 # and a copy in this file would be one more thing to forget to update --
 # `pshell ipc show` asks the shell itself, and cannot go stale.
+#
+# launcher and clipboard are listed because they are not targets. No QML
+# declares them and `pshell ipc show` will never mention them; this file is
+# the only thing that knows they exist, so it is the only thing that can say
+# so. The case block explains why they are here at all.
 usage() {
     cat <<'EOF'
 usage: pshell <command> [arguments]
@@ -129,6 +158,9 @@ usage: pshell <command> [arguments]
   preview                 draw the lockscreen in a window, without locking
   run [qs options]        start the shell
   ipc <arguments>         pass straight through to qs ipc
+
+  launcher                open the application launcher (walker)
+  clipboard               open the clipboard history (walker)
 
   <target> <method> [..]  call any IPC target directly:
                             pshell calendar toggle
@@ -224,6 +256,44 @@ unlock)
 preview)
     no_arguments preview $#
     call pshell.lock preview
+    ;;
+
+# The next two are the only exceptions to everything this file says about
+# itself, and it is worth being clear that neither of those claims has gone
+# wrong.
+#
+# The comment at the top says every command is one rewrite into
+# `qs ipc call`; the one above usage() says the target list belongs to the
+# QML. Both hold for every other command here. launcher and clipboard run a
+# program instead of talking to the shell, so they cannot go through call():
+# there is no IPC target behind them and there is not going to be one. The
+# launcher is the single thing pshell decided not to build -- walker is
+# better at fuzzy search than anything worth writing here, and elephant
+# already keeps the clipboard history.
+#
+# They live in this file anyway, and in usage(), because a keybind should
+# read `pshell launcher` and not name a third-party binary. That is their
+# whole purpose: the day walker is swapped for something else, the bind in
+# binds-user.lua does not move -- these two cases do.
+#
+# `--provider`, not `--modules`: walker 1.x called them modules, 2.x calls
+# them providers and takes the name of one elephant serves. Taken from
+# add_flags() in walker 2.17.0's src/main.rs.
+#
+# Neither forwards arguments, deliberately. Forwarding walker's flags would
+# put walker's command line back inside the keybind, which is the thing these
+# two exist to keep out of it, and would make `pshell launcher --provider
+# clipboard` a second spelling of `pshell clipboard`. Anyone who wants
+# walker's own options wants to type `walker`.
+launcher)
+    no_arguments launcher $#
+    need_walker
+    exec walker --provider desktopapplications
+    ;;
+clipboard)
+    no_arguments clipboard $#
+    need_walker
+    exec walker --provider clipboard
     ;;
 *)
     # Anything else is a target name, left unvalidated for the same reason
