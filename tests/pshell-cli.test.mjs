@@ -42,6 +42,21 @@ exit "\${QS_EXIT:-0}"
 `);
     chmodSync(join(bin, "qs"), 0o755);
 
+    // The same trick for walker, which `pshell launcher` and `pshell
+    // clipboard` exec rather than call over IPC. A fake is the only way to
+    // see what they run: the real walker wants a Wayland display and an
+    // elephant socket, and is not installed here anyway.
+    const walkerLog = join(root, "walker.log");
+    writeFileSync(join(bin, "walker"), `#!/bin/sh
+{
+    printf 'ARGV'
+    for a in "\$@"; do printf '\\t%s' "\$a"; done
+    printf '\\n'
+} >> "${walkerLog}"
+exit "\${WALKER_EXIT:-0}"
+`);
+    chmodSync(join(bin, "walker"), 0o755);
+
     // A PATH with everything the script itself needs and no qs. Emptying
     // PATH instead would take readlink and dirname with it, and the script
     // would die at 127 long before it looked for quickshell -- proving
@@ -58,7 +73,15 @@ exit "\${QS_EXIT:-0}"
         }
     }
 
-    return { root, bin, bare, log };
+    // And one with qs but no walker, for the other guard. Assembled by hand
+    // rather than by handing over the real PATH minus nothing: walker is not
+    // installed on this machine today, so the real PATH would pass this test
+    // by accident and stop passing it the day someone installs walker.
+    const noWalker = join(root, "nowalker");
+    mkdirSync(noWalker, { recursive: true });
+    symlinkSync(join(bin, "qs"), join(noWalker, "qs"));
+
+    return { root, bin, bare, noWalker, log, walkerLog };
 }
 
 // A directory that looks like a checkout, because that is all the script
@@ -85,14 +108,25 @@ function run(box, args, env = {}, entry = script) {
     return result;
 }
 
-// Every qs invocation the run produced, as arrays of arguments.
-function calls(box) {
-    if (!existsSync(box.log))
+function argvIn(path) {
+    if (!existsSync(path))
         return [];
-    return readFileSync(box.log, "utf8")
+    return readFileSync(path, "utf8")
         .split("\n")
         .filter(line => line.startsWith("ARGV\t"))
         .map(line => line.split("\t").slice(1));
+}
+
+// Every qs invocation the run produced, as arrays of arguments.
+function calls(box) {
+    return argvIn(box.log);
+}
+
+// The same for walker. Two logs rather than one, because most of what these
+// tests want to know is which of the two a command reached -- and "it also
+// fired an ipc call" is invisible in a merged log.
+function walkerCalls(box) {
+    return argvIn(box.walkerLog);
 }
 
 function displays(box) {
@@ -161,6 +195,85 @@ test("run starts the shell and forwards qs options", () => {
     run(box, ["run", "-d"]);
 
     assert.deepEqual(calls(box), [["-p", repo, "-d"]]);
+});
+
+// ------------------------------------------------- the two that run walker
+
+test("launcher opens walker on the applications provider", () => {
+    const box = sandbox();
+    const out = run(box, ["launcher"]);
+
+    assert.equal(out.status, 0);
+    assert.deepEqual(walkerCalls(box), [["--provider", "desktopapplications"]]);
+    // The point of the assertion. A `launcher` case that fell through to the
+    // `*)` dispatch, or one written as a call() with an exec bolted after it,
+    // would still open walker and would also ask the shell for a
+    // `pshell.launcher` target that does not exist -- printing an error, or
+    // worse, silently succeeding against some future target of that name.
+    assert.deepEqual(calls(box), []);
+});
+
+test("clipboard opens walker on the clipboard provider", () => {
+    const box = sandbox();
+    const out = run(box, ["clipboard"]);
+
+    assert.equal(out.status, 0);
+    assert.deepEqual(walkerCalls(box), [["--provider", "clipboard"]]);
+    assert.deepEqual(calls(box), []);
+});
+
+test("both are documented, unlike the targets", () => {
+    const box = sandbox();
+    const out = run(box, ["help"]);
+
+    assert.match(out.stdout, /^\s+launcher\s+/m);
+    assert.match(out.stdout, /^\s+clipboard\s+/m);
+});
+
+test("a missing walker says what to install rather than failing at exec", () => {
+    const box = sandbox();
+    const out = run(box, ["launcher"], { PATH: `${box.noWalker}:${box.bare}` });
+
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /walker is not on your PATH/);
+    assert.match(out.stderr, /pacman -S walker/);
+    assert.match(out.stderr, /elephant/);
+    assert.doesNotMatch(out.stderr, /not found/);
+    // qs is on this PATH and untouched: a launcher that cannot run must not
+    // quietly become an ipc call to a target named launcher.
+    assert.deepEqual(calls(box), []);
+});
+
+test("clipboard gets the same guard, not just launcher", () => {
+    const box = sandbox();
+    const out = run(box, ["clipboard"], { PATH: `${box.noWalker}:${box.bare}` });
+
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /walker is not on your PATH/);
+    assert.deepEqual(calls(box), []);
+});
+
+test("neither takes arguments, so a typo cannot reach walker's own flags", () => {
+    for (const cmd of ["launcher", "clipboard"]) {
+        const box = sandbox();
+        const out = run(box, [cmd, "--dmenu"]);
+
+        assert.equal(out.status, 1, `${cmd} accepted an argument`);
+        assert.match(out.stderr, /takes no arguments/);
+        assert.deepEqual(walkerCalls(box), []);
+        assert.deepEqual(calls(box), []);
+    }
+});
+
+// Adding two named commands to the case block is exactly how the catch-all
+// underneath them stops being reached, and the failure is quiet: a target
+// would just stop working.
+test("adding them left the target dispatch alone", () => {
+    const box = sandbox();
+    run(box, ["calendar", "toggle"]);
+
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.calendar", "toggle"]]);
+    assert.deepEqual(walkerCalls(box), []);
 });
 
 // ------------------------------------------------------- what it refuses
