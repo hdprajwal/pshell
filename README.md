@@ -343,7 +343,7 @@ single run.
 | `weather` | The condition and the temperature where you are. Click it for feels-like, humidity, wind and three days of high and low. `showLabel` puts the condition in the bar too. `panelWidth` sizes the panel. Everything else is configured under `weather` rather than on the widget, since one shell fetches once however many bars are on it. |
 | `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
 | `power` | Lock, suspend, log out, restart, power off. The three that end something ask first and are drawn in the urgent colour. `panelWidth` sizes the panel. The commands themselves are configured under `power` rather than on the widget, and every one of them answers on IPC with no widget in the bar. |
-| `keybinds` | Your Hyprland keybinds, read from `hyprctl binds -j` when the panel opens, grouped by modifier with a filter field. Says how many binds carry no description and what to do about it. `panelWidth`, `listHeight`. |
+| `keybinds` | Your Hyprland keybinds, read from `hyprctl binds -j` when the panel opens, grouped by modifier with a filter field. Says how many binds carry no description and what to do about it. `panelWidth`, `listHeight`. The panel is drawn here; `pshell.keybinds` is owned by a service, so the command answers on any bar. |
 
 Everything else is a program. Leave out `type` and give it an `exec`.
 
@@ -708,6 +708,11 @@ pshell power poweroff
 script asking to reboot has already decided, and a confirmation nobody is
 looking at would leave the machine up. The dialogs belong to the panels.
 
+`pshell power lock` runs `loginctl lock-session`, which only locks anything if
+something on your machine listens for logind's `Lock` signal and acts on it.
+pshell does not — see the lockscreen section — so point hypridle's `lock_cmd`
+at `pshell lock lock` first, or bind `pshell lock lock` directly.
+
 They answer with no `power` widget in the bar at all, so a keybind does not
 have to care what is on your bar today. Only `toggle` needs the widget, since
 the widget is what draws the menu; without one it says so and names the five
@@ -762,9 +767,10 @@ Two ways to fix it, and the first is better:
 pshell keybinds toggle    open or close the sheet
 ```
 
-The widget draws the sheet and registers the target, so this needs `keybinds`
-in a bar section — the same as `pshell controlcenter toggle` or `pshell
-battery toggle`.
+The command answers on any bar — the service owns the target, so a keybind
+does not have to care what is in your bar today. The *sheet* is drawn by the
+widget, so without `{"type": "keybinds"}` in a section the command tells you
+which entry to add rather than opening anything.
 
 ## Launcher and clipboard
 
