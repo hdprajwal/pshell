@@ -18,13 +18,24 @@ import "Weather.js" as W
 // QML already does without help, and reaching for curl would add a runtime
 // dependency to a shell that currently needs none for this.
 //
-// No keep-alive line in shell.qml, deliberately. Wallpaper and Lock have one
-// because IPC is their only door -- neither has a widget. This has a widget,
-// and it is the only reason to fetch at all: a shell with no weather widget
-// that still talked to Open-Meteo every fifteen minutes would be making a
-// network request on the user's behalf for nothing to display. So a bar
-// without the widget answers `pshell weather current` with "this shell has no
-// 'weather' target", which is the truth rather than a gap.
+// There is a keep-alive line in shell.qml, and the reason it is not a
+// contradiction is the split below.
+//
+// Two things were coupled and did not have to be. A singleton *existing* is
+// what registers its IPC target, so without a keep-alive `pshell weather
+// current` on a bar carrying no weather widget answers "Target not found" --
+// and a keybind or a status script should not have to know which widgets are
+// in the bar today. A singleton *polling* is what costs Open-Meteo a request,
+// four times an hour, forever, and doing that on a bar with nothing to draw
+// the answer would be making a network request on the user's behalf for
+// nobody.
+//
+// Wallpaper and Lock need only the first half, because neither has a widget at
+// all. This one has a widget, so it separates them: shell.qml keeps the
+// singleton alive, and `wanted` below gates the refresh timer and the startup
+// fetch on the widget actually being in a bar section. refresh() itself stays
+// ungated. A bar without the widget therefore answers every command, fetches
+// when asked, and asks for nothing on its own.
 Singleton {
     id: root
 
@@ -45,7 +56,7 @@ Singleton {
     // ------------------------------------------------------------- state
 
     // This session's fetches. Authoritative over the persisted cache, and
-    // separate from it because state.json loads asynchronously: a fetch that
+    // separate from it because weather.json loads asynchronously: a fetch that
     // lands before the file does must not be overwritten by what was on disk.
     property var fetched: null
 
@@ -275,9 +286,33 @@ Singleton {
     // are gated on the widget being configured, and refresh() itself is not --
     // `pshell weather refresh` works on any bar, it just does not repeat.
     //
+    // What it actually means: an entry whose `id` or `type` is "weather" sits
+    // in one of the three bar sections. That is ConfigPath.findWidget's test,
+    // so an on-disk QML widget whose manifest id is "weather" counts as well
+    // as the built-in type -- the sections are the same list either way. What
+    // it would miss is a third-party widget under some other id driving this
+    // singleton, which nothing does today.
+    //
+    // Written down because the failure mode is silent. A widget this does not
+    // recognise gets no poll, no log line, and a bar face stuck on "Waiting
+    // for the first reading" for as long as the shell runs.
+    //
     // Binding-safe: Config blocks on loading, so this is right the first time
     // it is evaluated rather than false for a frame.
     readonly property bool wanted: Config.hasWidget("weather")
+
+    // config.json is watched, so a widget can be added to a running shell.
+    // Nothing else notices: all three refresh sites below are startup-shaped,
+    // and a Timer that flips to running starts a fresh full interval rather
+    // than firing. Without this the widget appears and sits on "Waiting for
+    // the first reading" for up to intervalMin minutes.
+    //
+    // Not left to onRequestKeyChanged. It would cover the case where the
+    // location changed too, but setting the location and adding the widget in
+    // one edit is one Config.data write, and the order the two bindings
+    // re-evaluate in is not something to depend on.
+    onWantedChanged: if (root.wanted && Prefs.loaded)
+        root.refresh()
 
     Timer {
         interval: root.intervalMin * 60000
@@ -291,16 +326,38 @@ Singleton {
     // needed: the file may already be read by the time this singleton is
     // built, in which case the change signal never comes.
     readonly property bool prefsReady: Prefs.loaded
-    onPrefsReadyChanged: if (prefsReady && root.wanted)
-        root.refresh()
+    onPrefsReadyChanged: if (prefsReady)
+        root._start()
     Component.onCompleted: {
         // FileView does not create parent directories, and ~/.local/state/pshell
         // is nothing else's job to make. Notifications does this for the same
         // directory; doing it twice is a no-op and depending on the other
         // service having run first would be a load-order bug waiting.
         Quickshell.execDetached(["mkdir", "-p", root._statePath.substring(0, root._statePath.lastIndexOf("/"))]);
-        if (Prefs.loaded && root.wanted)
+        if (Prefs.loaded)
+            root._start();
+    }
+
+    function _start() {
+        root._retireOldCache();
+        if (root.wanted)
             root.refresh();
+    }
+
+    // An earlier cut of this service kept the forecast in state.json under
+    // `weather.reading`. It has its own file now, and the leftover would
+    // otherwise be copied forward by every geocode write for the life of the
+    // config -- a kilobyte of dead JSON nothing ever reads again.
+    //
+    // Idempotent, so it costs one comparison per start once it has run: the
+    // write reassigns Prefs.data, the key is gone from the next evaluation,
+    // and the guard stops it firing again.
+    function _retireOldCache() {
+        if (Prefs.weather.reading === undefined)
+            return;
+        const next = Object.assign({}, Prefs.weather);
+        delete next.reading;
+        Prefs.setWeather(next);
     }
 
     // Guarded by the same readiness: this signal also fires once when the
