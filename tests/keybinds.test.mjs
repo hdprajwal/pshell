@@ -228,3 +228,20 @@ test("the filter matches the combination and the description both", () => {
   assert.equal(Keybinds.filter(groups, "   ").length, groups.length);
   assert.equal(Keybinds.filter(groups, "no such bind").length, 0);
 });
+
+test("the filter does not match pshell's own words for an undescribed row", () => {
+  // The placeholder is text this library wrote, not the user's, so searching
+  // it answered a question nobody asked: on the real 119 binds, typing "lab"
+  // or "not" returned all 115 undescribed rows at once.
+  const groups = Keybinds.group(REAL_BINDS, { "SUPER+D": "Labelled by hand" });
+
+  assert.equal(Keybinds.countUnlabelled(Keybinds.filter(groups, "not label")).total, 0);
+  assert.equal(Keybinds.countUnlabelled(Keybinds.filter(groups, "lab")).total, 1);
+  assert.equal(Keybinds.filter(groups, "lab")[0].rows[0].combo, "SUPER+D");
+
+  // An undescribed row is still reachable by its combination, which is the
+  // only thing about it that is true.
+  const byCombo = Keybinds.filter(groups, "SUPER+TAB");
+  assert.equal(Keybinds.countUnlabelled(byCombo).total, 1);
+  assert.equal(byCombo[0].rows[0].source, "none");
+});

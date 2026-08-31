@@ -12,7 +12,6 @@ import qs.Widgets.Bluetooth
 import qs.Widgets.Calendar
 import qs.Widgets.Clock
 import qs.Widgets.ControlCenter
-import qs.Widgets.Keybinds
 import qs.Widgets.Network
 import qs.Widgets.ProcWidget
 import qs.Widgets.Settings
@@ -26,6 +25,9 @@ import qs.Widgets.Weather as WeatherWidget
 // And a fourth: qs.Services exports the PowerMenu singleton that holds the
 // five session commands, and this module exports the widget that draws them.
 import qs.Widgets.PowerMenu as PowerMenuWidget
+// And a fifth, same shape: qs.Services exports the Keybinds singleton that
+// owns the cheat sheet's IPC target and its wanted-open state.
+import qs.Widgets.Keybinds as KeybindsWidget
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
 import qs.Commons
@@ -298,7 +300,7 @@ Row {
     }
     Component {
         id: keybindsComponent
-        Keybinds {}
+        KeybindsWidget.Keybinds {}
     }
     Component {
         id: procComponent

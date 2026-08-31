@@ -309,6 +309,11 @@ function countUnlabelled(groups) {
 // The panel's filter. Matches the combination and the description both,
 // because you may be hunting either: "what is on SUPER+Y" or "which key
 // takes a screenshot".
+//
+// An unlabelled row matches on its combination only. Its `description` is
+// the placeholder below, not the user's words, and searching it made typing
+// "lab" or "not" return all 115 undescribed rows -- a filter that answers a
+// question nobody asked, from text pshell wrote itself.
 function filter(groups, query) {
     var text = String(query || "").trim().toLowerCase();
     var list = Array.isArray(groups) ? groups : [];
@@ -318,7 +323,9 @@ function filter(groups, query) {
     var out = [];
     for (var i = 0; i < list.length; i++) {
         var kept = list[i].rows.filter(function (row) {
-            return row.combo.toLowerCase().indexOf(text) >= 0 || row.description.toLowerCase().indexOf(text) >= 0;
+            if (row.combo.toLowerCase().indexOf(text) >= 0)
+                return true;
+            return row.source !== "none" && row.description.toLowerCase().indexOf(text) >= 0;
         });
         if (kept.length === 0)
             continue;

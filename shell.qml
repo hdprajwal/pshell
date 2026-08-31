@@ -98,6 +98,18 @@ ShellRoot {
     // opens nothing until it is asked to.
     readonly property var powerMenu: PowerMenu
 
+    // And the keybind sheet's service, for the sharpest version of the same
+    // reason. Every other panel-only widget -- the control centre, the
+    // battery, tailscale -- is a bar icon you click, and its keybind is a
+    // convenience. This one exists to answer SUPER+SHIFT+/ and nothing else,
+    // so a `Target not found` on a bar that happens not to carry the widget
+    // is the whole feature missing rather than a shortcut missing.
+    //
+    // It does not conjure a sheet out of nothing: the widget still draws it,
+    // and without one the service says so by name. What this line buys is
+    // that the command is always answered and the answer is a sentence.
+    readonly property var keybinds: Keybinds
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per

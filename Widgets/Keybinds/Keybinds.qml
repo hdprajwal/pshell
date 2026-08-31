@@ -1,6 +1,12 @@
 import QtQuick
 import Quickshell.Io
 import qs.Services
+// Qualified for the collision this file is one half of: qs.Services exports a
+// Keybinds too -- the singleton holding this panel's wanted-open state -- and
+// a directory's own types win the unqualified name, so `Keybinds` here would
+// mean this widget. The same answer Widgets/Weather and Widgets/PowerMenu
+// give. The .js library below is imported by path and claims no name at all.
+import qs.Services as Services
 import qs.Commons
 import qs.Ui
 import "../../Services/Keybinds.js" as K
@@ -21,16 +27,38 @@ import "../../Services/Keybinds.js" as K
 //
 // Re-read on open, not on a timer: binds change when the config does, and
 // nobody consults a cheat sheet in a loop.
+//
+// No ipcTarget and manageIpc off: pshell.keybinds is registered by
+// Services/Keybinds.qml, which holds the wanted-open state. A handler here
+// would be one per monitor fighting over one target, and this is the widget
+// whose whole point is a keybind rather than a click.
 Panel {
     id: root
 
     moduleName: "pshell.keybinds"
-    ipcTarget: "pshell.keybinds"
+    manageIpc: false
 
     property var cfg: ({})
 
     readonly property int panelWidth: cfg.panelWidth || Style.space(520)
     readonly property int listHeight: cfg.listHeight || Style.space(420)
+
+    readonly property string screenName: bar && bar.screen ? bar.screen.name : ""
+    // Only the widget on the service's chosen screen raises the sheet; every
+    // other monitor's widget stays a bar icon.
+    readonly property bool hostsPanel: Services.Keybinds.panelOpen && Services.Keybinds.panelScreen === root.screenName
+
+    function open() {
+        Services.Keybinds.openPanel(root.screenName);
+    }
+
+    function close() {
+        Services.Keybinds.closePanel();
+    }
+
+    function toggle() {
+        Services.Keybinds.togglePanel(root.screenName);
+    }
 
     // The parsed `hyprctl binds -j` array, and why the last read failed if it
     // did. Empty and "" respectively until the first open.
@@ -48,8 +76,8 @@ Panel {
         reader.running = true;
     }
 
-    onOpenedChanged: {
-        if (opened)
+    onHostsPanelChanged: {
+        if (root.hostsPanel)
             root.refresh();
         else
             root.query = "";
@@ -126,7 +154,7 @@ Panel {
         anchorItem: button
         owner: root
         bar: root.bar
-        open: root.opened
+        open: root.hostsPanel
         focusTarget: keyCatcher
         contentWidth: panel.fittedContentWidth(root.panelWidth + panel.horizontalContentInset)
         contentHeight: panel.fittedContentHeight(column.implicitHeight)
@@ -214,7 +242,11 @@ Panel {
                         const missing = root.counted.unlabelled;
                         if (missing === 0)
                             return total + " binds, all described.";
-                        return total + " binds, " + missing + " with no description. Hyprland only knows what a bind does when the bind says so — a Lua bind's action is a closure it cannot read. Name them with `description` on the bind itself, or in config.json under `keybinds.labels`, keyed by the combination printed on the row.";
+                        // No backticks: this is plain Text, not markdown,
+                        // and a user reading "under `keybinds.labels`" on
+                        // screen has to work out that the punctuation is not
+                        // part of the key they are meant to type.
+                        return total + " binds, " + missing + " with no description. Hyprland only knows what a bind does when the bind says so, and a Lua bind's action is a closure it cannot read. Give the bind a description where it is bound, or name it in config.json under keybinds.labels, keyed by the combination printed on the row.";
                     }
                     color: Color.muted
                     font.family: Style.font.family
@@ -238,7 +270,7 @@ Panel {
                     width: parent.width
                     visible: !reader.running && root.counted.total === 0
                     wrapMode: Text.WordWrap
-                    text: "No binds to show. `hyprctl binds -j` returned none — either Hyprland has none, or it could not be asked."
+                    text: "No binds to show. hyprctl binds -j returned none — either Hyprland has none, or it could not be asked."
                     color: Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
