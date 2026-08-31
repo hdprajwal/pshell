@@ -7,8 +7,8 @@ const Matugen = loadQmlJs("Services/MatugenConfig.js");
 // A small parser for the TOML subset buildConfig emits: comments, table
 // headers with possibly-quoted dotted keys, basic-string values and the
 // inline tables the custom colours use. Asserting on parsed structure rather
-// than whole-file equality means adding a ninth template does not rewrite
-// every test here -- only the tests about the ninth template.
+// than whole-file equality means adding one more template does not rewrite
+// every test here -- only the tests about that template.
 function parseToml(text) {
   const sections = {};
   let current = null;
@@ -65,10 +65,10 @@ const OPTIONS = {
   disabled: []
 };
 
-// Nine since Phase 3 added swayosd; a name missing here is a built-in the
-// assertions below silently stop covering, so the list tracks
-// BUILTIN_TEMPLATES by hand and on purpose.
-const BUILTINS = ["gtk3", "gtk4", "kitty", "ghostty", "alacritty", "btop", "zed", "qtct", "swayosd"];
+// Ten since Phase 5 added walker, on top of the nine Phase 3 left; a name
+// missing here is a built-in the assertions below silently stop covering, so
+// the list tracks BUILTIN_TEMPLATES by hand and on purpose.
+const BUILTINS = ["gtk3", "gtk4", "kitty", "ghostty", "alacritty", "btop", "zed", "qtct", "swayosd", "walker"];
 
 test("every built-in template appears, reading from the shell and writing under the config dir", () => {
   const toml = parseToml(Matugen.buildConfig(OPTIONS));
@@ -84,6 +84,16 @@ test("gtk3 and gtk4 render the same template to different outputs", () => {
   const toml = parseToml(Matugen.buildConfig(OPTIONS));
   assert.equal(toml["templates.pshell_gtk3"].input_path, toml["templates.pshell_gtk4"].input_path);
   assert.notEqual(toml["templates.pshell_gtk3"].output_path, toml["templates.pshell_gtk4"].output_path);
+});
+
+// walker is the one built-in whose output is a file *inside* a directory
+// named for the theme rather than a file named for it. Write
+// themes/pshell.css instead and matugen still renders happily, walker still
+// starts, and the launcher silently wears its stock colours -- so the shape
+// of the path is worth an assertion of its own.
+test("walker renders into a theme directory, which is what walker looks for", () => {
+  const toml = parseToml(Matugen.buildConfig(OPTIONS));
+  assert.equal(toml["templates.pshell_walker"].output_path, "/home/u/.config/walker/themes/pshell/style.css");
 });
 
 test("all sixteen ansi custom colours appear, each blended", () => {
@@ -110,7 +120,7 @@ test("a path containing a single quote is emitted intact", () => {
   assert.equal(toml["templates.pshell_btop"].output_path, "/home/o'brien/.config/btop/themes/pshell.theme");
 });
 
-test("disabling kitty removes its section and leaves the other eight", () => {
+test("disabling kitty removes its section and leaves the other nine", () => {
   const toml = parseToml(Matugen.buildConfig({ ...OPTIONS, disabled: ["kitty"] }));
   assert.equal(toml["templates.pshell_kitty"], undefined);
   for (const name of BUILTINS.filter(n => n !== "kitty"))

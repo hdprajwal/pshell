@@ -93,6 +93,35 @@ function read(mode, relative) {
 // matugen is a supported machine, not a broken one.
 const noMatugen = !have("matugen");
 
+// Hand a stylesheet to GTK4's own parser and collect what it complains about.
+//
+// The `parsing-error` signal, not the return value. CssProvider.load_from_path
+// does not raise on bad CSS -- GTK's parser recovers from almost anything,
+// drops the rule it could not read and carries on, so a stylesheet full of
+// syntax errors "loads" fine and themes nothing. A mutation test proved it:
+// replacing a whole @define-color line with `;;;` passed. The signal is where
+// GTK actually reports the problem.
+//
+// Returns null when PyGObject is not installed, which the callers treat as
+// "not checked here" rather than as a pass.
+function gtkParseErrors(path) {
+    const script = `import gi
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, GLib
+errors = []
+p = Gtk.CssProvider()
+p.connect("parsing-error", lambda prov, section, error: errors.append(error.message))
+p.load_from_path("${path}")
+print("ERRORS", len(errors))
+for e in errors:
+    print("  ", e)`;
+    const result = spawnSync("python3", ["-c", script], { encoding: "utf8" });
+    if (result.status !== 0 && /ModuleNotFoundError|ValueError: Namespace/.test(result.stderr))
+        return null;
+    assert.equal(result.status, 0, `GTK could not load the stylesheet at all: ${result.stderr}`);
+    return result.stdout;
+}
+
 test("the real config carries kitty's reload hook, even though the rendered one does not", () => {
     const MatugenConfig = loadQmlJs("Services/MatugenConfig.js");
     const toml = MatugenConfig.buildConfig({
@@ -119,7 +148,8 @@ test("matugen renders every template with real colours", { skip: noMatugen && "m
         "btop/themes/pshell.theme",
         "zed/themes/pshell.json",
         "qt6ct/colors/pshell.conf",
-        "swayosd/style.css"
+        "swayosd/style.css",
+        "walker/themes/pshell/style.css"
     ];
 
     for (const relative of expected) {
@@ -174,30 +204,10 @@ for name in ("foreground", "background", "color0", "color1", "color15", "cursor"
 });
 
 test("GTK parses the stylesheet it is handed", { skip: (noMatugen && "matugen not installed") || (!have("python3") && "python3 not installed") }, () => {
-    const path = output("dark", "gtk-4.0/pshell-colors.css");
-    // The `parsing-error` signal, not the return value.
-    //
-    // Gtk.CssProvider.load_from_path does not raise on bad CSS -- GTK's
-    // parser recovers from almost anything, drops the rule it could not read
-    // and carries on, so a stylesheet full of syntax errors "loads" fine and
-    // themes nothing. A mutation test proved it: replacing a whole
-    // @define-color line with `;;;` passed. The signal is where GTK actually
-    // reports the problem.
-    const script = `import gi
-gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, GLib
-errors = []
-p = Gtk.CssProvider()
-p.connect("parsing-error", lambda prov, section, error: errors.append(error.message))
-p.load_from_path("${path}")
-print("ERRORS", len(errors))
-for e in errors:
-    print("  ", e)`;
-    const result = spawnSync("python3", ["-c", script], { encoding: "utf8" });
-    if (result.status !== 0 && /ModuleNotFoundError|ValueError: Namespace/.test(result.stderr))
+    const out = gtkParseErrors(output("dark", "gtk-4.0/pshell-colors.css"));
+    if (out === null)
         return; // No PyGObject here; the format is checked by the apps that do have a parser.
-    assert.equal(result.status, 0, `GTK could not load the stylesheet at all: ${result.stderr}`);
-    assert.match(result.stdout, /^ERRORS 0$/m, `GTK reported parse errors in our stylesheet:\n${result.stdout}`);
+    assert.match(out, /^ERRORS 0$/m, `GTK reported parse errors in our stylesheet:\n${out}`);
 });
 
 test("GTK parses the swayosd stylesheet", { skip: (noMatugen && "matugen not installed") || (!have("python3") && "python3 not installed") }, () => {
@@ -210,22 +220,31 @@ test("GTK parses the swayosd stylesheet", { skip: (noMatugen && "matugen not ins
     // from memory. What this test does prove is the half that matugen can
     // break -- that the rendered values are CSS GTK4 (which swayosd links
     // against) reads without a single parse error.
-    const path = output("dark", "swayosd/style.css");
-    const script = `import gi
-gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, GLib
-errors = []
-p = Gtk.CssProvider()
-p.connect("parsing-error", lambda prov, section, error: errors.append(error.message))
-p.load_from_path("${path}")
-print("ERRORS", len(errors))
-for e in errors:
-    print("  ", e)`;
-    const result = spawnSync("python3", ["-c", script], { encoding: "utf8" });
-    if (result.status !== 0 && /ModuleNotFoundError|ValueError: Namespace/.test(result.stderr))
+    const out = gtkParseErrors(output("dark", "swayosd/style.css"));
+    if (out === null)
         return; // No PyGObject here; the render test above still guards the placeholders.
-    assert.equal(result.status, 0, `GTK could not load the stylesheet at all: ${result.stderr}`);
-    assert.match(result.stdout, /^ERRORS 0$/m, `GTK reported parse errors in the swayosd stylesheet:\n${result.stdout}`);
+    assert.match(out, /^ERRORS 0$/m, `GTK reported parse errors in the swayosd stylesheet:\n${out}`);
+});
+
+test("GTK parses the walker stylesheet", { skip: (noMatugen && "matugen not installed") || (!have("python3") && "python3 not installed") }, () => {
+    // Exactly as weak as the swayosd check above, and for the same reason:
+    // walker is not installed on this machine, so nothing here can prove it
+    // *applies* these rules. GTK4's parser accepts any selector, so a class
+    // walker never puts on a widget would sail through and theme nothing.
+    // What holds that risk down is the template: every selector in it is
+    // walker 2.17.0's own resources/themes/default/style.css, cross-checked
+    // against the class names in its themes/default/*.xml layouts.
+    //
+    // What this does prove is the half matugen can break -- that what comes
+    // out is CSS the GTK4 walker links against reads with no parse error,
+    // and that no placeholder survived unrendered. That second half matters
+    // more here than for any other template, because walker's theme replaces
+    // its bundled stylesheet outright: a sheet GTK drops on the floor leaves
+    // the launcher with no styling at all, not with walker's defaults.
+    const out = gtkParseErrors(output("dark", "walker/themes/pshell/style.css"));
+    if (out === null)
+        return; // No PyGObject here; the render test above still guards the placeholders.
+    assert.match(out, /^ERRORS 0$/m, `GTK reported parse errors in the walker stylesheet:\n${out}`);
 });
 
 // ------------------------------------------------ formats with no CLI parser

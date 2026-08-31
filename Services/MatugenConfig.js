@@ -22,10 +22,10 @@
 //   config file. pshell generates a file the user *includes*; it does not own
 //   anyone else's config. The README documents the include line for each.
 // - kitty is the only one needing a post_hook -- it reloads on SIGUSR1.
-//   Alacritty watches its own config file. btop, ghostty, zed, qt6ct and
-//   swayosd read their theme at start. The `|| true` matters: pkill exits
-//   non-zero when no kitty is running, and matugen should not report that as
-//   a failure.
+//   Alacritty watches its own config file and walker re-reads its stylesheet
+//   every time it opens. btop, ghostty, zed, qt6ct and swayosd read their
+//   theme at start. The `|| true` matters: pkill exits non-zero when no kitty
+//   is running, and matugen should not report that as a failure.
 var BUILTIN_TEMPLATES = [
     {
         name: "gtk3",
@@ -75,6 +75,19 @@ var BUILTIN_TEMPLATES = [
         name: "swayosd",
         input: "swayosd.css",
         output: "swayosd/style.css"
+    },
+    {
+        // A theme *directory*, not a file: walker looks for
+        // <config>/walker/themes/<name>/style.css and picks the directory by
+        // name from `theme = "pshell"` in its config.toml. Read off
+        // walker 2.17.0's src/theme/mod.rs rather than assumed -- the same
+        // function is why the template is a whole stylesheet and not a set of
+        // overrides. No post_hook: walker re-reads the sheet every time the
+        // window opens, so a theme change lands on the next SUPER+D with
+        // nothing to restart.
+        name: "walker",
+        input: "walker.css",
+        output: "walker/themes/pshell/style.css"
     }
 ];
 
