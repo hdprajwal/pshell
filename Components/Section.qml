@@ -12,6 +12,7 @@ import qs.Widgets.Bluetooth
 import qs.Widgets.Calendar
 import qs.Widgets.Clock
 import qs.Widgets.ControlCenter
+import qs.Widgets.Keybinds
 import qs.Widgets.Network
 import qs.Widgets.ProcWidget
 import qs.Widgets.Settings
@@ -44,7 +45,7 @@ Row {
     //
     // Order does not matter for the lookup, but it mirrors the switch in
     // builtinLoader so the three lists stay checkable against each other.
-    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power"]
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds"]
 
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
@@ -170,6 +171,8 @@ Row {
                         return weatherComponent;
                     case "power":
                         return powerMenuComponent;
+                    case "keybinds":
+                        return keybindsComponent;
                     default:
                         return procComponent;
                     }
@@ -292,6 +295,10 @@ Row {
     Component {
         id: powerMenuComponent
         PowerMenuWidget.PowerMenu {}
+    }
+    Component {
+        id: keybindsComponent
+        Keybinds {}
     }
     Component {
         id: procComponent
