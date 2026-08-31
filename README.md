@@ -986,7 +986,7 @@ model itself moves in fifteen-minute steps.
 
 A reading older than two refresh intervals goes dim in the bar and grows a
 `STALE` pill in the panel, which always says how old it is. The last good
-reading is kept in `state.json`, so a shell started with the network down shows
+reading is kept on disk, so a shell started with the network down shows
 the last thing it knew rather than a blank — with its age on it, which is the
 half that matters.
 
@@ -1007,9 +1007,11 @@ account. Two endpoints:
 Set `latitude` and `longitude` yourself and the geocoder is never contacted at
 all. Round them off if you would rather not hand over your street.
 
-Nothing runs without the widget. A bar with no `weather` in it never builds the
-service, so it makes no requests and `pshell weather` answers that this shell
-has no such target.
+Nothing repeats without the widget. A bar with no `weather` in it never starts
+the refresh timer, so it makes no requests on its own — but the commands below
+still work, and `pshell weather refresh` fetches once when you ask. Only
+`toggle` needs the widget, since the widget is what draws the panel; without
+one it says so rather than pretending.
 
 ### Commands
 
@@ -1019,6 +1021,10 @@ pshell weather current                one line: temperature, condition, place, a
 pshell weather toggle                 open or close the panel
 pshell weather setLocation Mysuru     re-resolve and refetch
 ```
+
+The last reading is kept in `~/.local/state/pshell/weather.json`; the resolved
+coordinates go in `state.json` beside the rest of what the shell remembers.
+Delete either and it is rebuilt on the next fetch.
 
 ## Icons
 
