@@ -225,8 +225,8 @@ Singleton {
         readonly property string location: _str("location", "")
 
         // Set explicitly, these win over `location`: a coordinate is
-        // unambiguous and a name is not. "Springfield" is fourteen places and
-        // the geocoder picks whichever is largest, so anyone who has been
+        // unambiguous and a name is not. There is more than one Springfield
+        // and the geocoder picks whichever is biggest, so anyone who has been
         // given the wrong one needs a way to say exactly where they are.
         readonly property real latitude: _coord("latitude", 90)
         readonly property real longitude: _coord("longitude", 180)

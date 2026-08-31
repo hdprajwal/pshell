@@ -321,7 +321,7 @@ This is the shape Omarchy's own shell uses, which is not a coincidence either.
 
 ## Widgets
 
-Fourteen are built in. These hold something a polled command cannot: a live
+Fifteen are built in. These hold something a polled command cannot: a live
 connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
 single run.
 
@@ -340,6 +340,7 @@ single run.
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
 | `bluetooth` | Adapter state and connected devices, with battery level where the device reports it. Left click opens the panel to pair, connect and disconnect, right click toggles the radio. `showCount`, `maxDevices`. |
 | `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where Omarchy's agent tooling is not installed. |
+| `weather` | The condition and the temperature where you are. Click it for feels-like, humidity, wind and three days of high and low. `showLabel` puts the condition in the bar too. `panelWidth` sizes the panel. Everything else is configured under `weather` rather than on the widget, since one shell fetches once however many bars are on it. |
 | `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
 
 Everything else is a program. Leave out `type` and give it an `exec`.
@@ -937,6 +938,87 @@ identical grey shapes is not something you can read at a glance. Codex's is a
 monochrome glyph and ships in both cuts, so it follows the palette the rest of
 the shell is drawn in. A provider with no mark of ours falls back to a Material
 Symbol, so a record we have never seen still gets a row.
+
+## Weather
+
+An icon and a temperature in the bar, and the detail behind them. Add the
+widget to a section and put its settings under a `weather` block:
+
+```json
+{
+  "right": [
+    { "type": "weather", "showLabel": false }
+  ],
+  "weather": {
+    "location": "Bengaluru",
+    "units": "metric",
+    "intervalMin": 15
+  }
+}
+```
+
+The settings live in their own block rather than on the widget because one
+shell fetches once, however many monitors it draws a bar on. Only `showLabel`
+and `panelWidth` are the widget's, since they are about what that bar looks
+like.
+
+| Key | What it does |
+|---|---|
+| `location` | A place name. Resolved to coordinates once and remembered. |
+| `latitude` / `longitude` | Exact coordinates. **These beat `location`.** |
+| `units` | `metric` or `imperial`. Default `metric`. |
+| `intervalMin` | Minutes between refreshes. Default 15, floored at 5. |
+
+Coordinates win because a coordinate is unambiguous and a name is not. There
+is more than one Springfield and the geocoder hands back the biggest; if it has
+handed you the wrong one, this is how you say exactly where you are. Set both
+and the name is still used as the label, so the panel says "Cambridge" and the
+forecast is for the Cambridge you meant.
+
+`pshell weather setLocation Mysuru` writes the name into `config.json` and
+clears any coordinates with it — leaving them would make the new name silently
+do nothing.
+
+The floor under `intervalMin` is five minutes. Open-Meteo is free and
+unauthenticated, and pointing tight loops at a service like that is how it
+stops being either. Fifteen is also as fine as the data gets: the forecast
+model itself moves in fifteen-minute steps.
+
+A reading older than two refresh intervals goes dim in the bar and grows a
+`STALE` pill in the panel, which always says how old it is. The last good
+reading is kept in `state.json`, so a shell started with the network down shows
+the last thing it knew rather than a blank — with its age on it, which is the
+half that matters.
+
+### What it sends, and to whom
+
+This widget makes a network request from your machine to a third party, so it
+should say so here rather than leave you to find it in a packet capture.
+
+It talks to [Open-Meteo](https://open-meteo.com), which needs no API key and no
+account. Two endpoints:
+
+- `geocoding-api.open-meteo.com` — once per `location` you set, and never
+  again while it stays the same. It receives the place name you typed.
+- `api.open-meteo.com` — every `intervalMin` minutes while the shell runs. It
+  receives your coordinates, rounded to whatever precision the geocoder gave
+  or you wrote, and nothing else. No identifier, no account, no cookie.
+
+Set `latitude` and `longitude` yourself and the geocoder is never contacted at
+all. Round them off if you would rather not hand over your street.
+
+Nothing runs without the widget. A bar with no `weather` in it never builds the
+service, so it makes no requests and `pshell weather` answers that this shell
+has no such target.
+
+### Commands
+
+```
+pshell weather refresh                fetch now
+pshell weather current                one line: temperature, condition, place, age
+pshell weather toggle                 open or close the panel
+pshell weather setLocation Mysuru     re-resolve and refetch
+```
 
 ## Icons
 
