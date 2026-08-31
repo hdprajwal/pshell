@@ -339,7 +339,7 @@ single run.
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
 | `bluetooth` | Adapter state and connected devices, with battery level where the device reports it. Left click opens the panel to pair, connect and disconnect, right click toggles the radio. `showCount`, `maxDevices`. |
-| `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where Omarchy's agent tooling is not installed. |
+| `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where `pshell-agents` is not installed. |
 | `weather` | The condition and the temperature where you are. Click it for feels-like, humidity, wind and three days of high and low. `showLabel` puts the condition in the bar too. `panelWidth` sizes the panel. Everything else is configured under `weather` rather than on the widget, since one shell fetches once however many bars are on it. |
 | `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
 
@@ -873,12 +873,26 @@ then `~/.face.icon`. With none of them, the avatar is left out.
 ## AI usage
 
 How much of your coding agents' allowances you have spent, in the bar and in a
-panel. It parses nothing itself. Omarchy's `omarchy-agent-usage-update` already
-walks Claude Code's session logs, Codex's rollouts and the Fireworks billing
-API, and writes one JSON record per provider into
-`~/.local/state/omarchy/agents/usage/`. pshell reads those files, watches them,
-and runs that updater on a timer. Without it on your PATH the widget takes
-itself out of the bar rather than showing an error.
+panel. The shell parses nothing itself. `cmd/pshell-agents` walks Claude Code's
+session logs, Codex's rollouts and the Fireworks billing API, and writes one
+JSON record per provider into `~/.local/state/pshell/agents/usage/`. pshell
+reads those files, watches them, and runs that program on a timer. Without it
+on your PATH the widget takes itself out of the bar rather than showing an
+error.
+
+It is the one part of pshell that is compiled. Build it with Go 1.24 or newer
+and put it anywhere on your `$PATH`:
+
+```sh
+cd ~/.config/quickshell/pshell
+go build -o ~/.local/bin/pshell-agents ./cmd/pshell-agents
+```
+
+It reads what it finds and skips what it does not, so nothing else is
+required — but it does shell out to `sqlite3` to read
+[opencode](https://github.com/sst/opencode)'s message database, which is the
+only place a subscription spent entirely through opencode is recorded. Without
+`sqlite3` installed the other sources still count and opencode's are missing.
 
 ```json
 {
