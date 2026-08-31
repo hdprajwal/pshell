@@ -111,9 +111,13 @@ function run(box, args, env = {}, entry = script) {
 function argvIn(path) {
     if (!existsSync(path))
         return [];
+    // `ARGV` with no tab after it is an invocation with no arguments, which
+    // is exactly what `pshell launcher` is now -- so the line has to be kept
+    // and turned into [], not filtered out as noise. Getting this wrong makes
+    // "walker ran bare" indistinguishable from "walker never ran".
     return readFileSync(path, "utf8")
         .split("\n")
-        .filter(line => line.startsWith("ARGV\t"))
+        .filter(line => /^ARGV(\t|$)/.test(line))
         .map(line => line.split("\t").slice(1));
 }
 
@@ -199,12 +203,18 @@ test("run starts the shell and forwards qs options", () => {
 
 // ------------------------------------------------- the two that run walker
 
-test("launcher opens walker on the applications provider", () => {
+test("launcher runs walker bare, naming no provider of its own", () => {
     const box = sandbox();
     const out = run(box, ["launcher"]);
 
     assert.equal(out.status, 0);
-    assert.deepEqual(walkerCalls(box), [["--provider", "desktopapplications"]]);
+    // No arguments at all, and that is the assertion. Naming a provider here
+    // would override `providers.default` in the user's own walker config --
+    // not pshell's file to argue with -- and walker skips its whole prefix
+    // table whenever a provider is set exclusively, so a `desktopapplications`
+    // creeping back in would silently kill `=`, `.`, `@` and seven more
+    // inside the one bind this command exists to serve.
+    assert.deepEqual(walkerCalls(box), [[]]);
     // The point of the assertion. A `launcher` case that fell through to the
     // `*)` dispatch, or one written as a call() with an exec bolted after it,
     // would still open walker and would also ask the shell for a

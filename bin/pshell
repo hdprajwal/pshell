@@ -276,9 +276,9 @@ preview)
 # whole purpose: the day walker is swapped for something else, the bind in
 # binds-user.lua does not move -- these two cases do.
 #
-# `--provider`, not `--modules`: walker 1.x called them modules, 2.x calls
-# them providers and takes the name of one elephant serves. Taken from
-# add_flags() in walker 2.17.0's src/main.rs.
+# `--provider clipboard`, not `--modules`: walker 1.x called them modules,
+# 2.x calls them providers and takes the name of one elephant serves. Taken
+# from add_flags() in walker 2.17.0's src/main.rs.
 #
 # Neither forwards arguments, deliberately. Forwarding walker's flags would
 # put walker's command line back inside the keybind, which is the thing these
@@ -286,9 +286,30 @@ preview)
 # clipboard` a second spelling of `pshell clipboard`. Anyone who wants
 # walker's own options wants to type `walker`.
 launcher)
+    # Bare `walker`, with no provider named, and that is the whole point of
+    # delegating: which providers a launcher searches is walker's decision
+    # and then the user's, in `providers.default` in their own
+    # ~/.config/walker/config.toml. `--provider desktopapplications` would
+    # override that file -- pshell has no business fighting a config it does
+    # not own -- and worse, walker skips its entire prefix table whenever a
+    # provider is set exclusively (src/data.rs, the `get_provider().is_empty()
+    # && ...` guard). That kills all ten prefixes at once: `=` calc, `.`
+    # symbols, `@` websearch, `;` providerlist, `>` runner, `/` files, `!`
+    # todo, `%` bookmarks, `:` clipboard, `$` windows. An emoji picker that
+    # SUPER+D cannot reach is not an emoji picker.
+    #
+    # What it costs, on walker's stock defaults: a websearch row in the
+    # results, and a calc row on anything that looks like arithmetic. One
+    # line of the user's own config removes either. That is the right place
+    # for that opinion to live, and not here.
+    #
+    # Which leaves `pshell launcher` as literally `walker`, so its only
+    # remaining value is the indirection -- the bind says `pshell launcher`
+    # and the binary is named in one place. That was always the stated
+    # purpose, but it is worth admitting the command now does nothing else.
     no_arguments launcher $#
     need_walker
-    exec walker --provider desktopapplications
+    exec walker
     ;;
 clipboard)
     no_arguments clipboard $#
