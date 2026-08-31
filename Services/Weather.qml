@@ -196,16 +196,14 @@ Singleton {
         request.onreadystatechange = function () {
             if (request.readyState !== XMLHttpRequest.DONE)
                 return;
+            // A reply from a request the watchdog already gave up on. It is
+            // let go rather than applied: the shell has moved on, `busy` is
+            // already clear, and clearing it a second time would step on the
+            // request that took its place.
+            if (root._inFlight !== request)
+                return;
             watchdog.stop();
-            root.busy = false;
-            root._inFlight = null;
-            if (root._pending) {
-                root._pending = false;
-                // After this handler returns, not inside it: a geocode reply
-                // starts the forecast request further down, and re-entering
-                // refresh() first would find `busy` false and race it.
-                Qt.callLater(root.refresh);
-            }
+            root._settle();
 
             // status 0 is a request that never reached anyone: no route, DNS
             // down, or the watchdog below aborting it.
@@ -233,17 +231,41 @@ Singleton {
 
     property var _inFlight: null
 
+    // The one place `busy` is cleared, so the watchdog and a real reply agree
+    // about what "finished" means.
+    function _settle() {
+        root.busy = false;
+        root._inFlight = null;
+        if (root._pending) {
+            root._pending = false;
+            // Deferred, not called here: a geocode reply starts the forecast
+            // request from inside its own handler, and re-entering refresh()
+            // before that happens would find `busy` false and race it.
+            Qt.callLater(root.refresh);
+        }
+    }
+
     // QML's XMLHttpRequest has no `timeout`, so a connection that opens and
     // then hangs -- a captive portal is the usual one -- would leave `busy`
     // set and every later refresh a no-op for the rest of the session. Thirty
     // seconds is far past a healthy round trip and far short of the fifteen
     // minutes until the next attempt.
+    //
+    // The timer clears the state itself rather than leaving it to abort()'s
+    // callback. Whether Qt's XMLHttpRequest dispatches a readystatechange on
+    // abort is not something this shell should be betting the widget on, and
+    // the guard above means a late reply after the timer fired is discarded
+    // rather than arriving to find its own bookkeeping already undone.
     Timer {
         id: watchdog
         interval: 30000
         onTriggered: {
-            if (root._inFlight)
-                root._inFlight.abort();
+            const abandoned = root._inFlight;
+            root._settle();
+            root.lastError = "Open-Meteo did not answer in time";
+            console.warn("pshell: weather request timed out");
+            if (abandoned)
+                abandoned.abort();
         }
     }
 
