@@ -77,6 +77,12 @@ a trademark of its owner -- Anthropic, OpenAI and Fireworks AI respectively --
 used only to refer to that service. `codex-light.svg` is the same artwork in the
 cut meant for a light background.
 
-`Services/AgentUsage.qml` reads the files `omarchy-agent-usage-update` writes.
-That tool is Omarchy's and is not vendored here; the record format it writes is
-the interface between the two, and pshell does none of the extraction itself.
+`cmd/pshell-agents` writes those records itself, in the format Omarchy's
+`omarchy-agent-usage-update` and its three collectors wrote. None of their code
+is vendored here -- they are Python and this is Go, and every line of it was
+written for pshell -- but the record format is theirs, and so is the
+understanding of which files on disk hold what: which key in a Claude Code
+transcript carries the model, that Codex's cumulative token counter must not be
+summed, that a cached prompt token is inside the prompt total and not beside
+it. That work was Omarchy's first, MIT licensed, and it is the reason this port
+prints the same numbers.
