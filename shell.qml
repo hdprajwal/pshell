@@ -73,6 +73,20 @@ ShellRoot {
     // Costs nothing: the singleton holds a path list and two idle Processes.
     readonly property var wallpaper: Wallpaper
 
+    // And the weather, for a reason the others do not have. It does have a bar
+    // widget, so on a bar that carries one this line changes nothing. On a bar
+    // that does not, it is the difference between `pshell weather current`
+    // answering with a temperature and answering "Target not found" -- and a
+    // shell script or a keybind should not have to care which widgets are in
+    // the bar today.
+    //
+    // Costs nothing, and specifically costs Open-Meteo nothing: the service
+    // gates its refresh timer on the widget being configured, not on being
+    // alive, so a bar without the widget makes no request until something asks
+    // it to. Existing and polling are two different things and this line only
+    // buys the first.
+    readonly property var weather: Weather
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per
