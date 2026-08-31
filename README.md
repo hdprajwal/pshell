@@ -227,7 +227,7 @@ matugen guesses.
 | `zed` | `~/.config/zed/themes/pshell.json` | `"theme": "pshell"` in Zed's `settings.json` |
 | `qtct` | `~/.config/qt6ct/colors/pshell.conf` | pick `pshell` as the colour scheme in qt6ct (needs `QT_QPA_PLATFORMTHEME=qt6ct` for Qt apps outside the shell) |
 | `swayosd` | `~/.config/swayosd/style.css` | nothing — that is the path swayosd reads, so pshell owns the file outright; restart `swayosd-server` after a theme change, it reads the stylesheet at start |
-| `walker` | `~/.config/walker/themes/pshell/style.css` | `theme = "pshell"` in `~/.config/walker/config.toml` — walker re-reads the sheet every time it opens, so a theme change lands on the next launch |
+| `walker` | `~/.config/walker/themes/pshell/style.css` | `theme = "pshell"` in `~/.config/walker/config.toml` — walker re-reads the sheet every time it opens, so later theme changes land on the next launch; but it only *finds* the theme at startup, so restart `walker --gapplication-service` once after the first render |
 
 GTK3 and GTK4 get the same colours from one shared template; only the
 directory each toolkit reads differs. Missing output directories are created;
@@ -664,7 +664,7 @@ anything worth writing here, and its backend
 [elephant](https://github.com/abenz1267/elephant) already keeps a clipboard
 history, so this is the one job pshell hands to someone else outright:
 
-    pshell launcher       applications
+    pshell launcher       walker, however you have configured it
     pshell clipboard      clipboard history, text and images
 
 Both `exec walker` rather than calling into the shell — they are the only two
@@ -691,12 +691,17 @@ install rather than dying at `exec`.
 The launcher wears the wallpaper's colours through the `walker` template
 above. Render it before setting `theme = "pshell"`: walker has no fallback
 for a theme directory that is not there, and comes up with no stylesheet at
-all rather than with its own.
+all rather than with its own. And if you run walker as a service, restart it
+once after that first render — walker re-reads the stylesheet on every open,
+but it looks for the theme *directory* only at startup, so a service that
+came up before the directory existed stays unstyled however many times you
+re-render.
 
-`pshell launcher` is applications only, because `--provider` is exclusive in
-walker — it skips walker's prefix table. Bare `walker` gives the default set
-(applications, calculator, web search) with `=`, `.` and `:` live, if you
-want a third bind for it.
+`pshell launcher` runs `walker` with no arguments, so which providers it
+searches is walker's default and then yours, in `providers.default` in your
+own config — pshell does not name one. That keeps `=` for the calculator,
+`.` for emoji, `:` for the clipboard and the rest of walker's prefixes alive
+inside the bind, which naming a provider would switch off wholesale.
 
 ## Notifications
 

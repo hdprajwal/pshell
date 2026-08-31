@@ -88,9 +88,12 @@ test("gtk3 and gtk4 render the same template to different outputs", () => {
 
 // walker is the one built-in whose output is a file *inside* a directory
 // named for the theme rather than a file named for it. Write
-// themes/pshell.css instead and matugen still renders happily, walker still
-// starts, and the launcher silently wears its stock colours -- so the shape
-// of the path is worth an assertion of its own.
+// themes/pshell.css instead and matugen renders it happily, walker starts
+// happily, and the launcher comes up with *no stylesheet at all* -- not with
+// walker's own colours. Its setup_css() looks the theme up in a map and does
+// nothing when the name is missing, while setup_window() falls back to the
+// default window, so you get walker's layout unstyled. The shape of this path
+// is the difference, and worth an assertion of its own.
 test("walker renders into a theme directory, which is what walker looks for", () => {
   const toml = parseToml(Matugen.buildConfig(OPTIONS));
   assert.equal(toml["templates.pshell_walker"].output_path, "/home/u/.config/walker/themes/pshell/style.css");

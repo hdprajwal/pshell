@@ -11,15 +11,35 @@
    the right colours. Unlike the swayosd template, which swayosd merges over
    its own sheet, this one has to carry the lot.
 
-   So every rule below is walker 2.17.0's own
-   resources/themes/default/style.css, in its order, with the five colours it
-   hardcodes replaced by the palette and its lighter()/darker()/alpha()
-   derivations replaced by the Material tone that means the same thing. The
-   rules that were empty in walker's file are dropped; nothing else is
-   changed and nothing is invented. Every selector is a class walker actually
-   puts on a widget -- see its themes/default/*.xml -- because a class walker
-   does not use is a rule that themes nothing at all, which is the failure
-   this whole sub-project exists to avoid. */
+   So every rule below comes from walker 2.17.0's own
+   resources/themes/default/style.css: the five colours it hardcodes replaced
+   by the palette, its lighter()/darker()/alpha() derivations replaced by the
+   Material tone that means the same thing, and its empty rules dropped. No
+   selector is invented -- a class walker never puts on a widget is a rule
+   that themes nothing at all, which is the failure this whole sub-project
+   exists to avoid. Most are confirmed twice, in walker's stylesheet and in
+   the class names of its themes/default/*.xml layouts; .normal-icons and
+   .large-icons are the exception, appearing only in walker's own stylesheet
+   and in no XML or add_css_class call in 2.17.0. They are copied anyway,
+   because dropping a rule walker ships is its own way of being wrong.
+
+   Five deliberate departures beyond those three rules, listed so the claim
+   above stays honest. Everything else that moved is a lighter()/darker()/
+   alpha() derivation resolved to a palette role, which the rule already
+   covers.
+
+     - .input is hoisted above .input placeholder and .input selection, and
+       .preview .large-icons is pulled up beside .preview: base rule before
+       its states, which is the only reordering here and changes nothing.
+     - caret-color goes from the foreground to the accent, and
+       .keybind-label's border from the foreground to outline. A hairline and
+       a caret at full foreground weight are louder against a Material
+       surface than they were against walker's flatter one.
+     - the selected row gains a `color:` walker had no need of, because
+       walker tinted the selection at 25% alpha over the background and this
+       uses primary outright, which needs on_primary over it to stay legible.
+
+   None of the five overlap another rule's declarations. */
 
 /* surface rather than background, matching the bar and the GTK template: on
    most wallpapers the two are identical, and surface stays readable when
