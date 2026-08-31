@@ -204,6 +204,20 @@ Singleton {
     // The history panel's group-collapse chevron; rotation does "collapsed".
     readonly property string expandMore: "expand_more"
 
+    // The weather panel's detail rows, and the manual refresh above them.
+    //
+    // Only these. The WMO code that decides which cloud the bar wears is not
+    // here and should not be: that mapping is twenty-eight entries with a
+    // label attached to each, and splitting the label from the icon across two
+    // files is how they come to disagree. It lives in Services/Weather.js
+    // beside its labels, and this block keeps its stated job -- the symbols
+    // more than one part of the shell might reach for.
+    readonly property string thermostat: "thermostat"
+    readonly property string humidity: "humidity_mid"
+    readonly property string wind: "air"
+    readonly property string place: "place"
+    readonly property string refresh: "refresh"
+
     // --------------------------------------------------- settings app
     //
     // One symbol per page in the sidebar. This said "one symbol, because the
