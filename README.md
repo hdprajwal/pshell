@@ -321,7 +321,7 @@ This is the shape Omarchy's own shell uses, which is not a coincidence either.
 
 ## Widgets
 
-Fifteen are built in. These hold something a polled command cannot: a live
+Seventeen are built in. These hold something a polled command cannot: a live
 connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
 single run.
 
@@ -342,6 +342,8 @@ single run.
 | `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where `pshell-agents` is not installed. |
 | `weather` | The condition and the temperature where you are. Click it for feels-like, humidity, wind and three days of high and low. `showLabel` puts the condition in the bar too. `panelWidth` sizes the panel. Everything else is configured under `weather` rather than on the widget, since one shell fetches once however many bars are on it. |
 | `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
+| `power` | Lock, suspend, log out, restart, power off. The three that end something ask first and are drawn in the urgent colour. `panelWidth` sizes the panel. The commands themselves are configured under `power` rather than on the widget, and every one of them answers on IPC with no widget in the bar. |
+| `keybinds` | Your Hyprland keybinds, read from `hyprctl binds -j` when the panel opens, grouped by modifier with a filter field. Says how many binds carry no description and what to do about it. `panelWidth`, `listHeight`. |
 
 Everything else is a program. Leave out `type` and give it an `exec`.
 
@@ -594,6 +596,11 @@ One panel instead of four. The header shows who is logged in and how long the
 machine has been up, with lock, power and logout buttons. Below that are
 volume, brightness and keyboard backlight sliders, then a grid of tiles.
 
+Power off and log out ask before they fire; lock does not. What those three
+buttons run comes from the same place as the session menu below, so the two
+surfaces cannot disagree about what "log out" means. The `lock`, `power` and
+`logout` keys on this widget's own entry still win where they are set.
+
 Each tile has two targets, which is worth knowing before you use it. Clicking
 the icon square toggles that thing on or off. Clicking anywhere else opens its
 list: networks to join, devices to pair, or output and input devices to switch
@@ -656,6 +663,108 @@ it unless you have pinned `mode`.
 
 Both tiles have no detail list, so the whole tile is the button rather than
 just its icon.
+
+## Session menu
+
+Lock, suspend, log out, restart, power off — one panel, and five IPC calls
+that skip it.
+
+```json
+{ "type": "power" }
+```
+
+Log out, restart and power off ask first, because a mis-click on any of them
+costs whatever was unsaved. Lock and suspend do not: everything is still open
+behind them. They are drawn in the urgent colour so the destructive half of
+the menu is obvious before the dialog says it in words. Arrow keys or j/k walk
+the rows, Enter picks one, Escape closes.
+
+The commands are yours to change, under `power`:
+
+| Key | Default |
+|---|---|
+| `lock` | `loginctl lock-session` |
+| `logout` | `loginctl terminate-user $USER` |
+| `suspend` | `systemctl suspend` |
+| `reboot` | `systemctl reboot` |
+| `poweroff` | `systemctl poweroff` |
+
+Lock and log out are logind's because they act on this session; suspend,
+restart and power off are systemctl's because they act on the machine. None of
+them needs root — logind takes all three from a local active session.
+
+### Commands
+
+```
+pshell power toggle       open or close the menu
+pshell power lock         the five actions by name, without the menu
+pshell power suspend
+pshell power logout
+pshell power reboot
+pshell power poweroff
+```
+
+**The five actions never show a dialog**, however destructive. A keybind or a
+script asking to reboot has already decided, and a confirmation nobody is
+looking at would leave the machine up. The dialogs belong to the panels.
+
+They answer with no `power` widget in the bar at all, so a keybind does not
+have to care what is on your bar today. Only `toggle` needs the widget, since
+the widget is what draws the menu; without one it says so and names the five
+actions instead.
+
+## Keybind sheet
+
+What is bound to what, read from the compositor rather than from a config
+file — `hyprctl binds -j`, re-read every time the panel opens.
+
+```json
+{ "type": "keybinds" }
+```
+
+Grouped by modifier, with a filter field that matches the key combination and
+the description both. `/` jumps to the filter, Escape clears it, the arrows
+scroll the list.
+
+Reading the compositor means the list of *keys* cannot go stale. What a bind
+*does* is a different question, and Hyprland can only answer it when the bind
+itself carries a description. A bind whose action is a Lua closure has none —
+on the machine this was written on, 115 of 119 binds are like that, and they
+report a dispatcher of `__lua` with a number after it. pshell never prints
+that: a row it cannot describe shows the key combination and says it is not
+labelled, and the panel says how many rows are in that state.
+
+Two ways to fix it, and the first is better:
+
+- **Describe the bind where it is bound.** Hyprland's Lua API takes it:
+  `hl.bind("SUPER + D", hl.dsp.exec_cmd("pshell launcher"), { description =
+  "Launcher" })`. In hyprlang, `bindd = SUPER, D, Launcher, exec, pshell
+  launcher`. The description lives beside the bind, so rebinding the key
+  carries it along.
+- **Name it in pshell**, for binds in a file you do not own:
+
+  ```json
+  "keybinds": {
+    "labels": {
+      "SUPER+D": "Launcher",
+      "SUPER+SHIFT+Return": "Terminal"
+    }
+  }
+  ```
+
+  The key is the combination exactly as the panel prints it on the row, so a
+  label is copied off the screen rather than derived by hand. Matching is
+  case-insensitive. Hyprland's own description always wins over a label.
+
+### Commands
+
+```
+pshell keybinds toggle    open or close the sheet
+```
+
+The widget draws the sheet and registers the target, so this needs `keybinds`
+in a bar section — the same as `pshell controlcenter toggle` or `pshell
+battery toggle`.
 
 ## Launcher and clipboard
 
