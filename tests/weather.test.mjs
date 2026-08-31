@@ -51,23 +51,43 @@ test("every code Open-Meteo emits has a label and an icon", () => {
     }
 });
 
-test("every icon the table names is a ligature the shipped font actually has", () => {
+test("every Material Symbol the shell names by hand is a ligature the shipped font has", () => {
     // The reason this is worth a test rather than a careful reading: a
     // Material Symbols name that is not in this cut of the font renders as the
     // literal word in the bar, which looks like a data bug and is not one.
     // `clear_night` is the specific one that bit -- the upstream alias exists,
     // the glyph in the file this repo ships does not.
+    //
+    // The font's name table separates a glyph's aliases with tabs and marks
+    // the filled cut with a dot, so splitting on everything that is not a name
+    // character is what turns "sunny.fill\tclear_day" into three usable names.
     const font = readFileSync(new URL("../assets/fonts/material-symbols/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf", import.meta.url));
     const names = new Set(font.toString("latin1").split(/[^A-Za-z0-9_]+/));
 
-    const wanted = new Set(["question_mark"]);
+    const wanted = new Map();
+    const want = (name, source) => wanted.set(name, source);
+
+    want("question_mark", "Weather.js fallback");
     for (const code of CODES) {
         const entry = Weather.describe(code);
-        wanted.add(entry.icon);
-        wanted.add(entry.night);
+        want(entry.icon, `Weather.js code ${code}`);
+        want(entry.night, `Weather.js code ${code} at night`);
     }
-    for (const name of wanted)
-        assert.ok(names.has(name), `${name} is not a ligature in the shipped font`);
+
+    // Glyphs.qml's fixed symbols are the shell's other hand-written names, and
+    // they are swept here rather than only the five the weather panel added:
+    // the trap is the name, not the widget, and the next one to be typed will
+    // be somebody else's.
+    const glyphs = readFileSync(new URL("../Services/Glyphs.qml", import.meta.url), "utf8");
+    const fixed = [...glyphs.matchAll(/readonly\s+property\s+string\s+(\w+)\s*:\s*"([a-z0-9_]+)"/g)];
+    // A refactor that renames or reshapes that block must not quietly turn
+    // this sweep into an assertion about nothing.
+    assert.ok(fixed.length >= 20, `only found ${fixed.length} fixed symbols in Glyphs.qml`);
+    for (const [, property, name] of fixed)
+        want(name, `Glyphs.${property}`);
+
+    for (const [name, source] of wanted)
+        assert.ok(names.has(name), `${name} (${source}) is not a ligature in the shipped font`);
 });
 
 test("a code nobody has heard of degrades without throwing", () => {
