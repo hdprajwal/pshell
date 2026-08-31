@@ -431,12 +431,15 @@ done
 		server := httptest.NewServer(http.HandlerFunc(fireworksStub(t)))
 		defer server.Close()
 
-		// The one field this port moves: the Fireworks config lived under
-		// ~/.config/omarchy and now lives under ~/.config/pshell. Both are
-		// written with the same content so the records can still be compared.
+		// The Fireworks config's home moved from ~/.config/omarchy to
+		// ~/.config/pshell. Only the old path is written here, on purpose:
+		// both sides then read the same single file, so this compares the
+		// records rather than the fixture -- and it is the fallback in
+		// readFireworksConfig that lets this side find it at all.
+		// TestFireworksConfigFallsBackToTheOmarchyPath covers the preference
+		// order between the two.
 		config := `{"fundedAmount": "100", "fundedAt": "2026-07-01"}`
 		write(t, filepath.Join(home, ".config", "omarchy", "agents", "fireworks.json"), config)
-		write(t, filepath.Join(home, ".config", "pshell", "agents", "fireworks.json"), config)
 
 		probe := fixture{
 			home: home, path: defaultPath, binary: binary, agents: []string{"fireworks"},

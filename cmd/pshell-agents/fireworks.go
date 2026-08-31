@@ -112,20 +112,38 @@ func parseDecimalNanos(text string) (int64, bool) {
 
 // ------------------------------------------------------------ config & auth
 
-func fireworksConfigPath() string {
-	return filepath.Join(xdgDir("XDG_CONFIG_HOME", ".config"), "pshell", "agents", "fireworks.json")
+// fireworksConfigPaths is where the credit figures behind the estimated
+// balance are read from, in order. The first is pshell's own. The second is
+// where Omarchy's collector read them, and it is here because the alternative
+// is a user who set fundedAmount once, months ago, watching their balance
+// quietly become nothing after an upgrade -- with no error to search for,
+// because an absent config is a supported state. The note says to copy the
+// file across; this means forgetting to costs nothing.
+func fireworksConfigPaths() []string {
+	config := xdgDir("XDG_CONFIG_HOME", ".config")
+	return []string{
+		filepath.Join(config, "pshell", "agents", "fireworks.json"),
+		filepath.Join(config, "omarchy", "agents", "fireworks.json"),
+	}
 }
 
 func readFireworksConfig() map[string]any {
-	content, err := os.ReadFile(fireworksConfigPath())
-	if err != nil {
-		return map[string]any{}
+	for _, path := range fireworksConfigPaths() {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		var parsed map[string]any
+		if json.Unmarshal(content, &parsed) != nil || parsed == nil {
+			// A file that is there but unreadable is not a reason to fall
+			// through to an older one: the newer file is the answer, and
+			// silently using a stale figure instead would be worse than
+			// reporting no balance.
+			return map[string]any{}
+		}
+		return parsed
 	}
-	var parsed map[string]any
-	if json.Unmarshal(content, &parsed) != nil || parsed == nil {
-		return map[string]any{}
-	}
-	return parsed
+	return map[string]any{}
 }
 
 func fireworksAuthPath() string {

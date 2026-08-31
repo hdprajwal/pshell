@@ -577,6 +577,34 @@ func TestFireworksMoneyIsExact(t *testing.T) {
 	}
 }
 
+func TestFireworksConfigFallsBackToTheOmarchyPath(t *testing.T) {
+	config := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", config)
+
+	t.Run("neither file", func(t *testing.T) {
+		if got := readFireworksConfig(); len(got) != 0 {
+			t.Errorf("readFireworksConfig = %v, want empty", got)
+		}
+	})
+
+	write(t, filepath.Join(config, "omarchy", "agents", "fireworks.json"),
+		"{\"fundedAmount\":\"100\",\"fundedAt\":\"2026-07-01\"}")
+	t.Run("only the old path", func(t *testing.T) {
+		// The point of the fallback: a fundedAmount set months ago must not
+		// silently become no balance at all after the upgrade.
+		if got := readFireworksConfig()["fundedAmount"]; got != "100" {
+			t.Errorf("fundedAmount = %v, want the Omarchy file's 100", got)
+		}
+	})
+
+	write(t, filepath.Join(config, "pshell", "agents", "fireworks.json"), "{\"fundedAmount\":\"250\"}")
+	t.Run("pshell's own wins", func(t *testing.T) {
+		if got := readFireworksConfig()["fundedAmount"]; got != "250" {
+			t.Errorf("fundedAmount = %v, want pshell's 250", got)
+		}
+	})
+}
+
 func TestUnspellDecimalPoint(t *testing.T) {
 	cases := map[string]string{
 		"llama-v3p1-70b": "llama-v3.1-70b",
