@@ -80,6 +80,17 @@ Variants {
         // surface reserves the space it covers by default, and without
         // Ignore the compositor would shove every window aside to keep this
         // corner clear.
+        //
+        // `ExclusionMode.Normal` with `exclusiveZone: 0` looks like the
+        // tidier answer -- the protocol's own "reserve nothing, but honour
+        // what others reserved" -- and it does fix the overlap at the top.
+        // It was tried and reverted: with the stack anchored to the bottom
+        // the surface still maps at the right geometry and then paints
+        // nothing at all. Measured, not guessed -- `hyprctl layers` reported
+        // `xywh: 1534 1000 380 74, a: 1` for a toast that was not on screen.
+        // Whatever that is, the cost of finding out is a blank notification
+        // area, so the exclusion stays as it was and the gap below is done
+        // by hand.
         exclusionMode: ExclusionMode.Ignore
 
         anchors {
@@ -88,9 +99,23 @@ Variants {
             right: true
         }
 
+        // Clear the bar by hand on whichever edge it occupies.
+        //
+        // The stack ignores exclusive zones (above), which is what stops it
+        // shoving every window aside -- but ignoring them means ignoring the
+        // bar's too. Anchored to the same edge as the bar, it drew straight
+        // over the bar's right end and hid the tray, the clock, and the very
+        // unread count the toast was announcing.
+        //
+        // `barDetached` matters: a bar lifted off the screen edge occupies
+        // its margin as well as its own height, and a toast tucked under a
+        // floating bar should clear both.
+        readonly property int barClearance: Style.bar.sizeHorizontal + Style.spacing.barMarginTop
+        readonly property int barBottomClearance: Style.bar.sizeHorizontal + Style.spacing.barMarginBottom
+
         margins {
-            top: atTop ? Style.gapsOut : 0
-            bottom: atTop ? 0 : Style.gapsOut
+            top: atTop ? Style.gapsOut + (Config.position === "top" ? barClearance : 0) : 0
+            bottom: atTop ? 0 : Style.gapsOut + (Config.position === "bottom" ? barBottomClearance : 0)
             right: Style.gapsOut
         }
 
