@@ -4,12 +4,12 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Coding-agent usage, read off the files `omarchy-agent-usage-update` leaves
-// in the state directory. Nothing here extracts anything: that tool already
-// walks Claude Code's session logs, Codex's rollouts and the Fireworks
-// billing API and writes one JSON record per provider. pshell discovers those
-// records, watches them, and runs the updater on a timer -- no daemon, no
-// socket, no parser of its own.
+// Coding-agent usage, read off the files `pshell-agents` leaves in the state
+// directory. Nothing here extracts anything: that program already walks Claude
+// Code's session logs, Codex's rollouts and the Fireworks billing API and
+// writes one JSON record per provider. pshell discovers those records,
+// watches them, and runs the updater on a timer -- no daemon, no socket, no
+// parser of its own.
 //
 // Which providers exist is whatever is on disk. A hardcoded list would mean
 // a provider the updater learns about next month stays invisible until pshell
@@ -22,7 +22,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property string usageDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") || "") + "/.local/state") + "/omarchy/agents/usage"
+    readonly property string usageDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") || "") + "/.local/state") + "/pshell/agents/usage"
 
     // Provider ids found in the usage directory, sorted so the tab strip
     // keeps its order between rescans.
@@ -46,8 +46,8 @@ Singleton {
     Process {
         id: lister
         running: false
-        // Through sh so a missing directory -- Omarchy's tooling not
-        // installed at all -- is silence rather than a line of find's
+        // Through sh so a missing directory -- pshell-agents never yet run,
+        // or not installed at all -- is silence rather than a line of find's
         // complaint on the shell's stderr.
         command: ["sh", "-c", "find \"$1\" -maxdepth 1 -name '*.json' -printf '%f\\n' 2>/dev/null", "sh", root.usageDir]
 
@@ -135,9 +135,10 @@ Singleton {
     Process {
         id: updater
         running: false
-        // Guarded by `command -v` so a machine without Omarchy's tooling gets
-        // an empty widget rather than a failed spawn every fifteen minutes.
-        command: ["sh", "-c", "command -v omarchy-agent-usage-update >/dev/null 2>&1 && exec omarchy-agent-usage-update"]
+        // Guarded by `command -v` so a machine that has not built the
+        // collector gets an empty widget rather than a failed spawn every
+        // fifteen minutes.
+        command: ["sh", "-c", "command -v pshell-agents >/dev/null 2>&1 && exec pshell-agents"]
         onExited: root.rescan()
 
         stderr: StdioCollector {
@@ -247,10 +248,10 @@ Singleton {
 
     // ------------------------------------------------------------ shaping
 
-    // The updater writes Python's isoformat, which carries six digits of
-    // fractional seconds. ECMAScript only defines three, and Qt's engine
-    // takes the definition literally and returns NaN for the rest, so trim
-    // before parsing rather than after finding out.
+    // The updater writes six digits of fractional seconds, and so do the
+    // providers whose reset times it passes through. ECMAScript only defines
+    // three, and Qt's engine takes the definition literally and returns NaN
+    // for the rest, so trim before parsing rather than after finding out.
     function parseTime(iso) {
         const text = String(iso || "");
         if (text === "")
