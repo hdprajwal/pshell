@@ -87,6 +87,17 @@ ShellRoot {
     // buys the first.
     readonly property var weather: Weather
 
+    // And the power menu, for the lock's reason rather than the weather's:
+    // `pshell power poweroff` is a keybind's door and must answer on a bar
+    // with no power widget on it -- which is every bar until somebody adds
+    // one. Without this line the five session actions would exist only where
+    // the menu is already in the bar, which is the one place you do not need
+    // them by name.
+    //
+    // Costs nothing: the singleton holds five strings and an IPC handler, and
+    // opens nothing until it is asked to.
+    readonly property var powerMenu: PowerMenu
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per

@@ -67,10 +67,72 @@ Panel {
 
     property string uptime: ""
 
+    // ---------- Session actions ----------
+    //
+    // The commands and the confirmation policy both come from
+    // Services/PowerMenu.qml now. They used to be three inline `{icon, cmd,
+    // tip}` objects in the Repeater below, which meant this panel and any
+    // other surface offering "log out" would each carry their own idea of
+    // what that runs.
+    //
+    // The three legacy keys on this widget's own config entry -- `lock`,
+    // `power`, `logout` -- still win where they are set. The README has
+    // documented them since Phase 2 and a config.json in the wild cannot be
+    // edited from here, so they are passed through as overrides rather than
+    // being quietly replaced by the `power` config group.
+    //
+    // Three buttons, in the order they have always been in, rather than the
+    // service's five: this is a header strip, not a menu, and suspend and
+    // restart are one keystroke away in the menu that is.
+    readonly property var sessionButtons: [
+        {
+            id: "lock",
+            override: String(root.cfg.lock || "")
+        },
+        {
+            id: "poweroff",
+            override: String(root.cfg.power || "")
+        },
+        {
+            id: "logout",
+            override: String(root.cfg.logout || "")
+        }
+    ]
+
+    // What the dialog is holding, while it is open.
+    property string pendingId: ""
+    property string pendingOverride: ""
+
+    // New here, and deliberately: power off and log out used to fire on the
+    // press, so a mis-click on a 22px button in a header ended the session
+    // with everything unsaved in it. The policy is the service's, so this
+    // panel and the power menu ask the same question about the same actions.
+    function runAction(id, override) {
+        const action = PowerMenu.actionFor(id);
+        if (action && action.confirms) {
+            root.pendingId = id;
+            root.pendingOverride = override;
+            confirm.message = action.question;
+            // Cancel, not Confirm. The dialog's own default lands on the
+            // right-hand button, which for a destructive question means
+            // Return powers the machine off without reading it.
+            confirm.selectedIndex = 0;
+            confirm.opened = true;
+            Qt.callLater(function () {
+                if (confirm.opened)
+                    confirm.forceActiveFocus();
+            });
+            return;
+        }
+        PowerMenu.invoke(id, override);
+        root.close();
+    }
+
     onOpenedChanged: {
         if (opened) {
             uptimeProc.running = true;
         } else {
+            confirm.opened = false;
             detail = "";
             netList.scan(false);
             btList.discover(false);
@@ -128,6 +190,10 @@ Panel {
         PanelKeyCatcher {
             id: keyCatcher
             anchors.fill: parent
+            // The dialog wants Left/Right and Return for its two buttons, not
+            // this panel's cursor movement -- the same rule the search fields
+            // follow.
+            blocked: confirm.opened
             onCloseRequested: root.close()
             onTabRequested: direction => root.switchPanel(direction)
 
@@ -199,23 +265,7 @@ Panel {
                             }
 
                             Repeater {
-                                model: [
-                                    {
-                                        icon: Glyphs.lock,
-                                        cmd: root.cfg.lock || "loginctl lock-session",
-                                        tip: "Lock"
-                                    },
-                                    {
-                                        icon: Glyphs.powerOff,
-                                        cmd: root.cfg.power || "systemctl poweroff",
-                                        tip: "Power off"
-                                    },
-                                    {
-                                        icon: Glyphs.logout,
-                                        cmd: root.cfg.logout || "loginctl terminate-user $USER",
-                                        tip: "Log out"
-                                    }
-                                ]
+                                model: root.sessionButtons
 
                                 // The glyph is a child rather than `iconText`
                                 // because that draws in the button's own font,
@@ -223,16 +273,15 @@ Panel {
                                 PanelActionButton {
                                     required property var modelData
 
+                                    readonly property var action: PowerMenu.actionFor(modelData.id)
+
                                     foreground: Color.popups.text
-                                    tooltipText: modelData.tip
-                                    onClicked: {
-                                        root.run(modelData.cmd);
-                                        root.close();
-                                    }
+                                    tooltipText: action ? action.label : ""
+                                    onClicked: root.runAction(modelData.id, modelData.override)
 
                                     MaterialIcon {
                                         anchors.centerIn: parent
-                                        name: modelData.icon
+                                        name: parent.action ? parent.action.icon : ""
                                         size: Style.font.icon
                                         color: Color.popups.text
                                     }
@@ -458,6 +507,39 @@ Panel {
                         active: SystemTheme.available && SystemTheme.scheme === "dark"
                         onToggled: root.run(root.cfg.darkModeCommand || "gsettings set org.gnome.desktop.interface color-scheme \"$(test \"$(gsettings get org.gnome.desktop.interface color-scheme)\" = \"'prefer-dark'\" && echo prefer-light || echo prefer-dark)\"")
                     }
+                }
+            }
+
+            // Declared after the Column so it stacks above it, and outside it
+            // so the Column does not lay it out as one more row.
+            //
+            // It handles its own keys rather than having the catcher above
+            // translate them: ConfirmDialog.handleKey already knows Left,
+            // Right, Return and Escape mean here, and a second copy of that
+            // in every panel that grows a dialog is how the two come to
+            // disagree about which button Escape hits.
+            ConfirmDialog {
+                id: confirm
+
+                anchors.fill: parent
+                background: Color.popups.background
+                foreground: Color.popups.text
+                confirmText: PowerMenu.actionFor(root.pendingId) ? PowerMenu.actionFor(root.pendingId).label : "Confirm"
+
+                Keys.onPressed: function (event) {
+                    if (confirm.handleKey(event))
+                        event.accepted = true;
+                }
+
+                onCanceled: {
+                    confirm.opened = false;
+                    keyCatcher.forceActiveFocus();
+                }
+
+                onConfirmed: {
+                    confirm.opened = false;
+                    PowerMenu.invoke(root.pendingId, root.pendingOverride);
+                    root.close();
                 }
             }
         }

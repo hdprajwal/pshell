@@ -194,6 +194,21 @@ Singleton {
     readonly property string logout: "logout"
     readonly property string keyboard: "keyboard"
 
+    // The other two session actions, named here rather than spelled at the
+    // power menu's call site so the five icons are picked in one place.
+    // `bedtime` is the crescent DMS uses for suspend -- a moon reads as
+    // "asleep, still there", which `power_settings_new` does not -- and
+    // `restart_alt` is the circular arrow rather than `refresh`, which is
+    // already this file's manual-refresh symbol and would say "fetch again"
+    // on a button that restarts the machine.
+    readonly property string suspend: "bedtime"
+    readonly property string reboot: "restart_alt"
+
+    // The keybind sheet's bar icon. The command key, not `keyboard`: that one
+    // is the keyboard *backlight* slider's, and two panels wearing the same
+    // glyph for unrelated things is how a bar stops being readable.
+    readonly property string keybinds: "keyboard_command_key"
+
     // The notification bell's three states: at rest, ringing (something
     // unread), and struck out for do-not-disturb. Named here rather than at
     // the call sites because the bar widget, the settings sidebar and the

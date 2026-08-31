@@ -244,6 +244,48 @@ Singleton {
         readonly property int intervalMin: _num("intervalMin", 15, 5, 1440)
     }
 
+    // The five session commands, under one `power` object -- grouped for the
+    // reason `lock` gives above, and with the same shape: a `raw` property and
+    // a typed helper, so a number or a null where a command belongs falls back
+    // to the default rather than running the string "null".
+    //
+    // The commands themselves are not here. Services/PowerMenu.qml owns them,
+    // because what "log out" runs is one fact for the whole shell, and this
+    // group is only the override -- config knowing the defaults as well would
+    // be two places to change one command.
+    readonly property QtObject power: QtObject {
+        readonly property var raw: root.data.power && typeof root.data.power === "object" ? root.data.power : ({})
+
+        // "" for "not set here", which is what PowerMenu.commandFor() reads as
+        // "use the default". An unknown id answers the same way rather than
+        // throwing, since it reaches here from an IPC argument.
+        function command(id) {
+            const v = raw[String(id || "")];
+            return typeof v === "string" ? v.trim() : "";
+        }
+    }
+
+    // The keybind sheet's own descriptions, under one `keybinds` object.
+    //
+    // Only a label map, because that is the only part of a cheat sheet pshell
+    // can be told rather than read: `hyprctl binds -j` is authoritative about
+    // which keys are bound and cannot go stale, but it describes a bind's
+    // action only when the bind itself carries a description -- and on a
+    // Hyprland driven from Lua, a bind whose action is a closure has nothing
+    // the compositor could describe. Rather than guess, the sheet takes the
+    // user's own words for those.
+    //
+    // Keyed by the normalised combination Services/Keybinds.js builds --
+    // "SUPER+SHIFT+Return" -- which is exactly the string the panel prints on
+    // the row, so a label is copied from the screen rather than derived.
+    readonly property QtObject keybinds: QtObject {
+        readonly property var raw: root.data.keybinds && typeof root.data.keybinds === "object" ? root.data.keybinds : ({})
+
+        // The map as written. Keys are matched case-insensitively downstream,
+        // so nothing here normalises the case of what the user typed.
+        readonly property var labels: raw.labels && typeof raw.labels === "object" ? raw.labels : ({})
+    }
+
     // Three separate distances, which used to be one:
     //   gap     - between two widgets in a section
     //   padding - between the bar's own edge and the first or last widget
