@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -38,12 +39,13 @@ type provider struct {
 	collect func(options) (Record, error)
 }
 
-func providers() []provider {
-	return []provider{
-		{claudeID, collectClaude},
-		{codexID, collectCodex},
-		{fireworksID, collectFireworks},
-	}
+// providerTable is a var, not a constant expression inlined at the call site,
+// only so a test can substitute a collector that panics. Nothing in the
+// program reassigns it.
+var providerTable = []provider{
+	{claudeID, collectClaude},
+	{codexID, collectCodex},
+	{fireworksID, collectFireworks},
 }
 
 type options struct {
@@ -116,7 +118,7 @@ func run(args []string) int {
 	var mutex sync.Mutex
 	attempted, failed := 0, 0
 
-	for _, entry := range providers() {
+	for _, entry := range providerTable {
 		if excluded[entry.id] {
 			continue
 		}
@@ -128,7 +130,7 @@ func run(args []string) int {
 		wait.Add(1)
 		go func(entry provider) {
 			defer wait.Done()
-			if err := collectInto(dir, entry, opts); err != nil {
+			if err := collectSafely(dir, entry, opts); err != nil {
 				warnf("%s collector failed: %v", entry.id, err)
 				mutex.Lock()
 				failed++
@@ -149,6 +151,29 @@ func run(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// collectSafely is where "one provider failing must not take the others down"
+// actually lives. The bash driver this replaces got that from process
+// boundaries -- one collector dying was one dead child and the `wait` loop
+// carried on -- and goroutines give nothing of the sort: an unrecovered panic
+// in any of them kills the process, and the two providers that had nothing to
+// do with it get no record written at all.
+//
+// It is not a second line of defence either, because there is no first one.
+// None of the three collectors ever returns an error: each degrades to a
+// record saying it cannot report, which is a state the panel draws. So a
+// panic -- a nil map, an index off the end of a payload that arrived in a
+// shape nobody expected -- is the only way one of them fails, and this is
+// what contains it. The stack travels with the error, because a panic here is
+// a bug in this program and the line number is the whole report.
+func collectSafely(dir string, entry provider, opts options) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("panic: %v\n%s", recovered, debug.Stack())
+		}
+	}()
+	return collectInto(dir, entry, opts)
 }
 
 // collectInto writes one provider's record. On any failure it writes nothing
