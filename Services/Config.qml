@@ -182,6 +182,68 @@ Singleton {
         readonly property var muted: Array.isArray(raw.muted) ? raw.muted : []
     }
 
+    // Everything the weather service reads, under one `weather` object --
+    // grouped for the reason `lock` gives above, and with the same shape: a
+    // `raw` property and typed helpers, so a hand-typed string where a number
+    // belongs degrades to the default instead of putting NaN in a URL.
+    readonly property QtObject weather: QtObject {
+        readonly property var raw: root.data.weather && typeof root.data.weather === "object" ? root.data.weather : ({})
+
+        function _num(key, fallback, lo, hi) {
+            const v = Number(raw[key]);
+            if (!isFinite(v))
+                return fallback;
+            return Math.min(hi, Math.max(lo, v));
+        }
+
+        function _str(key, fallback) {
+            const v = raw[key];
+            return typeof v === "string" && v !== "" ? v : fallback;
+        }
+
+        // A coordinate that is absent, unparseable or off the planet is
+        // "unset" rather than clamped. Clamping a mistyped 1297 to 90 would
+        // silently report the weather at the North Pole, which is a worse
+        // answer than falling back to the place name underneath.
+        //
+        // null is checked before Number(), not after: Number(null) is 0, and
+        // 0,0 is a real coordinate in the Gulf of Guinea. `pshell weather
+        // setLocation` writes null over these two keys to hand the decision
+        // back to the name, so this is the path that runs, not a hypothetical.
+        function _coord(key, limit) {
+            const raw_ = raw[key];
+            if (raw_ === undefined || raw_ === null || raw_ === "")
+                return NaN;
+            const v = Number(raw_);
+            if (!isFinite(v) || v < -limit || v > limit)
+                return NaN;
+            return v;
+        }
+
+        // A place name, resolved through Open-Meteo's geocoder once and then
+        // cached in state.json.
+        readonly property string location: _str("location", "")
+
+        // Set explicitly, these win over `location`: a coordinate is
+        // unambiguous and a name is not. "Springfield" is fourteen places and
+        // the geocoder picks whichever is largest, so anyone who has been
+        // given the wrong one needs a way to say exactly where they are.
+        readonly property real latitude: _coord("latitude", 90)
+        readonly property real longitude: _coord("longitude", 180)
+        readonly property bool hasCoordinates: isFinite(latitude) && isFinite(longitude)
+
+        readonly property string units: _str("units", "metric") === "imperial" ? "imperial" : "metric"
+
+        // Minutes between refreshes, floored at five.
+        //
+        // The floor is not politeness. Open-Meteo is free and takes no API
+        // key, and the way a free unauthenticated service stops being either
+        // is people pointing tight loops at it. Fifteen is also more than
+        // enough: the model itself only moves in fifteen-minute steps, so a
+        // one-minute poll would fetch the same numbers fourteen times.
+        readonly property int intervalMin: _num("intervalMin", 15, 5, 1440)
+    }
+
     // Three separate distances, which used to be one:
     //   gap     - between two widgets in a section
     //   padding - between the bar's own edge and the first or last widget

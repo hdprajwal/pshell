@@ -12,6 +12,14 @@ Singleton {
 
     property var data: ({})
     property bool _loaded: false
+    property bool _writing: false
+
+    // Whether state.json has been read yet. Public because a reader that
+    // caches something here has to tell "nothing was ever stored" apart from
+    // "the file has not loaded": the weather service would otherwise resolve a
+    // place name it already had the coordinates for, every time the shell
+    // starts. This FileView does not block on loading, unlike Config's.
+    readonly property bool loaded: _loaded
 
     readonly property var pinnedSinks: data.pinnedSinks || []
     readonly property var pinnedSources: data.pinnedSources || []
@@ -59,9 +67,27 @@ Singleton {
         _save();
     }
 
+    // What the weather service last resolved and last read: a geocoded place
+    // and one forecast, so a restart on a dead network still has something to
+    // show. It is bulkier than anything else in this file -- about a kilobyte
+    // against a handful of strings -- and it is still shell-owned runtime
+    // state that is regenerated rather than authored, which is what this file
+    // is for. A cache file of its own would be a second FileView with a second
+    // copy of the load guard, the atomic write and the "no file yet is a
+    // normal first run" case, and those three are where the bugs are.
+    readonly property var weather: data.weather && typeof data.weather === "object" ? data.weather : ({})
+
+    function setWeather(next) {
+        const out = Object.assign({}, root.data);
+        out.weather = next;
+        root.data = out;
+        _save();
+    }
+
     function _save() {
         if (!_loaded)
             return;
+        root._writing = true;
         file.setText(JSON.stringify(root.data, null, 2));
     }
 
@@ -74,7 +100,25 @@ Singleton {
         atomicWrites: true
         printErrors: false
 
-        onFileChanged: reload()
+        // Our own write fires the watcher a moment later, and the reload it
+        // causes can land between two writes and hand `data` back the older of
+        // them. That was survivable while every writer here was a user action
+        // seconds apart; the weather cache writes on a timer for as long as
+        // the shell runs, which makes an overlap a matter of time. Same guard,
+        // and same reasoning, as Config.qml's.
+        onFileChanged: {
+            if (root._writing)
+                return;
+            reload();
+        }
+
+        onSaved: root._writing = false
+
+        onSaveFailed: error => {
+            root._writing = false;
+            console.warn("pshell: could not write state.json —", error);
+        }
+
         onLoaded: {
             try {
                 root.data = JSON.parse(text());
