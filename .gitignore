@@ -13,6 +13,9 @@ config.json
 *.swp
 *~
 
+# Go, which drops the built binary wherever `go build ./...` was run
+/pshell-agents
+
 # OS
 .DS_Store
 
