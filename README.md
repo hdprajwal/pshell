@@ -35,9 +35,15 @@ pshell lock                    lock the screen
 pshell unlock                  unlock it again
 pshell preview                 draw the lockscreen without locking
 pshell run                     start the shell
+pshell launcher                open the application launcher
+pshell clipboard               open the clipboard history
 pshell settings toggle         any IPC target, by name
 pshell ipc show                straight through to qs ipc
 ```
+
+Everything there is an IPC call into the shell except `launcher` and
+`clipboard`, which run [walker](https://github.com/abenz1267/walker) — see
+below for why that is not a shell feature, and what you need installed.
 
 Symlink it, and it needs nothing else:
 
@@ -221,6 +227,7 @@ matugen guesses.
 | `zed` | `~/.config/zed/themes/pshell.json` | `"theme": "pshell"` in Zed's `settings.json` |
 | `qtct` | `~/.config/qt6ct/colors/pshell.conf` | pick `pshell` as the colour scheme in qt6ct (needs `QT_QPA_PLATFORMTHEME=qt6ct` for Qt apps outside the shell) |
 | `swayosd` | `~/.config/swayosd/style.css` | nothing — that is the path swayosd reads, so pshell owns the file outright; restart `swayosd-server` after a theme change, it reads the stylesheet at start |
+| `walker` | `~/.config/walker/themes/pshell/style.css` | `theme = "pshell"` in `~/.config/walker/config.toml` — walker re-reads the sheet every time it opens, so a theme change lands on the next launch |
 
 GTK3 and GTK4 get the same colours from one shared template; only the
 directory each toolkit reads differs. Missing output directories are created;
@@ -648,6 +655,48 @@ it unless you have pinned `mode`.
 
 Both tiles have no detail list, so the whole tile is the button rather than
 just its icon.
+
+## Launcher and clipboard
+
+pshell does not have a launcher and is not going to grow one.
+[walker](https://github.com/abenz1267/walker) is better at fuzzy search than
+anything worth writing here, and its backend
+[elephant](https://github.com/abenz1267/elephant) already keeps a clipboard
+history, so this is the one job pshell hands to someone else outright:
+
+    pshell launcher       applications
+    pshell clipboard      clipboard history, text and images
+
+Both `exec walker` rather than calling into the shell — they are the only two
+commands in `bin/pshell` that do. They exist so a keybind can say
+`pshell launcher` and not name a third-party binary, which is what makes
+walker replaceable later without touching your Hyprland config.
+
+You need both halves. On Arch:
+
+```sh
+sudo pacman -S walker
+yay -S elephant-all-bin
+elephant service enable && systemctl --user start elephant.service
+```
+
+elephant is a systemd **user** service and must run with your session's
+environment; `elephant service enable` writes the unit for you but does not
+start it, hence the second command. walker without elephant starts and finds
+nothing. Run `walker --gapplication-service` from your compositor's startup
+if you want the window to appear instantly rather than cold-starting GTK.
+Without walker on your `PATH`, `pshell launcher` says so and names what to
+install rather than dying at `exec`.
+
+The launcher wears the wallpaper's colours through the `walker` template
+above. Render it before setting `theme = "pshell"`: walker has no fallback
+for a theme directory that is not there, and comes up with no stylesheet at
+all rather than with its own.
+
+`pshell launcher` is applications only, because `--provider` is exclusive in
+walker — it skips walker's prefix table. Bare `walker` gives the default set
+(applications, calculator, web search) with `=`, `.` and `:` live, if you
+want a third bind for it.
 
 ## Notifications
 
