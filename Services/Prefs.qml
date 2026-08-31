@@ -21,8 +21,20 @@ Singleton {
     // starts. This FileView does not block on loading, unlike Config's.
     readonly property bool loaded: _loaded
 
-    readonly property var pinnedSinks: data.pinnedSinks || []
-    readonly property var pinnedSources: data.pinnedSources || []
+    // One shared empty array for the unset case, not a fresh `[]` per
+    // evaluation.
+    //
+    // `data.pinnedSinks || []` looks harmless and is not: with nothing pinned
+    // -- the default -- every re-evaluation of that binding mints a new array
+    // with a new identity, so the change signal fires whether or not anything
+    // changed. AudioDeviceList's `devices` binding calls isPinned(), so it
+    // re-sorts and its Repeater rebuilds every delegate, for a list that is
+    // empty and stayed empty. Any writer to state.json pays that, so the fix
+    // belongs here rather than at the writer that happened to notice.
+    readonly property var _none: []
+
+    readonly property var pinnedSinks: Array.isArray(data.pinnedSinks) ? data.pinnedSinks : _none
+    readonly property var pinnedSources: Array.isArray(data.pinnedSources) ? data.pinnedSources : _none
 
     function isPinned(name, input) {
         const list = input ? pinnedSources : pinnedSinks;
@@ -67,14 +79,16 @@ Singleton {
         _save();
     }
 
-    // What the weather service last resolved and last read: a geocoded place
-    // and one forecast, so a restart on a dead network still has something to
-    // show. It is bulkier than anything else in this file -- about a kilobyte
-    // against a handful of strings -- and it is still shell-owned runtime
-    // state that is regenerated rather than authored, which is what this file
-    // is for. A cache file of its own would be a second FileView with a second
-    // copy of the load guard, the atomic write and the "no file yet is a
-    // normal first run" case, and those three are where the bugs are.
+    // The coordinates the weather service last resolved a place name to, and
+    // the name it resolved. One small object, written when the location
+    // setting changes and at no other time -- a user action, like every other
+    // writer in this file.
+    //
+    // The forecast itself is deliberately not here. It is a kilobyte rewritten
+    // every fifteen minutes for as long as the shell runs, and every write to
+    // this file re-evaluates every binding that reads it. Services/Weather.qml
+    // keeps that one in a state file of its own, the shape
+    // Services/Notifications.qml already uses for its history.
     readonly property var weather: data.weather && typeof data.weather === "object" ? data.weather : ({})
 
     function setWeather(next) {
@@ -102,10 +116,11 @@ Singleton {
 
         // Our own write fires the watcher a moment later, and the reload it
         // causes can land between two writes and hand `data` back the older of
-        // them. That was survivable while every writer here was a user action
-        // seconds apart; the weather cache writes on a timer for as long as
-        // the shell runs, which makes an overlap a matter of time. Same guard,
-        // and same reasoning, as Config.qml's.
+        // them -- undoing a setting that was just changed. Every writer here
+        // is a user action, so two overlapping needs two actions inside a
+        // filesystem round trip, which is rare rather than impossible: pinning
+        // a sink while the settings window is being resized is enough. Same
+        // guard, and same reasoning, as Config.qml's.
         onFileChanged: {
             if (root._writing)
                 return;

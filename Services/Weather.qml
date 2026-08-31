@@ -49,7 +49,8 @@ Singleton {
     // lands before the file does must not be overwritten by what was on disk.
     property var fetched: null
 
-    readonly property var cached: Prefs.weather.reading || null
+    // The last good reading off disk, until this session takes one of its own.
+    property var cached: null
     readonly property var reading: fetched !== null ? fetched : cached
 
     property bool busy: false
@@ -172,13 +173,7 @@ Singleton {
             next.place = String(label || "");
             root.fetched = next;
             root.lastError = "";
-
-            const stored = Object.assign({}, Prefs.weather);
-            stored.reading = next;
-            // A no-op while state.json is still loading -- Prefs refuses a
-            // write before it has read. The reading is correct in memory
-            // either way, and the next refresh persists it.
-            Prefs.setWeather(stored);
+            saveTimer.restart();
         }, "forecast");
     }
 
@@ -269,9 +264,24 @@ Singleton {
         }
     }
 
+    // Polling follows the widget, not the singleton.
+    //
+    // The singleton itself is kept alive by shell.qml so `pshell weather` has
+    // a target on any bar, which is the same thing that block does for the
+    // lock and the wallpaper. But existing and polling are two different
+    // things, and only one of them costs a third party a request: a bar with
+    // no weather widget on it would otherwise talk to Open-Meteo four times an
+    // hour for nothing to draw the answer. So the timer and the startup fetch
+    // are gated on the widget being configured, and refresh() itself is not --
+    // `pshell weather refresh` works on any bar, it just does not repeat.
+    //
+    // Binding-safe: Config blocks on loading, so this is right the first time
+    // it is evaluated rather than false for a frame.
+    readonly property bool wanted: Config.hasWidget("weather")
+
     Timer {
         interval: root.intervalMin * 60000
-        running: true
+        running: root.wanted
         repeat: true
         onTriggered: root.refresh()
     }
@@ -281,17 +291,103 @@ Singleton {
     // needed: the file may already be read by the time this singleton is
     // built, in which case the change signal never comes.
     readonly property bool prefsReady: Prefs.loaded
-    onPrefsReadyChanged: if (prefsReady)
+    onPrefsReadyChanged: if (prefsReady && root.wanted)
         root.refresh()
-    Component.onCompleted: if (Prefs.loaded)
-        root.refresh()
+    Component.onCompleted: {
+        // FileView does not create parent directories, and ~/.local/state/pshell
+        // is nothing else's job to make. Notifications does this for the same
+        // directory; doing it twice is a no-op and depending on the other
+        // service having run first would be a load-order bug waiting.
+        Quickshell.execDetached(["mkdir", "-p", root._statePath.substring(0, root._statePath.lastIndexOf("/"))]);
+        if (Prefs.loaded && root.wanted)
+            root.refresh();
+    }
 
     // Guarded by the same readiness: this signal also fires once when the
     // binding is first evaluated at startup, and an unguarded refresh there
     // would geocode a name whose cached coordinates are still on their way in
     // from state.json.
-    onRequestKeyChanged: if (Prefs.loaded)
+    onRequestKeyChanged: if (Prefs.loaded && root.wanted)
         root.refresh()
+
+    // --------------------------------------------------------- persistence
+    //
+    // The forecast gets a file of its own rather than a corner of state.json.
+    //
+    // It is rewritten every fifteen minutes for as long as the shell runs, and
+    // Prefs.data is read by bindings that have nothing to do with the weather
+    // -- the control centre's device list sorts on Prefs.isPinned() -- so a
+    // timer-driven writer in there means those bindings re-evaluate and their
+    // delegates rebuild, four times an hour, forever, for a value that did not
+    // change. The place name stays in Prefs because that write happens when
+    // the setting changes and at no other time.
+    //
+    // Shape taken from Services/Notifications.qml's history: ~/.local/state
+    // rather than ~/.config because this is state the shell owns and can
+    // regenerate, spelled from the environment because Qt's StateLocation is
+    // newer than the rest of that enum and a wrong guess writes nothing
+    // silently, and `watchChanges: false` because nothing else ever writes
+    // this file -- no watcher means no self-reload and no guard to get wrong.
+
+    readonly property string _statePath: {
+        const xdg = Quickshell.env("XDG_STATE_HOME");
+        const base = xdg && xdg !== "" ? xdg : Quickshell.env("HOME") + "/.local/state";
+        return base + "/pshell/weather.json";
+    }
+
+    property bool _stateLoaded: false
+
+    // A refresh that chains geocode into forecast can land two writes a few
+    // milliseconds apart. Half a second of settling makes that one, the same
+    // interval and the same reason as the notification history's.
+    Timer {
+        id: saveTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            // The guard every writer in this shell carries: a write before the
+            // load finished would truncate the reading it was about to read.
+            if (root.fetched === null)
+                return;
+            if (!root._stateLoaded) {
+                // Try again rather than drop the write. A fetch that beat the
+                // load home would otherwise leave this session's reading
+                // unpersisted until the next one, fifteen minutes later. This
+                // terminates: onLoadFailed sets the flag too.
+                saveTimer.restart();
+                return;
+            }
+            stateFile.setText(JSON.stringify(root.fetched, null, 2));
+        }
+    }
+
+    FileView {
+        id: stateFile
+
+        path: root._statePath
+        watchChanges: false
+        blockWrites: false
+        atomicWrites: true
+        printErrors: false
+
+        onLoaded: {
+            try {
+                const parsed = JSON.parse(text());
+                if (parsed && typeof parsed === "object")
+                    root.cached = parsed;
+            } catch (e) {
+                // A truncated or hand-mangled cache is not worth a warning the
+                // user can do nothing about: the next refresh replaces it.
+                root.cached = null;
+            }
+            root._stateLoaded = true;
+        }
+
+        // No cache file yet is the normal first run, not an error.
+        onLoadFailed: root._stateLoaded = true
+
+        onSaveFailed: error => console.warn("pshell: could not write weather.json —", error)
+    }
 
     // ---------------------------------------------------------------- panel
     //
@@ -305,6 +401,15 @@ Singleton {
     property string panelScreen: ""
 
     function openPanel(screenName) {
+        // The widget draws this panel, so without one there is nothing to
+        // open. Setting the flag anyway would have `pshell weather toggle`
+        // exit 0 having done nothing visible, twice, before anyone thought to
+        // check the bar config -- and then `close` would be needed to undo a
+        // panel that was never on screen.
+        if (!root.wanted) {
+            console.warn("pshell: no weather widget in the bar, so there is no panel to open");
+            return;
+        }
         root.panelScreen = screenName !== undefined && String(screenName) !== "" ? String(screenName) : root._focusedScreenName();
         root.panelOpen = true;
         // Opening is the one moment the numbers are certainly being looked at.
