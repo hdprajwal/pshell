@@ -88,6 +88,22 @@ var BUILTIN_TEMPLATES = [
         name: "walker",
         input: "walker.css",
         output: "walker/themes/pshell/style.css"
+    },
+    {
+        // The one template that carries no colours at all. walker resolves a
+        // theme's files one at a time and falls back to its built-in default
+        // for each one the theme leaves out, so a theme can override a single
+        // layout without forking the other fourteen -- and the keybind hints
+        // need exactly that, because their two-line stacking is a box
+        // orientation and GTK4 has no CSS for it. The file says the rest.
+        //
+        // It goes through matugen rather than being copied by the shell for
+        // the dull reason: this is the list of things that must exist beside
+        // style.css after a theme render, and a file installed by some other
+        // path would be missing on a fresh machine until something else ran.
+        name: "walker-keybind",
+        input: "walker-keybind.xml",
+        output: "walker/themes/pshell/keybind.xml"
     }
 ];
 

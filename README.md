@@ -228,6 +228,7 @@ matugen guesses.
 | `qtct` | `~/.config/qt6ct/colors/pshell.conf` | pick `pshell` as the colour scheme in qt6ct (needs `QT_QPA_PLATFORMTHEME=qt6ct` for Qt apps outside the shell) |
 | `swayosd` | `~/.config/swayosd/style.css` | nothing — that is the path swayosd reads, so pshell owns the file outright; restart `swayosd-server` after a theme change, it reads the stylesheet at start |
 | `walker` | `~/.config/walker/themes/pshell/style.css` | `theme = "pshell"` in `~/.config/walker/config.toml` — walker re-reads the sheet every time it opens, so later theme changes land on the next launch; but it only *finds* the theme at startup, so restart `walker --gapplication-service` once after the first render |
+| `walker-keybind` | `~/.config/walker/themes/pshell/keybind.xml` | nothing beyond the row above — it lands in the same theme directory. The only template with no colours in it: it puts each keybind hint's chip and its key on one line, which is a box orientation and so out of CSS's reach. walker resolves a theme's files one at a time, so overriding this one leaves its other fourteen layouts alone |
 
 GTK3 and GTK4 get the same colours from one shared template; only the
 directory each toolkit reads differs. Missing output directories are created;

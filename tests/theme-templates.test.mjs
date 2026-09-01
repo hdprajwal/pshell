@@ -149,7 +149,11 @@ test("matugen renders every template with real colours", { skip: noMatugen && "m
         "zed/themes/pshell.json",
         "qt6ct/colors/pshell.conf",
         "swayosd/style.css",
-        "walker/themes/pshell/style.css"
+        "walker/themes/pshell/style.css",
+        // Beside the stylesheet, not instead of it: walker resolves a theme's
+        // files one at a time, so the theme directory has to hold both or the
+        // hints go back to walker's two-line stacking.
+        "walker/themes/pshell/keybind.xml"
     ];
 
     for (const relative of expected) {
@@ -157,7 +161,12 @@ test("matugen renders every template with real colours", { skip: noMatugen && "m
         assert.ok(existsSync(path), `${relative} was not rendered`);
         const text = readFileSync(path, "utf8");
         assert.ok(!text.includes("{{"), `${relative} still holds an unrendered placeholder`);
-        assert.match(text, /#[0-9a-fA-F]{6}/, `${relative} holds no hex colour`);
+        // keybind.xml is the one output with nothing to colour: it exists to
+        // change a box's orientation, which GTK4 exposes no CSS for. Every
+        // other template that rendered no hex has silently lost its palette,
+        // so the check stays for the rest.
+        if (!relative.endsWith(".xml"))
+            assert.match(text, /#[0-9a-fA-F]{6}/, `${relative} holds no hex colour`);
     }
 });
 
