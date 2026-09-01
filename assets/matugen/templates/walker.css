@@ -11,22 +11,48 @@
    the right colours. Unlike the swayosd template, which swayosd merges over
    its own sheet, this one has to carry the lot.
 
-   So every rule below comes from walker 2.17.0's own
-   resources/themes/default/style.css: the five colours it hardcodes replaced
-   by the palette, its lighter()/darker()/alpha() derivations replaced by the
-   Material tone that means the same thing, and its empty rules dropped. No
-   selector is invented -- a class walker never puts on a widget is a rule
-   that themes nothing at all, which is the failure this whole sub-project
-   exists to avoid. Most are confirmed twice, in walker's stylesheet and in
-   the class names of its themes/default/*.xml layouts; .normal-icons and
-   .large-icons are the exception, appearing only in walker's own stylesheet
-   and in no XML or add_css_class call in 2.17.0. They are copied anyway,
-   because dropping a rule walker ships is its own way of being wrong.
+   So every *selector* below comes from walker 2.17.0's own
+   resources/themes/default/style.css, and so does every rule's reason for
+   existing. What the declarations say does not. The colours are the
+   palette's, and the lengths -- radii, padding, font sizes, icon sizes --
+   are pshell's own tokens, so the launcher is shaped like the bar and the
+   panels rather than like stock walker. No selector is invented -- a class
+   walker never puts on a widget is a rule that themes nothing at all, which
+   is the failure this whole sub-project exists to avoid. Most are confirmed
+   twice, in walker's stylesheet and in the class names of its
+   themes/default/*.xml layouts; .normal-icons and .large-icons are the
+   exception, appearing only in walker's own stylesheet and in no XML or
+   add_css_class call in 2.17.0. They are copied anyway, because dropping a
+   rule walker ships is its own way of being wrong.
 
-   Five deliberate departures beyond those three rules, listed so the claim
+   The lengths are literals, and they have to be: matugen substitutes
+   colours and nothing else, so there is no way to write Style.cornerRadius
+   here and have it resolve. They are Commons/Style.qml's defaults --
+   cornerRadius from Hyprland's decoration:rounding, the rest at
+   fontBaseSize 12 and spacingScale 1:
+
+     border-radius 4      Style.cornerRadius, which every component in Ui/
+                          uses and nothing overrides. walker shipped four
+                          different radii up to 20px; the shell has one.
+     .box-wrapper 18      spacing.panelPadding
+     popover      14      spacing.popupPadding
+     .input       7 10    spacing.inputPaddingY, spacing.controlPaddingX
+     .item-box    6 12    spacing.controlPaddingY, spacing.rowPaddingX
+     margin-bottom 4      half of spacing.rowGap; see the rule for why half
+     font-size 10         font.caption
+     font-size 24         font.display
+     icon 16 / 24 / 48    bar.iconCanvas, then two doublings
+
+   A user who scales the shell -- spacingScale, or a fontSize other than 12
+   -- moves the panels and not this sheet, and the two drift apart until the
+   next theme render, which will not fix it either. That is the cost of the
+   substitution being colours-only, and it is worth naming rather than
+   pretending the numbers above are derived.
+
+   Six deliberate departures beyond those three rules, listed so the claim
    above stays honest. Everything else that moved is a lighter()/darker()/
-   alpha() derivation resolved to a palette role, which the rule already
-   covers.
+   alpha() derivation resolved to a palette role, or a length resolved to a
+   token by the table above, which the rules already cover.
 
      - .input is hoisted above .input placeholder and .input selection, and
        .preview .large-icons is pulled up beside .preview: base rule before
@@ -38,8 +64,11 @@
      - the selected row gains a `color:` walker had no need of, because
        walker tinted the selection at 25% alpha over the background and this
        uses primary outright, which needs on_primary over it to stay legible.
+     - .item-box gains a margin-bottom, which walker has no equivalent of. It
+       is the row gap, and the rule says why it cannot come from anywhere
+       else.
 
-   None of the five overlap another rule's declarations. */
+   None of the six overlap another rule's declarations. */
 
 /* surface rather than background, matching the bar and the GTK template: on
    most wallpapers the two are identical, and surface stays readable when
@@ -75,16 +104,18 @@
 popover {
   background: @overlay_bg_color;
   border: 1px solid @border_color;
-  border-radius: 18px;
-  padding: 10px;
+  border-radius: 4px;
+  padding: 14px;
 }
 
+/* 16px is Style.bar.iconCanvas -- the size the bar draws its own icons at,
+   so a provider icon here is the size of a tray icon there. */
 .normal-icons {
   -gtk-icon-size: 16px;
 }
 
 .large-icons {
-  -gtk-icon-size: 32px;
+  -gtk-icon-size: 24px;
 }
 
 scrollbar {
@@ -96,8 +127,8 @@ scrollbar {
     0 19px 38px rgba(0, 0, 0, 0.3),
     0 15px 12px rgba(0, 0, 0, 0.22);
   background: @window_bg_color;
-  padding: 20px;
-  border-radius: 20px;
+  padding: 18px;
+  border-radius: 4px;
   border: 1px solid @border_color;
 }
 
@@ -108,13 +139,13 @@ scrollbar {
 }
 
 .search-container {
-  border-radius: 10px;
+  border-radius: 4px;
 }
 
 .input {
   caret-color: @accent_bg_color;
   background: @raised_bg_color;
-  padding: 10px;
+  padding: 7px 10px;
   color: @theme_fg_color;
 }
 
@@ -134,15 +165,28 @@ scrollbar {
   color: @theme_fg_color;
 }
 
+/* The row. Vertical padding is controlPaddingY and horizontal is rowPaddingX,
+   the same pair every panel row in the shell uses -- rows are wider than they
+   are tall there too.
+
+   margin-bottom stands in for the gap Column gives a panel's rows. GTK4 CSS
+   has no `spacing`, and walker sets the list's own spacing in layout.xml, not
+   here; a margin on the row is the only lever this file has. Half of rowGap,
+   because a margin under every row also opens a gap the shell's Column does
+   not put after its last one. */
 .item-box {
-  border-radius: 10px;
-  padding: 10px;
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-bottom: 4px;
 }
 
+/* Sized as a keycap, matching .keybind-label below rather than the row it
+   sits in: both are a key you could press, and in the shell those are the
+   one thing drawn tighter than everything around them. */
 .item-quick-activation {
   background: @overlay_bg_color;
-  border-radius: 5px;
-  padding: 10px;
+  border-radius: 4px;
+  padding: 2px 6px;
 }
 
 /* Both selectors, as walker ships them: the list is a GtkGridView, whose
@@ -173,7 +217,7 @@ row:selected .item-quick-activation {
 }
 
 .item-subtext {
-  font-size: 12px;
+  font-size: 10px;
   opacity: 0.5;
 }
 
@@ -183,17 +227,17 @@ row:selected .item-quick-activation {
 }
 
 .item-image-text {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .preview {
   border: 1px solid @border_color;
-  border-radius: 10px;
+  border-radius: 4px;
   color: @theme_fg_color;
 }
 
 .preview .large-icons {
-  -gtk-icon-size: 64px;
+  -gtk-icon-size: 48px;
 }
 
 .calc .item-text {
@@ -221,9 +265,9 @@ row:selected .item-quick-activation {
 }
 
 .keybinds {
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid @border_color;
-  font-size: 12px;
+  font-size: 10px;
   color: @theme_fg_color;
 }
 
