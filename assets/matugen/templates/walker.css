@@ -8,8 +8,10 @@
    whenever the theme directory exists at all. So a file holding only colour
    overrides would throw away every padding, radius and the `all: unset` the
    layout depends on, and the launcher would come up as bare GTK4 widgets in
-   the right colours. Unlike the swayosd template, which swayosd merges over
-   its own sheet, this one has to carry the lot.
+   the right colours, so this one has to carry the lot. The swayosd template
+   works the same way, and its header says so -- an earlier version of this
+   paragraph claimed swayosd merged its own sheet under ours, which testing
+   disproved.
 
    So every *selector* below comes from walker 2.17.0's own
    resources/themes/default/style.css, and so does every rule's reason for
