@@ -498,12 +498,69 @@ Singleton {
         return screens.length > 0 ? screens[0].name : "";
     }
 
+    // ---------------------------------------------------------- where from
+    //
+    // The three writes that change which place the forecast is for. They sit
+    // here rather than in the IpcHandler below because there are now two ways
+    // to ask -- `pshell weather setLocation` and the settings app's Weather
+    // page -- and the coordinate rule underneath them is not obvious enough to
+    // survive being written twice. The handler calls these; so does the page.
+
+    function setLocation(name) {
+        const text = String(name || "").trim();
+        if (text === "") {
+            console.warn("pshell: weather setLocation needs a place name");
+            return;
+        }
+        // Written to config.json rather than held here, because a location
+        // typed once is a setting and not session state -- it has to survive a
+        // restart, and config.json is the file the user can also edit by hand.
+        //
+        // Explicit coordinates go with it: leaving them would make the new
+        // name silently do nothing, since coordinates win.
+        root.clearCoordinates();
+        Config.set("weather.location", text);
+    }
+
+    // Both keys or neither, in one call, because one of them is not a place:
+    // a latitude with no longitude leaves hasCoordinates false, so the write
+    // lands in config.json and changes nothing on screen.
+    //
+    // Out-of-range is refused rather than clamped, for the reason Config's
+    // _coord() gives: clamping a mistyped 1297 to 90 reports the weather at
+    // the North Pole, which is a worse answer than saying no.
+    function setCoordinates(latitude, longitude) {
+        const lat = Number(latitude);
+        const lon = Number(longitude);
+        if (!isFinite(lat) || lat < -90 || lat > 90 || !isFinite(lon) || lon < -180 || lon > 180) {
+            console.warn("pshell: weather setCoordinates wants a latitude in -90..90 and a longitude in -180..180, got", JSON.stringify(String(latitude)), JSON.stringify(String(longitude)));
+            return;
+        }
+        Config.set("weather.latitude", lat);
+        Config.set("weather.longitude", lon);
+    }
+
+    // Hand the decision back to the place name. Guarded on there being
+    // something to clear, so a config that never had coordinates is not
+    // rewritten twice for nothing -- which is also what makes this safe to
+    // call unconditionally from setLocation above.
+    function clearCoordinates() {
+        if (!Config.weather.hasCoordinates)
+            return;
+        Config.set("weather.latitude", null);
+        Config.set("weather.longitude", null);
+    }
+
     // ------------------------------------------------------------------ IPC
     //
     // One handler, here, for both the panel's lifecycle and the service's own
     // methods. The widget carries `manageIpc: false` rather than an
     // `ipcTarget` of its own: two handlers on one target collide, and with the
     // widget under Variants it would be one collision per monitor.
+    //
+    // The bodies are one line each: everything they do is a function above,
+    // reachable from QML as well, because the settings page and the CLI must
+    // not be two implementations of the same setting.
 
     IpcHandler {
         target: "pshell.weather"
@@ -518,26 +575,19 @@ Singleton {
         }
 
         function setLocation(name: string): void {
-            const text = String(name || "").trim();
-            if (text === "") {
-                console.warn("pshell: weather setLocation needs a place name");
-                return;
-            }
-            // Written to config.json rather than held here, because a location
-            // typed once is a setting and not session state -- it has to
-            // survive a restart, and config.json is the file the user can also
-            // edit by hand.
-            //
-            // Explicit coordinates are cleared with it, and only when there
-            // are some: leaving them would make the new name silently do
-            // nothing, since coordinates win, and setting them to null
-            // unconditionally would rewrite the file three times for a config
-            // that never had them.
-            if (Config.weather.hasCoordinates) {
-                Config.set("weather.latitude", null);
-                Config.set("weather.longitude", null);
-            }
-            Config.set("weather.location", text);
+            root.setLocation(name);
+        }
+
+        // `real` and not `string`: the shell script hands qs whatever was
+        // typed and qs parses it against this signature, so "twelve" is
+        // refused with the function definition printed rather than arriving
+        // here as NaN.
+        function setCoordinates(latitude: real, longitude: real): void {
+            root.setCoordinates(latitude, longitude);
+        }
+
+        function clearCoordinates(): void {
+            root.clearCoordinates();
         }
 
         function toggle(): void {
