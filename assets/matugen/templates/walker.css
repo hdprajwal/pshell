@@ -38,10 +38,17 @@
      popover      14      spacing.popupPadding
      .input       7 10    spacing.inputPaddingY, spacing.controlPaddingX
      .item-box    6 12    spacing.controlPaddingY, spacing.rowPaddingX
-     margin-bottom 4      half of spacing.rowGap; see the rule for why half
+     margin-bottom 3      spacing.xs, the gap the control centre's list rows
+                          sit at
+     font-size 12         font.body -- .item-text and .input, neither of
+                          which walker sized at all
      font-size 10         font.caption
      font-size 24         font.display
-     icon 16 / 24 / 48    bar.iconCanvas, then two doublings
+     .item-image 16       bar.iconCanvas
+
+   Measured against the thing it is copying: a single-line row comes out
+   32px pitch, and the control centre's network list is 31px. Two-line rows
+   are taller, as they are in the shell.
 
    A user who scales the shell -- spacingScale, or a fontSize other than 12
    -- moves the panels and not this sheet, and the two drift apart until the
@@ -49,7 +56,7 @@
    substitution being colours-only, and it is worth naming rather than
    pretending the numbers above are derived.
 
-   Six deliberate departures beyond those three rules, listed so the claim
+   Seven deliberate departures beyond those three rules, listed so the claim
    above stays honest. Everything else that moved is a lighter()/darker()/
    alpha() derivation resolved to a palette role, or a length resolved to a
    token by the table above, which the rules already cover.
@@ -67,8 +74,14 @@
      - .item-box gains a margin-bottom, which walker has no equivalent of. It
        is the row gap, and the rule says why it cannot come from anywhere
        else.
+     - .item-image and .item-text are rules walker's stylesheet does not
+       have, on classes its item.xml does apply. They are what actually set
+       a row's height -- an icon at GTK's `large` and a label at GTK's
+       default font size, neither of which walker ever states. Adding them is
+       the opposite of inventing a selector: these are two of the four
+       classes on every row.
 
-   None of the six overlap another rule's declarations. */
+   None of the seven overlap another rule's declarations. */
 
 /* surface rather than background, matching the bar and the GTK template: on
    most wallpapers the two are identical, and surface stays readable when
@@ -108,14 +121,18 @@ popover {
   padding: 14px;
 }
 
-/* 16px is Style.bar.iconCanvas -- the size the bar draws its own icons at,
-   so a provider icon here is the size of a tray icon there. */
+/* Left at walker's own numbers, unlike every other length in this file. The
+   header records that neither class is applied by any XML or add_css_class
+   call in 2.17.0, so nothing here themes anything; the same reasoning that
+   says copy a rule walker ships says do not invent values for one that has
+   no effect to observe. The row icon is sized on .item-image below, which
+   item.xml does apply. */
 .normal-icons {
   -gtk-icon-size: 16px;
 }
 
 .large-icons {
-  -gtk-icon-size: 24px;
+  -gtk-icon-size: 32px;
 }
 
 scrollbar {
@@ -146,6 +163,7 @@ scrollbar {
   caret-color: @accent_bg_color;
   background: @raised_bg_color;
   padding: 7px 10px;
+  font-size: 12px;
   color: @theme_fg_color;
 }
 
@@ -177,7 +195,28 @@ scrollbar {
 .item-box {
   border-radius: 4px;
   padding: 6px 12px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
+}
+
+/* The row icon, and half the reason rows were 52px tall. item.xml asks for
+   `icon-size: large` -- GTK_ICON_SIZE_LARGE, 32px -- and walker's stylesheet
+   overrides it nowhere, so the icon and not the text decided the row height.
+   .item-image is the class item.xml actually puts on that widget, which is
+   why the override goes here and not on .large-icons above.
+
+   16px is bar.iconCanvas, the size the control centre's list rows draw their
+   icons at. */
+.item-image {
+  -gtk-icon-size: 16px;
+}
+
+/* The row's own text, which walker never sizes -- it has a rule for
+   .item-subtext and none for this, so the label fell through to GTK's
+   default and came out larger than anything the shell draws. That, not the
+   padding, is what set the row height once the icon stopped doing it.
+   font.body, the size every panel row uses. */
+.item-text {
+  font-size: 12px;
 }
 
 /* Sized as a keycap, matching .keybind-label below rather than the row it
@@ -237,7 +276,7 @@ row:selected .item-quick-activation {
 }
 
 .preview .large-icons {
-  -gtk-icon-size: 48px;
+  -gtk-icon-size: 64px;
 }
 
 .calc .item-text {
