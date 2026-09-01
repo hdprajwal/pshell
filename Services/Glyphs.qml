@@ -242,4 +242,15 @@ Singleton {
     readonly property string wallpaper: "wallpaper"
     readonly property string palette: "palette"
     readonly property string info: "info"
+
+    // The weather page's row. `partly_cloudy_day` and not `thermostat`, which
+    // this file already has: that one is the panel's "feels like" symbol and
+    // means temperature, so in a nav row it would name the one setting on the
+    // page that is not about temperature at all. The same reasoning `keybinds`
+    // records for not reusing `keyboard`.
+    //
+    // Not one of Weather.js's condition icons either, even though it shares a
+    // name with the code-1 cut: the sidebar row is a fixed label for a page,
+    // and a row that tracked the sky would look like a broken reading.
+    readonly property string weather: "partly_cloudy_day"
 }

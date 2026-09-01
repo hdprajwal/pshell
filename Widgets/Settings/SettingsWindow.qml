@@ -73,6 +73,8 @@ FloatingWindow {
                 return themePage;
             case "notifications":
                 return notificationsPage;
+            case "weather":
+                return weatherPage;
             default:
                 return aboutPage;
             }
@@ -95,6 +97,12 @@ FloatingWindow {
         id: notificationsPage
 
         NotificationsPage {}
+    }
+
+    Component {
+        id: weatherPage
+
+        WeatherPage {}
     }
 
     Component {

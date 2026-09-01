@@ -33,6 +33,11 @@ Item {
             icon: Glyphs.notifications
         },
         {
+            id: "weather",
+            label: "Weather",
+            icon: Glyphs.weather
+        },
+        {
             id: "about",
             label: "About",
             icon: Glyphs.info

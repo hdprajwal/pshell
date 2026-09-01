@@ -875,10 +875,12 @@ Everything answers on one IPC target, widget or no widget:
 
     pshell settings toggle
 
-Four pages: **Wallpaper** — the thumbnail grid documented above —
+Five pages: **Wallpaper** — the thumbnail grid documented above —
 **Theme** — scheme, prefer, mode and the live palette — **Notifications** —
 toast lifetimes, stack size, position, history depth and per-app muting —
-and **About**, the facts neofetch prints plus where pshell keeps its files.
+**Weather** — place, exact coordinates, units, refresh interval and the
+current reading with a Refresh now beside it — and **About**, the facts
+neofetch prints plus where pshell keeps its files.
 `pshell settings open theme` lands on a named page directly.
 
 **It writes `config.json`.** Until this existed, nothing in the shell ever
@@ -1108,6 +1110,10 @@ forecast is for the Cambridge you meant.
 clears any coordinates with it — leaving them would make the new name silently
 do nothing.
 
+The settings app's Weather page edits the same block, and its buttons call the
+same functions the commands do, so the coordinate rule above holds whichever
+way you ask.
+
 The floor under `intervalMin` is five minutes. Open-Meteo is free and
 unauthenticated, and pointing tight loops at a service like that is how it
 stops being either. Fifteen is also as fine as the data gets: the forecast
@@ -1149,7 +1155,12 @@ pshell weather refresh                fetch now
 pshell weather current                one line: temperature, condition, place, age
 pshell weather toggle                 open or close the panel
 pshell weather setLocation Mysuru     re-resolve and refetch
+pshell weather setCoordinates 12.97 77.59   pin the exact spot
+pshell weather clearCoordinates       back to deciding by name
 ```
+
+`setCoordinates` takes both halves in one call: a latitude on its own is not a
+place, so it would land in `config.json` and change nothing on screen.
 
 The last reading is kept in `~/.local/state/pshell/weather.json`; the resolved
 coordinates go in `state.json` beside the rest of what the shell remembers.
