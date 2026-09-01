@@ -154,6 +154,24 @@ row:selected .item-box {
   color: @accent_fg_color;
 }
 
+/* ...which is the problem this rule undoes. The quick-activation badge keeps
+   its own @overlay_bg_color background on a selected row -- it is nested
+   inside .item-box, not painted by it -- but `color` is inherited, so the
+   badge took the selected row's @accent_fg_color and rendered #27313b on
+   #343536. That is a contrast ratio of about 1.05:1: the F-key label is
+   still there, and nobody can read it.
+
+   Measured on the rendered launcher, not guessed -- the badge pixel sampled
+   #343536 while the row around it was #bdc8d4. Restoring the badge's own
+   pairing is enough; it is the same @theme_fg_color on @overlay_bg_color
+   that every unselected row already wears, so the badge now looks identical
+   whether or not its row is the selected one, which is what it always
+   should have done. */
+child:selected .item-quick-activation,
+row:selected .item-quick-activation {
+  color: @theme_fg_color;
+}
+
 .item-subtext {
   font-size: 12px;
   opacity: 0.5;
