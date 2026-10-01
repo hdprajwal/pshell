@@ -65,12 +65,13 @@ const OPTIONS = {
   disabled: []
 };
 
-// Eleven: nine from Phase 3, walker from Phase 5, and walker-keybind from
-// Phase 9 -- the one template that renders no colours, because walker's
-// keybind hints stack two lines high and only a layout file can say
-// otherwise. A name missing here is a built-in the assertions below silently
+// Twelve: nine from Phase 3, walker from Phase 5, and walker-keybind and
+// hyprland from Phase 9 -- walker-keybind the one template that renders no
+// colours, because walker's keybind hints stack two lines high and only a
+// layout file can say otherwise; hyprland the window borders DMS used to
+// colour. A name missing here is a built-in the assertions below silently
 // stop covering, so the list tracks BUILTIN_TEMPLATES by hand and on purpose.
-const BUILTINS = ["gtk3", "gtk4", "kitty", "ghostty", "alacritty", "btop", "zed", "qtct", "swayosd", "walker", "walker-keybind"];
+const BUILTINS = ["gtk3", "gtk4", "kitty", "ghostty", "alacritty", "btop", "zed", "qtct", "swayosd", "walker", "walker-keybind", "hyprland"];
 
 test("every built-in template appears, reading from the shell and writing under the config dir", () => {
   const toml = parseToml(Matugen.buildConfig(OPTIONS));

@@ -104,6 +104,16 @@ var BUILTIN_TEMPLATES = [
         name: "walker-keybind",
         input: "walker-keybind.xml",
         output: "walker/themes/pshell/keybind.xml"
+    },
+    {
+        // Window borders, taken over from DMS's matugen hook. A Lua module
+        // rather than a hyprlang file because the config is Lua now:
+        // hyprland.lua loads it with `require("pshell-colors")`. No
+        // post_hook: Hyprland watches its config files and re-reads them on
+        // change, so a new wallpaper recolours the borders by itself.
+        name: "hyprland",
+        input: "hyprland.lua",
+        output: "hypr/pshell-colors.lua"
     }
 ];
 

@@ -153,7 +153,8 @@ test("matugen renders every template with real colours", { skip: noMatugen && "m
         // Beside the stylesheet, not instead of it: walker resolves a theme's
         // files one at a time, so the theme directory has to hold both or the
         // hints go back to walker's two-line stacking.
-        "walker/themes/pshell/keybind.xml"
+        "walker/themes/pshell/keybind.xml",
+        "hypr/pshell-colors.lua"
     ];
 
     for (const relative of expected) {
@@ -165,7 +166,10 @@ test("matugen renders every template with real colours", { skip: noMatugen && "m
         // change a box's orientation, which GTK4 exposes no CSS for. Every
         // other template that rendered no hex has silently lost its palette,
         // so the check stays for the rest.
-        if (!relative.endsWith(".xml"))
+        //
+        // The Lua file has colours but no `#`: Hyprland spells them
+        // rgb(rrggbb), and has its own check below.
+        if (!relative.endsWith(".xml") && !relative.endsWith(".lua"))
             assert.match(text, /#[0-9a-fA-F]{6}/, `${relative} holds no hex colour`);
     }
 });
@@ -254,6 +258,34 @@ test("GTK parses the walker stylesheet", { skip: (noMatugen && "matugen not inst
     if (out === null)
         return; // No PyGObject here; the render test above still guards the placeholders.
     assert.match(out, /^ERRORS 0$/m, `GTK reported parse errors in the walker stylesheet:\n${out}`);
+});
+
+test("Lua loads the Hyprland colours and every one is an rgb() Hyprland reads", { skip: (noMatugen && "matugen not installed") || (!have("lua") && "lua not installed") }, () => {
+    // Hyprland itself cannot be asked without a running compositor, so this
+    // is the half that can be checked here: that the file is Lua at all, that
+    // it calls hl.config the way hyprland.lua's own blocks do, and that every
+    // value is rgb(rrggbb) -- the notation DMS's file used, which Hyprland
+    // took. A colour matugen rendered with its `#` still on would load as Lua
+    // perfectly and leave every border unparsed, so that is what is checked.
+    const path = output("dark", "hypr/pshell-colors.lua");
+    const probe = `
+        local seen = 0
+        local function walk(t, at)
+            for k, v in pairs(t) do
+                if type(v) == "table" then walk(v, at .. k .. ".")
+                else
+                    assert(type(v) == "string" and v:match("^rgb%(%x%x%x%x%x%x%)$"), at .. k .. " = " .. tostring(v))
+                    seen = seen + 1
+                end
+            end
+        end
+        hl = { config = function(t) walk(t, "") end }
+        dofile(arg[1])
+        print("COLOURS " .. seen)
+    `;
+    const result = spawnSync("lua", ["-e", probe, "-", path], { encoding: "utf8", input: "" });
+    assert.equal(result.status, 0, `lua rejected the colours file:\n${result.stderr}`);
+    assert.match(result.stdout, /^COLOURS 10$/m);
 });
 
 // ------------------------------------------------ formats with no CLI parser
