@@ -7,6 +7,7 @@
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import qs.Components
 import qs.Services
@@ -22,6 +23,40 @@ import qs.Widgets.Wallpaper as WallpaperLayer
 import qs.Widgets.Notifications as NotificationLayer
 
 ShellRoot {
+    id: shell
+
+    // Whether the bar is drawn, for SUPER+W. Session state, not config: a
+    // bar hidden to watch a video full-height should come back on the next
+    // login rather than stay gone with nothing on screen to say why.
+    //
+    // Hiding unmaps the window, so the compositor also drops the space it
+    // reserved -- windows grow into the strip rather than leaving a hole.
+    property bool barVisible: true
+
+    IpcHandler {
+        target: "pshell.bar"
+
+        // show and hide besides toggle, for IdleInhibit's reason: a script
+        // that wants the bar up should ask for that, not for "the other
+        // thing".
+        function toggle(): bool {
+            shell.barVisible = !shell.barVisible;
+            return shell.barVisible;
+        }
+
+        function show(): void {
+            shell.barVisible = true;
+        }
+
+        function hide(): void {
+            shell.barVisible = false;
+        }
+
+        function isVisible(): bool {
+            return shell.barVisible;
+        }
+    }
+
     // Keeps the settings app's IPC handler alive for the whole session.
     //
     // QML brings a singleton to life on the first access that actually runs,
@@ -214,6 +249,7 @@ ShellRoot {
             }
 
             screen: modelData
+            visible: shell.barVisible
             // The surface is transparent and the bar is a rectangle inside
             // it, because a detached bar wants rounded corners and a window
             // cannot have them.

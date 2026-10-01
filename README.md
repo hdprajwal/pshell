@@ -25,6 +25,18 @@ To start it with Hyprland, add this to `~/.config/hypr/hyprland.conf`:
 exec-once = qs -p ~/.config/quickshell/pshell
 ```
 
+or, with a Lua config (Hyprland 0.55+), to `~/.config/hypr/hyprland.lua`:
+
+```lua
+hl.on("hyprland.start", function()
+	hl.exec_cmd("qs -p " .. os.getenv("HOME") .. "/.config/quickshell/pshell")
+end)
+```
+
+If another shell — DankMaterialShell, say — also starts at login, stop it
+from doing so, or you get two bars. DMS starts from a systemd unit rather
+than from the Hyprland config: `systemctl --user disable --now dms.service`.
+
 ### The `pshell` command
 
 Every door into the shell is an IPC call, and typing the path each time gets
@@ -37,6 +49,7 @@ pshell preview                 draw the lockscreen without locking
 pshell run                     start the shell
 pshell launcher                open the application launcher
 pshell clipboard               open the clipboard history
+pshell bar toggle              hide or show the bar (also show, hide)
 pshell settings toggle         any IPC target, by name
 pshell ipc show                straight through to qs ipc
 ```
@@ -229,6 +242,7 @@ matugen guesses.
 | `swayosd` | `~/.config/swayosd/style.css` | nothing — that is the path swayosd reads, so pshell owns the file outright; restart `swayosd-server` after a theme change, it reads the stylesheet at start |
 | `walker` | `~/.config/walker/themes/pshell/style.css` | `theme = "pshell"` in `~/.config/walker/config.toml` — walker re-reads the sheet every time it opens, so later theme changes land on the next launch; but it only *finds* the theme at startup, so restart `walker --gapplication-service` once after the first render |
 | `walker-keybind` | `~/.config/walker/themes/pshell/keybind.xml` | nothing beyond the row above — it lands in the same theme directory. The only template with no colours in it: it puts each keybind hint's chip and its key on one line, which is a box orientation and so out of CSS's reach. walker resolves a theme's files one at a time, so overriding this one leaves its other fourteen layouts alone |
+| `hyprland` | `~/.config/hypr/pshell-colors.lua` | `pcall(require, "pshell-colors")` at the end of `~/.config/hypr/hyprland.lua` — window borders and group bars. `pcall` so Hyprland starts cleanly before the first render. Hyprland only watches files it has loaded, so `hyprctl reload` once after that first render; from then on it recolours on every theme change by itself. Lua configs only: there is no hyprlang version |
 
 GTK3 and GTK4 get the same colours from one shared template; only the
 directory each toolkit reads differs. Missing output directories are created;
