@@ -150,8 +150,8 @@ need_walker() {
 # knows it exists, so it is the only thing that can say so. clipboard is a
 # target, and listed anyway: it is the other half of the pair the README
 # documents together, and its bare form is a shorthand like `lock`.
-# nightlight is listed for the same shorthand, and because it is the one
-# command here that needs something installed before it can work.
+# nightlight is listed for the same shorthand, and because it needs something
+# installed before it can work; updates for the same two reasons.
 usage() {
     cat <<'EOF'
 usage: pshell <command> [arguments]
@@ -165,6 +165,8 @@ usage: pshell <command> [arguments]
   launcher                open the application launcher (walker)
   clipboard               open or close the clipboard history
   nightlight              turn the nightlight on or off (needs hyprsunset)
+  updates                 pending package updates (needs cachy-update or
+                          arch-update); `pshell updates open` runs them
 
   <target> <method> [..]  call any IPC target directly:
                             pshell calendar toggle
@@ -224,8 +226,12 @@ call() {
     # other, output that starts `error: ` is just output: notification
     # history prints `app: summary` lines, and an app named "error" would
     # otherwise turn the whole history into a failure with nothing printed.
+    #
+    # pshell.updates is listed because its only free text is `list`, and
+    # every line of that starts with `repo`, `aur` or `flatpak` and a tab --
+    # a package called "error" cannot make it start `error: `.
     case $1 in
-    pshell.nightlight)
+    pshell.nightlight | pshell.updates)
         case $out in
         "error: "*)
             printf 'pshell: %s\n' "${out#error: }" >&2
@@ -351,6 +357,17 @@ nightlight)
         call pshell.nightlight toggle
     else
         call pshell.nightlight "$@"
+    fi
+    ;;
+updates)
+    # Bare `pshell updates` says where things stand rather than doing
+    # anything: the one action worth a bare word here starts a sudo pacman
+    # in a terminal, and that should be asked for by name -- `open`.
+    # Anything after it is a method on the same target, as for the others.
+    if [ $# -eq 0 ]; then
+        call pshell.updates status
+    else
+        call pshell.updates "$@"
     fi
     ;;
 *)

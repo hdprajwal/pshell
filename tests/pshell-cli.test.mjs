@@ -353,7 +353,7 @@ test("notification history from an app named error is output, not a failure", ()
     assert.equal(out.stderr, "");
 });
 
-test("the error: rule is the nightlight's, not every target's", () => {
+test("the error: rule is the opted-in targets', not every target's", () => {
     const box = sandbox();
     const out = run(box, ["weather", "current"], { QS_STDOUT: "error: nope" });
 
@@ -369,6 +369,56 @@ test("an answer that only mentions an error is still output", () => {
 
     assert.equal(out.status, 0);
     assert.equal(out.stdout, "0\terror: something I copied\n");
+});
+
+// --------------------------------------------------------------- updates
+
+// Bare, it reports rather than acts: the action is a sudo pacman in a
+// terminal, and that is asked for by name.
+test("updates on its own asks for the status", () => {
+    const box = sandbox();
+    const out = run(box, ["updates"], { QS_STDOUT: "4 updates (3 repo, 1 AUR), checked just now, by cachy-update" });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, "4 updates (3 repo, 1 AUR), checked just now, by cachy-update\n");
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.updates", "status"]]);
+});
+
+test("updates with a method calls that method instead", () => {
+    const box = sandbox();
+    for (const method of ["refresh", "open", "count", "list"])
+        run(box, ["updates", method]);
+
+    assert.deepEqual(calls(box), ["refresh", "open", "count", "list"].map(m => ["-p", repo, "ipc", "call", "pshell.updates", m]));
+});
+
+test("updates is documented, and says what it needs", () => {
+    const box = sandbox();
+    const out = run(box, ["help"]);
+
+    assert.match(out.stdout, /^\s+updates\s+.*cachy-update/m);
+});
+
+// The second target to promise `error: ` answers, so the second one the
+// rule is opted in for.
+test("an error: answer from updates fails the command", () => {
+    const box = sandbox();
+    const out = run(box, ["updates", "open"], {
+        QS_STDOUT: "error: neither cachy-update nor arch-update is installed. On CachyOS: sudo pacman -S cachy-update; on Arch: sudo pacman -S arch-update",
+    });
+
+    assert.equal(out.status, 1);
+    assert.equal(out.stdout, "");
+    assert.match(out.stderr, /^pshell: neither cachy-update nor arch-update is installed/);
+});
+
+test("the update list is output, tabs and all", () => {
+    const box = sandbox();
+    const list = "repo\tbash 5.3.15-2 -> 5.3.20-2\naur\t1password 8.12.22-17 -> 8.12.40-31";
+    const out = run(box, ["updates", "list"], { QS_STDOUT: list });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, list + "\n");
 });
 
 // ------------------------------------------------------- what it refuses
