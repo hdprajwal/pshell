@@ -195,7 +195,9 @@ capture() {
 #     under `setpriv --pdeathsig TERM`, so this should be nobody; it is the
 #     net for a watcher that survived anyway and was reparented to init.
 #
-# Which never do: a watcher whose parent is some *other* running Quickshell.
+# Which never do: a watcher whose parent is some *other* running Quickshell --
+# by any name with quickshell in it, so a wrapped binary such as NixOS's
+# .quickshell-wrapped counts as one.
 # That is a second pshell -- on a nested compositor, or another checkout --
 # and its history is its own business. Omarchy's pkill takes every match,
 # which is fine with one shell per machine and wrong with two.
@@ -217,7 +219,7 @@ reap() {
             continue
         fi
         case ${exe##*/} in
-        quickshell | qs) ;;
+        *quickshell* | qs) ;;
         *) kill "$pid" 2>/dev/null ;;
         esac
     done

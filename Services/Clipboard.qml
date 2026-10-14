@@ -313,6 +313,7 @@ Singleton {
     readonly property bool watching: _loaded && recording
 
     onWatchingChanged: {
+        root._fastExits = 0;
         if (root.watching)
             root._startWatching();
         else {
@@ -368,7 +369,10 @@ Singleton {
         stdout: SplitParser {
             onRead: line => root._addJson(line)
         }
-        onExited: restart.restart()
+        onStarted: startedAt = Date.now()
+        onExited: root._watcherExited(startedAt)
+
+        property real startedAt: 0
     }
 
     Process {
@@ -381,19 +385,44 @@ Singleton {
         stdout: SplitParser {
             onRead: line => root._addJson(line)
         }
-        onExited: restart.restart()
+        onStarted: startedAt = Date.now()
+        onExited: root._watcherExited(startedAt)
+
+        property real startedAt: 0
     }
 
     // A watcher that dies takes the history with it silently: copying still
     // works, the panel still opens, and everything already in it is still
     // there, so nothing looks wrong until somebody misses a copy. Omarchy
     // learned that one; bring it back after a second instead.
+    //
+    // But one that dies the moment it starts -- no wl-paste or setpriv
+    // installed, no Wayland display -- would be respawned every second
+    // forever. Five of those in a row and the shell says why once and stops
+    // trying, until the cap changes or the shell reloads.
+    property int _fastExits: 0
+    readonly property int _maxFastExits: 5
+
+    function _watcherExited(startedAt) {
+        if (!root.watching || root._fastExits >= root._maxFastExits)
+            return;
+        if (Date.now() - startedAt < 2000)
+            root._fastExits += 1;
+        else
+            root._fastExits = 0;
+        if (root._fastExits >= root._maxFastExits) {
+            console.warn("pshell clipboard: the wl-paste watchers keep exiting as soon as they start; is wl-clipboard (and setpriv, from util-linux) installed? Not recording copies until the shell reloads.");
+            return;
+        }
+        restart.restart();
+    }
+
     Timer {
         id: restart
 
         interval: 1000
         onTriggered: {
-            if (!root.watching)
+            if (!root.watching || root._fastExits >= root._maxFastExits)
                 return;
             if (!textWatcher.running)
                 textWatcher.running = true;

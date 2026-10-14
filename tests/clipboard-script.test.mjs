@@ -292,8 +292,8 @@ test("clear takes the copy off the clipboard", () => {
 
 // A stand-in for a running Quickshell: a copy of bash whose executable is
 // called qs, since the executable's name is all reap() looks at.
-function underFakeShell(box) {
-    const qs = join(box.root, "qs");
+function underFakeShell(box, name = "qs") {
+    const qs = join(box.root, name);
     if (!existsSync(qs))
         copyFileSync("/bin/bash", qs);
     chmodSync(qs, 0o755);
@@ -341,6 +341,30 @@ test("reap kills an orphaned watcher but never another shell's", async () => {
         assert.equal(alive(otherWatcher), true, "another shell's watcher was killed");
     } finally {
         orphan.kill();
+        process.kill(otherWatcher);
+        other.kill();
+    }
+});
+
+// NixOS runs Quickshell as a wrapped binary, .quickshell-wrapped, and that is
+// still another shell, not an orphan.
+test("reap spares a watcher under a wrapped quickshell binary", async () => {
+    const box = sandbox();
+    const wrapped = underFakeShell(box, ".quickshell-wrapped");
+    const other = spawn(wrapped, ["-c", `"${box.bin}/wl-paste" --type text --watch "${script}" capture text & wait`], {
+        stdio: "ignore",
+        env: { PATH: `${box.bin}:/usr/bin:/bin` },
+    });
+    await settle();
+
+    const otherWatcher = Number(spawnSync("pgrep", ["-P", String(other.pid), "-x", "wl-paste"], { encoding: "utf8" }).stdout.trim());
+    assert.ok(otherWatcher > 0, "the wrapped shell's watcher did not start");
+
+    try {
+        run(box, ["reap"]);
+        await settle();
+        assert.equal(alive(otherWatcher), true, "a wrapped shell's watcher was killed");
+    } finally {
         process.kill(otherWatcher);
         other.kill();
     }
