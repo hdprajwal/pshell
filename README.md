@@ -860,7 +860,8 @@ hl.bind("SUPER + CTRL + V", hl.dsp.exec_cmd("pshell clipboard"), { description =
 
 What it does not record: anything a password manager marks as secret.
 KeePassXC and friends say so on the clipboard, and those copies never reach
-the history file.
+the history file. Nor text copies over 1 MiB, which are skipped whole rather
+than kept cut short.
 
 The history is `~/.local/state/pshell/clipboard/history.json`, newest first,
 and images are kept beside it in `images/`, stored once each under their

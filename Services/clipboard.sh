@@ -34,6 +34,12 @@ set -o pipefail
 
 image_dir=${PSHELL_CLIPBOARD_IMAGES:-${XDG_STATE_HOME:-$HOME/.local/state}/pshell/clipboard/images}
 
+# Past this, a text copy is not recorded at all. Every copy rewrites the whole
+# history file, so one 30 MB log in it would be 30 MB written on each copy
+# after, for as long as it stayed. Not cut short either: an entry that pastes
+# back as half of what was copied is worse than one that is not there.
+max_text=${PSHELL_CLIPBOARD_MAX_TEXT:-1048576}
+
 # ----------------------------------------------------------------------- init
 
 # History is every copy, passwords from anything that does not mark them
@@ -96,6 +102,7 @@ emit_image() {
 emit_text() {
     tmp=$(mktemp) || return 0
     read_copy "$@" || return 0
+    (($(stat -c %s -- "$tmp") <= max_text)) || return 0
 
     perl -MEncode=decode,FB_CROAK,LEAVE_SRC -MJSON::PP -0777 -e '
         my $raw = <STDIN>;
