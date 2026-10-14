@@ -84,6 +84,16 @@ Singleton {
     readonly property string age: reading !== null ? W.ageText(reading.fetchedAt, now) : "never"
     readonly property string place: reading !== null ? String(reading.place || "") : ""
 
+    // The hourly row's dial follows the clock in the bar. pshell has no
+    // twelve/twenty-four setting of its own; the clock widget's `format` is
+    // the user's answer, and the calendar's `timeFormat` when there is no
+    // clock. Neither in the bar is Qt's default and the shell's: 24 hours.
+    readonly property bool twelveHour: W.uses12Hour(Config.widgetSetting("clock", "format", "") || Config.widgetSetting("calendar", "timeFormat", ""))
+
+    // Re-sliced on the minute hand, so the row moves on at the top of the
+    // hour without waiting for the next fetch.
+    readonly property var hourly: W.hourlyStrip(reading, now, Config.weather.hourlyHours, twelveHour)
+
     // --------------------------------------------------------- geocoding
     //
     // Resolved once and kept, keyed by the name that resolved, so changing the
@@ -572,6 +582,13 @@ Singleton {
         // One line, fixed order, no tabs: temperature, condition, place, age.
         function current(): string {
             return W.oneLine(root.reading, Date.now());
+        }
+
+        // The next 24 hours, one line each: hour, temperature, chance of
+        // rain, condition. A full day whatever `hourlyHours` is, since that
+        // setting is about room in the panel and a script has no panel.
+        function hourly(): string {
+            return W.hourlyLines(root.reading, Date.now(), 24);
         }
 
         function setLocation(name: string): void {
