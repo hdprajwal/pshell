@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, chmodSync, copyFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, chmodSync, copyFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -208,6 +208,64 @@ test("a missing image file fails rather than pasting nothing", () => {
 
     assert.equal(out.status, 1);
     assert.deepEqual(copies(box), []);
+});
+
+// -------------------------------------------------------------------- init
+
+const mode = path => statSync(path).mode & 0o777;
+
+// The history is every copy anything made, so on a 0755 home it must still
+// be nobody else's to read.
+test("init makes the history directory the owner's alone", () => {
+    const box = sandbox();
+    const dir = join(box.root, "state", "clipboard");
+    const images = join(dir, "images");
+    const out = run(box, ["init", dir], { env: { PSHELL_CLIPBOARD_IMAGES: images } });
+
+    assert.equal(out.status, 0);
+    assert.equal(mode(dir), 0o700);
+    assert.equal(mode(images), 0o700);
+});
+
+test("init tightens a directory and files that were already there", () => {
+    const box = sandbox();
+    const dir = join(box.root, "clipboard");
+    const images = join(dir, "images");
+    mkdirSync(images, { recursive: true, mode: 0o755 });
+    chmodSync(dir, 0o755);
+    chmodSync(images, 0o755);
+    writeFileSync(join(dir, "history.json"), "[]", { mode: 0o644 });
+    writeFileSync(join(images, "a.png"), "png", { mode: 0o644 });
+
+    run(box, ["init", dir], { env: { PSHELL_CLIPBOARD_IMAGES: images } });
+
+    assert.equal(mode(dir), 0o700);
+    assert.equal(mode(images), 0o700);
+    assert.equal(mode(join(dir, "history.json")), 0o600);
+    assert.equal(mode(join(images, "a.png")), 0o600);
+});
+
+test("init without a directory fails", () => {
+    const box = sandbox();
+    assert.notEqual(run(box, ["init"]).status, 0);
+});
+
+test("an image directory capture makes is the owner's alone", () => {
+    const box = sandbox();
+    writeFileSync(join(box.root, "pic"), "png bytes");
+    run(box, ["capture", "image/png"], { input: readFileSync(join(box.root, "pic")) });
+
+    assert.equal(mode(box.images), 0o700);
+});
+
+// ------------------------------------------------------------------- clear
+
+test("clear takes the copy off the clipboard", () => {
+    const box = sandbox();
+    const out = run(box, ["clear"]);
+
+    assert.equal(out.status, 0);
+    assert.deepEqual(copies(box).map(c => c.argv), ["--clear"]);
 });
 
 // -------------------------------------------------------------------- reap

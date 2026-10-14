@@ -8,6 +8,15 @@
 #       type, wl-paste --watch is calling and the copy is on stdin; with
 #       none, read the current selection directly (the snapshot at start).
 #
+#   clipboard.sh init <dir>
+#       Make the history's directory, readable by nobody but its owner, and
+#       tighten whatever is already in it. The shell waits for this before
+#       it reads or writes anything there.
+#
+#   clipboard.sh clear
+#       Take the copy off the clipboard itself. The shell does this when the
+#       newest entry is forgotten, or all of them are.
+#
 #   clipboard.sh reap
 #       Kill wl-paste watchers this shell has no further use for, before it
 #       starts its own. See reap() for which ones, and which ones never.
@@ -23,7 +32,22 @@
 
 set -o pipefail
 
-image_dir=${PSHELL_CLIPBOARD_IMAGES:-${XDG_STATE_HOME:-$HOME/.local/state}/pshell/clipboard-images}
+image_dir=${PSHELL_CLIPBOARD_IMAGES:-${XDG_STATE_HOME:-$HOME/.local/state}/pshell/clipboard/images}
+
+# ----------------------------------------------------------------------- init
+
+# History is every copy, passwords from anything that does not mark them
+# included, and ~/.local/state is 0755 on most installs. So the directory is
+# the owner's alone, and anything in it from before is tightened to match.
+init() {
+    local dir=${1:?usage: clipboard.sh init <dir>}
+    mkdir -p -m 700 -- "$dir" || return 1
+    chmod 700 -- "$dir" || return 1
+    mkdir -p -m 700 -- "$image_dir" 2>/dev/null || true
+    find "$dir" -mindepth 1 -maxdepth 2 -type d ! -perm 700 -exec chmod 700 {} + 2>/dev/null
+    find "$dir" -mindepth 1 -maxdepth 2 -type f ! -perm 600 -exec chmod 600 {} + 2>/dev/null
+    return 0
+}
 
 # -------------------------------------------------------------------- capture
 
@@ -49,7 +73,7 @@ emit_image() {
     # clipboard owner said it was.
     [[ $ext =~ ^[A-Za-z0-9.+-]+$ ]] || ext=bin
 
-    mkdir -p -- "$image_dir" || return 0
+    mkdir -p -m 700 -- "$image_dir" || return 0
     tmp=$(mktemp --tmpdir="$image_dir" .capture.XXXXXX) || return 0
     read_copy "$@" || return 0
 
@@ -246,7 +270,23 @@ paste() {
     wtype -M shift -k Insert -m shift 2>/dev/null || true
 }
 
+# ---------------------------------------------------------------------- clear
+
+# Forgetting the copy that is still on the clipboard has to take it off the
+# clipboard too: the shell snapshots the clipboard every time its watchers
+# start -- each config reload, each restart -- and would write it straight
+# back into the history it was just removed from.
+clear_selection() {
+    wl-copy --clear >/dev/null 2>&1 || true
+}
+
 case ${1:-} in
+init)
+    init "${2:-}"
+    ;;
+clear)
+    clear_selection
+    ;;
 capture)
     shift
     capture "$@"
@@ -258,7 +298,7 @@ paste | copy)
     paste "$@"
     ;;
 *)
-    echo "usage: clipboard.sh capture [text|image/<type>] | reap | paste|copy [--type <mime> --file <path>]" >&2
+    echo "usage: clipboard.sh init <dir> | clear | capture [text|image/<type>] | reap | paste|copy [--type <mime> --file <path>]" >&2
     exit 2
     ;;
 esac

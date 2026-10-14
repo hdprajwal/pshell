@@ -115,7 +115,7 @@ test("removeEntryAt removes one and ignores a bad index", () => {
 // ---------------------------------------------------------- orphanedImages
 
 test("orphanedImages names the files an edit stopped referencing", () => {
-    const dir = "/state/pshell/clipboard-images";
+    const dir = "/state/pshell/clipboard/images";
     const before = [image(dir + "/a.png"), image(dir + "/b.png"), text("t")];
     const after = [image(dir + "/b.png"), text("t")];
     assert.deepEqual(H.orphanedImages(before, after, dir), [dir + "/a.png"]);
@@ -123,13 +123,13 @@ test("orphanedImages names the files an edit stopped referencing", () => {
 });
 
 // The guard that matters. A path outside the shell's own directory -- from a
-// hand-edited clipboard.json, say -- is somebody's file, not a cache entry.
+// hand-edited history.json, say -- is somebody's file, not a cache entry.
 test("orphanedImages never names a file outside the image directory", () => {
-    const dir = "/state/pshell/clipboard-images";
+    const dir = "/state/pshell/clipboard/images";
     const before = [
         image("/home/u/photo.png"),
         image(dir + "/../notes.png"),
-        image("/state/pshell/clipboard-images-other/x.png"),
+        image("/state/pshell/clipboard/images-other/x.png"),
     ];
     assert.deepEqual(H.orphanedImages(before, [], dir), []);
     assert.deepEqual(H.orphanedImages([image("/a.png")], [], ""), []);

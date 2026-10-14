@@ -12,7 +12,7 @@
 // is no translation layer, and the image files an edit leaves unreferenced
 // are named so the shell can delete them.
 //
-// An entry is a plain serialisable object, written to clipboard.json as-is:
+// An entry is a plain serialisable object, written to history.json as-is:
 //   { type: "text",  text, time }
 //   { type: "image", path, mime, time }
 // `path` is the content-addressed copy capture wrote under the state
@@ -92,7 +92,7 @@ function clampLimit(limit) {
     return Math.max(0, Math.floor(n));
 }
 
-// clipboard.json's text into a history. Anything unreadable is an empty
+// history.json's text into a history. Anything unreadable is an empty
 // history rather than an exception: a corrupt file must not take the
 // watchers down with it, and the next copy rewrites it whole.
 function parseHistory(raw, limit) {
@@ -173,7 +173,7 @@ function removeEntryAt(history, index) {
 // nothing else would ever clean it up.
 //
 // The directory check is the guard, not a detail: a hand-edited
-// clipboard.json naming /home/you/photo.png must never get that file
+// history.json naming /home/you/photo.png must never get that file
 // deleted because its row was removed.
 function orphanedImages(before, after, imageDir) {
     var dir = String(imageDir || "");
