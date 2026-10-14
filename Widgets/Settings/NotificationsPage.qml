@@ -146,8 +146,9 @@ SettingsPage {
         }
     }
 
-    // Not a notification, but the other sound the shell makes on its own,
-    // and too small for a page of its own. Writes the `volumeTone` group.
+    // Not a notification, but the nearest thing to one: something the shell
+    // tells you on its own, by sound rather than a toast. Too small for a
+    // page of its own. Writes the `volumeTone` group.
     FormSection {
         title: "Volume tone"
         help: "A short click on the output once its volume stops changing, at the new level, so you hear how loud it is and which device will play. Silent when muted, at 0%, and when the output switches."
@@ -163,6 +164,9 @@ SettingsPage {
             width: parent.width
             label: "For the volume keys and other apps too"
             description: "Off, only the control centre and pshell audio sound."
+            // Inert, not hidden, while the tone is off; see ThemePage.
+            enabled: Config.volumeTone.enabled
+            opacity: Config.volumeTone.enabled ? 1 : 0.4
             checked: Config.volumeTone.keys
             onClicked: Config.set("volumeTone.keys", !Config.volumeTone.keys)
         }
