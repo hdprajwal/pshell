@@ -209,6 +209,12 @@ Singleton {
     // glyph for unrelated things is how a bar stops being readable.
     readonly property string keybinds: "keyboard_command_key"
 
+    // The update indicator's bar icon: an arrow coming down into a tray, the
+    // symbol Material uses for "a system update is waiting". Not `refresh`,
+    // which is this file's "fetch again" and is what right-clicking it does,
+    // and not `download`, which reads as a file on its way to ~/Downloads.
+    readonly property string updates: "system_update_alt"
+
     // The notification bell's three states: at rest, ringing (something
     // unread), and struck out for do-not-disturb. Named here rather than at
     // the call sites because the bar widget, the settings sidebar and the
