@@ -243,6 +243,21 @@ test("clipboard with a method calls that method instead", () => {
     assert.deepEqual(walkerCalls(box), []);
 });
 
+// Pins take the number history prints, the same index the panel's rows
+// carry, so the CLI passes it through untouched.
+test("clipboard pin, unpin and pinned reach the shell with their index", () => {
+    const box = sandbox();
+    run(box, ["clipboard", "pin", "3"]);
+    run(box, ["clipboard", "unpin", "0"]);
+    run(box, ["clipboard", "pinned"]);
+
+    assert.deepEqual(calls(box), [
+        ["-p", repo, "ipc", "call", "pshell.clipboard", "pin", "3"],
+        ["-p", repo, "ipc", "call", "pshell.clipboard", "unpin", "0"],
+        ["-p", repo, "ipc", "call", "pshell.clipboard", "pinned"],
+    ]);
+});
+
 test("both are documented, unlike the targets", () => {
     const box = sandbox();
     const out = run(box, ["help"]);

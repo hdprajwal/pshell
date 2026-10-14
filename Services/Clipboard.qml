@@ -31,9 +31,11 @@ Singleton {
 
     // --------------------------------------------------------------- state
 
-    // Newest first, capped at `limit`. Plain records, written to
-    // history.json as they are.
+    // Pinned entries first, then the rolling history newest first, capped
+    // at `limit` -- which counts only the rolling part. Plain records,
+    // written to history.json as they are.
     property var history: []
+    readonly property int pinnedCount: History.pinnedCount(root.history)
 
     readonly property int limit: Config.clipboard.historySize
     readonly property bool recording: limit > 0
@@ -73,19 +75,53 @@ Singleton {
     // every watcher start takes -- each config reload, each restart -- would
     // otherwise record it again: delete a password, save a QML file, and it
     // is back in the history file.
+    //
+    // The newest is the latest copied, not the first row: with pins at the
+    // front, the copy on the clipboard can be any of them. A pinned entry
+    // is forgotten the same way as any other, without asking -- the panel
+    // asks before it gets here.
     function remove(index) {
         const next = History.removeEntryAt(root.history, index);
         if (next.length === root.history.length)
             return;
-        if (index === 0)
+        if (index === History.newestIndex(root.history))
             Quickshell.execDetached([root.script, "clear"]);
         root._replace(next);
     }
 
+    // Forgets the rolling history and keeps what is pinned. The clipboard
+    // is only emptied when the copy on it is among what goes.
     function clear() {
-        if (root.history.length > 0)
+        const next = History.pinnedOnly(root.history);
+        if (next.length === root.history.length)
+            return;
+        const newest = root.history[History.newestIndex(root.history)];
+        if (!History.isPinned(newest))
             Quickshell.execDetached([root.script, "clear"]);
+        root._replace(next);
+    }
+
+    // Everything, pins too.
+    function clearAll() {
+        if (root.history.length === 0)
+            return;
+        Quickshell.execDetached([root.script, "clear"]);
         root._replace([]);
+    }
+
+    // Saved at once, like forgetting: a pin is somebody saying "keep this",
+    // and half a second is long enough to lose it to a reload.
+    function setPinned(index, pinned) {
+        const entry = root.history[index];
+        if (!entry || History.isPinned(entry) === !!pinned)
+            return;
+        root._replace(History.setPinned(root.history, index, pinned, root.limit));
+    }
+
+    function togglePin(index) {
+        const entry = root.history[index];
+        if (entry)
+            root.setPinned(index, !History.isPinned(entry));
     }
 
     // Every edit goes through here, so no edit can forget the two things
@@ -107,10 +143,15 @@ Singleton {
     }
 
     // Lowering the cap forgets the copies past it now, rather than at the
-    // next copy -- including all of them, at zero.
+    // next copy -- including every unpinned one, at zero. Pins stay: they
+    // were kept on purpose, one at a time, and a cap is about how much of
+    // the rest to remember.
     onLimitChanged: {
-        if (root._loaded && root.history.length > root.limit)
-            root._replace(root.history.slice(0, root.limit));
+        if (!root._loaded)
+            return;
+        const next = History.capHistory(root.history, root.limit);
+        if (next.length !== root.history.length)
+            root._replace(next);
     }
 
     // ------------------------------------------------------------- paste
@@ -262,8 +303,9 @@ Singleton {
         const full = History.parseHistory(raw, Infinity);
         root.history = full;
         root._loaded = true;
-        if (full.length > root.limit)
-            root._replace(full.slice(0, root.limit));
+        const capped = History.capHistory(full, root.limit);
+        if (capped.length !== full.length)
+            root._replace(capped);
 
         const carried = History.parseHistory(carry.pending, Infinity);
         carry.pending = "";
@@ -451,17 +493,24 @@ Singleton {
         // No confirmation, unlike Shift+Delete in the panel: the PowerMenu
         // rule. A script or a keybind asking to clear has already decided,
         // and a dialog nobody is looking at would leave the history there.
+        // Pinned entries stay, as they do in the panel; clearAll takes them
+        // too.
         function clear(): void {
             root.clear();
+        }
+
+        function clearAll(): void {
+            root.clearAll();
         }
 
         function count(): int {
             return root.history.length;
         }
 
-        // One line per entry, newest first, numbered with the index copy
-        // and remove take -- so `pshell clipboard history 20 | fzf` can pick
-        // one and hand its number back.
+        // One line per entry, pinned first and then newest first, numbered
+        // with the index copy, remove, pin and unpin take -- so
+        // `pshell clipboard history 20 | fzf` can pick one and hand its
+        // number back. The order is the panel's, row for row.
         function history(limit: int): string {
             const take = limit > 0 ? Math.min(limit, root.history.length) : root.history.length;
             const out = [];
@@ -478,6 +527,23 @@ Singleton {
 
         function remove(index: int): void {
             root.remove(index);
+        }
+
+        function pin(index: int): void {
+            root.setPinned(index, true);
+        }
+
+        function unpin(index: int): void {
+            root.setPinned(index, false);
+        }
+
+        // The pinned entries alone, numbered as history numbers them: they
+        // are its first lines, so the numbers are the same ones.
+        function pinned(): string {
+            const out = [];
+            for (var i = 0; i < root.pinnedCount; i++)
+                out.push(i + "\t" + History.previewText(History.cappedEntry(root.history[i])));
+            return out.join("\n");
         }
     }
 }
