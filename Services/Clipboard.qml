@@ -212,11 +212,18 @@ Singleton {
         historyFile.setText(JSON.stringify(root.history, null, 2) + "\n");
     }
 
+    // Read every entry, not just `limit` of them. A cap lowered while the
+    // shell was down -- or set to zero, which the README promises forgets
+    // everything -- would otherwise leave the rest of the file, and every
+    // image it names, on disk for good, since nothing would ever rewrite it.
     function _onLoaded(raw) {
         if (!root._prepared)
             return;
-        root.history = History.parseHistory(raw, root.limit);
+        const full = History.parseHistory(raw, Infinity);
+        root.history = full;
         root._loaded = true;
+        if (full.length > root.limit)
+            root._replace(full.slice(0, root.limit));
     }
 
     // FileView does not create parent directories, and the history's has to

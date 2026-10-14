@@ -95,8 +95,12 @@ function clampLimit(limit) {
 // history.json's text into a history. Anything unreadable is an empty
 // history rather than an exception: a corrupt file must not take the
 // watchers down with it, and the next copy rewrites it whole.
+//
+// A limit of Infinity reads every entry. The shell loads that way, so a file
+// holding more than the cap is noticed -- and cut down, images and all --
+// rather than quietly read short and left on disk as it was.
 function parseHistory(raw, limit) {
-    var max = clampLimit(limit);
+    var max = limit === Infinity ? Infinity : clampLimit(limit);
     var parsed;
     try {
         parsed = JSON.parse(String(raw || "[]"));

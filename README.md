@@ -881,7 +881,8 @@ just deleted would come straight back.
 ```
 
 Lowering `historySize` forgets the oldest copies past the new cap straight
-away. Zero stops the watchers and forgets everything.
+away, or at the next start if the shell was not running. Zero stops the
+watchers and forgets everything.
 
 You need `wl-clipboard` and `wtype`, plus `perl` (it decodes the UTF-16 some
 apps copy) and `setpriv` from util-linux, which most installs already have.
