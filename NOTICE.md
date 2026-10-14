@@ -13,6 +13,15 @@ They are vendored from the `quattro` branch at commit
 written against. Everything is byte-identical to that commit except the two
 files below, which makes updating them a copy rather than a merge.
 
+On top of that commit they carry one later upstream change: Omarchy's
+`b83d3df0840504299d3099ebf391eb8110527edd` ("Qualify shell palette references
+for Qt 6.12"), which imports `qs.Commons as Commons` and writes the palette as
+`Commons.Color`. Qt 6.12's `QtQuick` exports its own `Color` singleton, and in
+any file with an unversioned `import QtQuick` that one wins over `qs.Commons`,
+so `Color.popups` comes back undefined. Only that commit's hunks are applied,
+not the rest of what changed upstream in between, and each changed line is
+the same as upstream's. The modified files below take the same change.
+
 `Ui/BarIconButton.qml` is modified. Omarchy's fits exactly one Nerd Font
 glyph in a square canvas, so a widget wanting anything else -- several themed
 icons, an icon beside a label -- had to compute its own slot width and widen
