@@ -236,6 +236,21 @@ SettingsPage {
     }
 
     FormSection {
+        title: "Hourly forecast"
+        help: "How many hours the panel shows, starting with the hour it is now where the forecast is for. 0 hides the row. The hours come in the same fetch as everything else, so this costs no extra requests. Twelve- or twenty-four-hour follows the clock widget's format."
+
+        // The range is Config.weather.hourlyHours' own clamp, for the reason
+        // the interval field above gives.
+        NumberField {
+            label: "Hours"
+            from: 0
+            to: 24
+            value: Config.weather.hourlyHours
+            onModified: v => Config.set("weather.hourlyHours", v)
+        }
+    }
+
+    FormSection {
         title: "Right now"
         help: "What the last fetch came back with. This is where a place you just typed is confirmed -- the settings window is usually sitting on top of the bar that would otherwise show it."
 
