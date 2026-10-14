@@ -111,10 +111,21 @@ Singleton {
 
     // Saved at once, like forgetting: a pin is somebody saying "keep this",
     // and half a second is long enough to lose it to a reload.
+    //
+    // With recording off, nothing unpinned is kept, so unpinning is
+    // forgetting -- and goes through remove(), so the copy comes off the
+    // clipboard too if it is the newest. Left to the cap instead, it would
+    // be gone from the file but still on the clipboard, and the snapshot
+    // would record it again the moment historySize went back up. The panel
+    // asks before it gets here; IPC unpin does not, the clear() rule.
     function setPinned(index, pinned) {
         const entry = root.history[index];
         if (!entry || History.isPinned(entry) === !!pinned)
             return;
+        if (!pinned && !root.recording) {
+            root.remove(index);
+            return;
+        }
         root._replace(History.setPinned(root.history, index, pinned, root.limit));
     }
 
@@ -533,6 +544,9 @@ Singleton {
             root.setPinned(index, true);
         }
 
+        // With historySize 0 this forgets the entry, since nothing unpinned
+        // is kept then -- without asking, as remove does, and emptying the
+        // clipboard if it was the newest copy.
         function unpin(index: int): void {
             root.setPinned(index, false);
         }

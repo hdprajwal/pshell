@@ -50,9 +50,10 @@ PanelWindow {
     property string filter: ""
     property int selected: 0
     // "" when no question is up, "clear" for Shift+Delete, "forget" for
-    // Delete on a pinned entry.
+    // Delete on a pinned entry, "unpin" for Ctrl+P on one while recording is
+    // off -- when unpinning it is forgetting it.
     property string confirming: ""
-    // Which entry "forget" means, by what it is rather than where: a copy
+    // Which entry "forget" and "unpin" mean, by what it is rather than where: a copy
     // landing while the question is up can move it.
     property string forgetKey: ""
 
@@ -147,10 +148,18 @@ PanelWindow {
     // The cursor goes with the entry, which pinning moves to the end of the
     // pins and unpinning to the top of the rest -- otherwise Ctrl+P twice
     // would toggle two different entries.
+    //
+    // With historySize 0 an unpinned entry is not kept at all, so Ctrl+P on
+    // a pin asks first, as Delete does: it is the same loss by another key.
     function togglePin() {
         if (!overlay.current)
             return;
         const key = History.entryKey(Clipboard.history[overlay.current.index]);
+        if (overlay.current.pinned && !Clipboard.recording) {
+            overlay.forgetKey = key;
+            overlay.ask("unpin");
+            return;
+        }
         Clipboard.togglePin(overlay.current.index);
         const at = overlay.historyIndexOf(key);
         for (var i = 0; i < overlay.rows.length; i++) {
@@ -534,10 +543,12 @@ PanelWindow {
                 message: {
                     if (overlay.confirming === "forget")
                         return "Forget this pinned copy? It was pinned to keep it.";
+                    if (overlay.confirming === "unpin")
+                        return "Unpin and forget this copy? Clipboard history is off, so only pinned copies are kept.";
                     const rolling = Clipboard.history.length - Clipboard.pinnedCount;
                     return "Forget all " + rolling + " copies? Images saved with them are deleted too." + (Clipboard.pinnedCount > 0 ? " Pinned copies are kept." : "");
                 }
-                confirmText: overlay.confirming === "forget" ? "Forget" : "Forget all"
+                confirmText: overlay.confirming === "clear" ? "Forget all" : "Forget"
                 background: Commons.Color.menu.background
                 foreground: Commons.Color.menu.text
                 scrim: Commons.Color.menu.scrim
