@@ -6,6 +6,7 @@ import qs.Services
 // collision this directory shares with Toast.qml.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 
 // The toast layer: one window per screen, in the corner opposite the bar.
 // Shaped like Widgets/Wallpaper/Wallpaper.qml -- a Variants over the screens
@@ -181,7 +182,7 @@ Variants {
             width: parent.width
             visible: shownHere && stackWindow.overflow > 0
             text: "+" + stackWindow.overflow + " more"
-            color: Color.muted
+            color: Commons.Color.muted
             horizontalAlignment: Text.AlignRight
             rightPadding: Style.spacing.lg
             font.family: Style.font.family

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The shell every settings page sits in: a title, an error banner and a
@@ -36,7 +37,7 @@ Item {
 
         Text {
             text: page.title
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.heading
         }
@@ -45,7 +46,7 @@ Item {
             width: parent.width
             visible: page.subtitle !== ""
             text: page.subtitle
-            color: Color.muted
+            color: Commons.Color.muted
             wrapMode: Text.WordWrap
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -66,7 +67,7 @@ Item {
         height: page.error !== "" ? errorText.implicitHeight + Style.spacing.xxl : 0
         clip: true
         radius: Style.cornerRadius
-        color: Util.alpha(Color.urgent, 0.12)
+        color: Util.alpha(Commons.Color.urgent, 0.12)
         borderSpec: Border.none()
 
         Text {
@@ -74,7 +75,7 @@ Item {
             anchors.fill: parent
             anchors.margins: Style.spacing.lg
             text: page.error
-            color: Color.urgent
+            color: Commons.Color.urgent
             wrapMode: Text.WordWrap
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // A bar button that opens the settings window. Deliberately not a qs.Ui.Panel
@@ -31,7 +32,7 @@ Item {
         // "this is open". Accent is what the idle inhibitor already uses for
         // the same "switched on" meaning.
         active: SettingsApp.visible
-        activeColor: Color.accent
+        activeColor: Commons.Color.accent
 
         // Every button toggles. Right-click used to open straight onto the
         // Wi-Fi page; with one page there is nowhere else to land.

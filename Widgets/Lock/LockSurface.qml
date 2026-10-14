@@ -3,6 +3,7 @@
 import QtQml
 import Quickshell.Wayland
 import qs.Commons
+import qs.Commons as Commons
 import qs.Services
 
 // One locked screen.
@@ -17,7 +18,7 @@ import qs.Services
 WlSessionLockSurface {
     id: surface
 
-    color: Color.background
+    color: Commons.Color.background
 
     LockContent {
         anchors.fill: parent

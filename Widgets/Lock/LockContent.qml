@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Services
 import qs.Ui
 
@@ -86,7 +87,7 @@ Item {
 
             visible: Config.lock.showAvatar && text !== ""
             text: User.displayName
-            color: Color.lock.text
+            color: Commons.Color.lock.text
             font.family: Style.font.family
             font.pixelSize: Style.font.heading
         }
@@ -96,7 +97,7 @@ Item {
 
             visible: Config.lock.showClock
             text: Qt.formatDateTime(clock.date, Config.lock.clockFormat)
-            color: Color.lock.text
+            color: Commons.Color.lock.text
             font.family: Style.font.family
             // The largest thing on the screen, and the only one readable
             // from across a room -- which is the whole job of a lockscreen
@@ -110,7 +111,7 @@ Item {
 
             visible: Config.lock.showClock
             text: Qt.formatDateTime(clock.date, Config.lock.dateFormat)
-            color: Color.lock.placeholder
+            color: Commons.Color.lock.placeholder
             font.family: Style.font.family
             font.pixelSize: Style.font.title
         }
@@ -143,7 +144,7 @@ Item {
 
             visible: root.message !== ""
             text: root.attempts > 1 ? root.message + " (" + root.attempts + ")" : root.message
-            color: Color.lock.textError
+            color: Commons.Color.lock.textError
             font.family: Style.font.family
             font.pixelSize: Style.font.body
         }
@@ -160,14 +161,14 @@ Item {
         width: badge.implicitWidth + Style.spacing.huge * 2
         height: badge.implicitHeight + Style.spacing.xxl
         radius: Style.cornerRadius
-        color: Color.lock.textError
+        color: Commons.Color.lock.textError
 
         Text {
             id: badge
 
             anchors.centerIn: parent
             text: "PREVIEW - Esc to close"
-            color: Color.background
+            color: Commons.Color.background
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             font.bold: true

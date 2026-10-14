@@ -6,6 +6,7 @@ import qs.Services
 // answer Widgets/Weather and Widgets/Notifications give.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The bar's power button and the five session actions behind it.
@@ -166,7 +167,7 @@ Panel {
 
                         width: column.width
                         implicitHeight: Math.round(Style.font.body * 2.4)
-                        foreground: Color.popups.text
+                        foreground: Commons.Color.popups.text
                         hasCursor: root.cursorActive && root.cursorIndex === index
 
                         Row {
@@ -182,13 +183,13 @@ Panel {
                                 // Red on the three that end something, so the
                                 // destructive half of the menu is obvious
                                 // before the dialog says it in words.
-                                color: row.modelData.confirms ? Color.urgent : Color.popups.text
+                                color: row.modelData.confirms ? Commons.Color.urgent : Commons.Color.popups.text
                             }
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: row.modelData.label
-                                color: Color.popups.text
+                                color: Commons.Color.popups.text
                                 font.family: Style.font.family
                                 font.pixelSize: Style.font.body
                             }
@@ -214,8 +215,8 @@ Panel {
                 id: confirm
 
                 anchors.fill: parent
-                background: Color.popups.background
-                foreground: Color.popups.text
+                background: Commons.Color.popups.background
+                foreground: Commons.Color.popups.text
                 confirmText: Services.PowerMenu.actionFor(root.pendingId) ? Services.PowerMenu.actionFor(root.pendingId).label : "Confirm"
 
                 Keys.onPressed: function (event) {

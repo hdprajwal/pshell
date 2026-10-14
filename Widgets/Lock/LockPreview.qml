@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Services
 
 // The lockscreen in an ordinary window, so it can be worked on.
@@ -17,7 +18,7 @@ FloatingWindow {
     id: win
 
     title: "pshell lockscreen preview"
-    color: Color.background
+    color: Commons.Color.background
     // Not bound to Lock.previewing: the LazyLoader holding this window is
     // already bound to it, so this only exists while a preview is wanted.
     visible: true

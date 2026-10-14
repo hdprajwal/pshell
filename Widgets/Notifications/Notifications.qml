@@ -4,6 +4,7 @@ import qs.Services
 // named Notifications that shadows it. Toast.qml explains the collision.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../../Services/NotificationHistory.js" as History
 
@@ -88,7 +89,7 @@ Panel {
         // silence" matters more than "there is something waiting", and the
         // count label still says the second thing.
         iconName: Services.Notifications.dnd ? Glyphs.notificationsOff : (root.unread > 0 ? Glyphs.notificationsActive : Glyphs.notifications)
-        iconColor: root.unread > 0 && !Services.Notifications.dnd ? Color.accent : Color.foreground
+        iconColor: root.unread > 0 && !Services.Notifications.dnd ? Commons.Color.accent : Commons.Color.foreground
         label: root.unread > 0 && !vertical ? String(root.unread) : ""
 
         onPressed: b => {
@@ -141,7 +142,7 @@ Panel {
                     bordered: true
                     visible: root.groups.length > 0
                     fontSize: Style.font.bodySmall
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                     onClicked: Services.Notifications.clearHistory()
                 }
 
@@ -154,7 +155,7 @@ Panel {
                     width: parent.width
                     visible: root.groups.length === 0
                     text: "No notifications. New ones land here as they arrive."
-                    color: Color.muted
+                    color: Commons.Color.muted
                     wrapMode: Text.WordWrap
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
@@ -202,7 +203,7 @@ Panel {
                                             anchors.verticalCenter: parent.verticalCenter
                                             name: Glyphs.expandMore
                                             size: Style.font.body
-                                            color: Color.muted
+                                            color: Commons.Color.muted
                                             // Pointing right while folded, down while open --
                                             // the file-manager convention, animated because it
                                             // is a state change.
@@ -218,7 +219,7 @@ Panel {
                                         Text {
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: group.modelData.appName + "  (" + group.modelData.entries.length + ")"
-                                            color: Color.popups.text
+                                            color: Commons.Color.popups.text
                                             font.family: Style.font.family
                                             font.pixelSize: Style.font.body
                                             font.bold: true
@@ -230,7 +231,7 @@ Panel {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: "Clear"
                                         fontSize: Style.font.caption
-                                        foreground: Color.muted
+                                        foreground: Commons.Color.muted
                                         onClicked: Services.Notifications.clearApp(group.modelData.key)
                                     }
 

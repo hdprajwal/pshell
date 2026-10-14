@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Services.UPower
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Panel {
@@ -202,7 +203,7 @@ Panel {
                         anchors.verticalCenter: parent.verticalCenter
                         iconSource: root.themedIcon
                         size: Style.font.display
-                        color: root.low ? Color.urgent : Color.popups.text
+                        color: root.low ? Commons.Color.urgent : Commons.Color.popups.text
                     }
 
                     Column {
@@ -217,7 +218,7 @@ Panel {
                         Text {
                             width: parent.width
                             text: "Battery"
-                            color: Color.popups.text
+                            color: Commons.Color.popups.text
                             font.family: Style.font.family
                             font.pixelSize: Style.font.title
                             font.bold: true
@@ -227,7 +228,7 @@ Panel {
                         Text {
                             width: parent.width
                             text: root.stateLabel.toUpperCase()
-                            color: Color.muted
+                            color: Commons.Color.muted
                             font.family: Style.font.family
                             font.pixelSize: Style.font.caption
                             font.bold: true
@@ -241,7 +242,7 @@ Panel {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.percent + "%"
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                         font.family: Style.font.family
                         font.pixelSize: Style.font.displayLarge
                         font.bold: true
@@ -257,7 +258,7 @@ Panel {
                     Text {
                         visible: root.powerLabel !== ""
                         text: root.powerLabel
-                        color: Color.accent
+                        color: Commons.Color.accent
                         font.family: Style.font.family
                         font.pixelSize: Style.font.bodySmall
                     }
@@ -265,7 +266,7 @@ Panel {
                     Text {
                         visible: root.timeLabel !== ""
                         text: root.timeLabel
-                        color: Color.muted
+                        color: Commons.Color.muted
                         font.family: Style.font.family
                         font.pixelSize: Style.font.bodySmall
                     }
@@ -304,7 +305,7 @@ Panel {
                             width: parent.cellWidth
                             height: Style.space(64)
                             radius: Style.cornerRadius
-                            color: Util.alpha(Color.popups.text, 0.05)
+                            color: Util.alpha(Commons.Color.popups.text, 0.05)
 
                             Column {
                                 anchors.centerIn: parent
@@ -313,7 +314,7 @@ Panel {
                                 Text {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: parent.parent.modelData.label
-                                    color: Color.muted
+                                    color: Commons.Color.muted
                                     font.family: Style.font.family
                                     font.pixelSize: Style.font.bodySmall
                                 }
@@ -321,7 +322,7 @@ Panel {
                                 Text {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: parent.parent.modelData.value
-                                    color: parent.parent.modelData.warn ? Color.urgent : Color.popups.text
+                                    color: parent.parent.modelData.warn ? Commons.Color.urgent : Commons.Color.popups.text
                                     font.family: Style.font.family
                                     font.pixelSize: Style.font.subtitle
                                     font.bold: true
@@ -389,7 +390,7 @@ Panel {
                             return "";
                         }
                     }
-                    color: Color.urgent
+                    color: Commons.Color.urgent
                     font.family: Style.font.family
                     font.pixelSize: Style.font.bodySmall
                     wrapMode: Text.WordWrap

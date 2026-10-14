@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // One usage window: how much of it is gone, which window it is, a meter, and
@@ -27,7 +28,7 @@ Column {
     readonly property bool known: fraction >= 0
     readonly property int percent: Math.round(fraction * 100)
     readonly property bool warn: known && percent >= root.warnThreshold
-    readonly property color ink: warn ? Color.urgent : Color.popups.text
+    readonly property color ink: warn ? Commons.Color.urgent : Commons.Color.popups.text
 
     readonly property string resetText: {
         if (!limit)
@@ -48,7 +49,7 @@ Column {
             anchors.left: parent.left
             anchors.top: parent.top
             text: root.known ? root.percent + "%" : "—"
-            color: root.known ? root.ink : Color.muted
+            color: root.known ? root.ink : Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.subtitle
         }
@@ -60,7 +61,7 @@ Column {
             width: Math.max(0, parent.width - reading.implicitWidth - Style.spacing.md)
             horizontalAlignment: Text.AlignRight
             text: AgentUsage.windowLabel(root.limit)
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
             elide: Text.ElideRight
@@ -78,7 +79,7 @@ Column {
             width: Math.round(track.width * Math.max(0, root.fraction))
             height: parent.height
             radius: parent.radius
-            color: root.warn ? Color.urgent : Color.accent
+            color: root.warn ? Commons.Color.urgent : Commons.Color.accent
 
             Behavior on width {
                 NumberAnimation {
@@ -92,7 +93,7 @@ Column {
     Text {
         width: parent.width
         text: root.resetText
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.caption
         elide: Text.ElideRight

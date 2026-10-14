@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 SettingsPage {
@@ -172,7 +173,7 @@ emit memory "$(free -h --si 2>/dev/null | awk \'/^Mem:/{print $3" / "$2}\')"'
         Text {
             width: Style.space(140)
             text: aboutRow.label
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.body
         }
@@ -180,7 +181,7 @@ emit memory "$(free -h --si 2>/dev/null | awk \'/^Mem:/{print $3" / "$2}\')"'
         Text {
             width: aboutRow.width - Style.space(140) - aboutRow.spacing
             text: aboutRow.value
-            color: Color.foreground
+            color: Commons.Color.foreground
             elide: Text.ElideRight
             font.family: Style.font.family
             font.pixelSize: Style.font.body

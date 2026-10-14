@@ -6,6 +6,7 @@ import qs.Services
 // Widgets/Notifications gives, for the same reason.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The bar's weather: an icon and a temperature, with the detail behind them.
@@ -118,12 +119,12 @@ Panel {
                 spacing: Style.spacing.xxl
 
                 PanelHero {
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                     iconComponent: Component {
                         MaterialIcon {
                             name: root.summary.icon
                             size: Style.font.display
-                            color: Color.popups.text
+                            color: Commons.Color.popups.text
                         }
                     }
                     title: root.summary.temp
@@ -134,7 +135,7 @@ Panel {
 
                     trailingControl: Component {
                         PanelActionButton {
-                            foreground: Color.popups.text
+                            foreground: Commons.Color.popups.text
                             tooltipText: "Refresh"
                             onClicked: Services.Weather.refresh()
 
@@ -142,7 +143,7 @@ Panel {
                                 anchors.centerIn: parent
                                 name: Glyphs.refresh
                                 size: Style.font.icon
-                                color: Services.Weather.busy ? Color.accent : Color.muted
+                                color: Services.Weather.busy ? Commons.Color.accent : Commons.Color.muted
                             }
                         }
                     }
@@ -159,7 +160,7 @@ Panel {
                         anchors.verticalCenter: parent.verticalCenter
                         name: Glyphs.place
                         size: Style.font.caption
-                        color: Color.muted
+                        color: Commons.Color.muted
                     }
 
                     Text {
@@ -170,14 +171,14 @@ Panel {
                             const where = Services.Weather.place !== "" ? Services.Weather.place : "Nowhere in particular";
                             return root.waiting ? where : where + " · updated " + Services.Weather.age;
                         }
-                        color: Color.muted
+                        color: Commons.Color.muted
                         font.family: Style.font.family
                         font.pixelSize: Style.font.caption
                     }
                 }
 
                 PanelSeparator {
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                 }
 
                 // Feels like, humidity, wind. Three rows rather than three
@@ -221,7 +222,7 @@ Panel {
                                 anchors.verticalCenter: parent.verticalCenter
                                 name: statRow.modelData.icon
                                 size: Style.font.icon
-                                color: Color.muted
+                                color: Commons.Color.muted
                             }
 
                             Text {
@@ -229,7 +230,7 @@ Panel {
 
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: statRow.modelData.label
-                                color: Color.popups.text
+                                color: Commons.Color.popups.text
                                 opacity: 0.75
                                 font.family: Style.font.family
                                 font.pixelSize: Style.font.body
@@ -248,7 +249,7 @@ Panel {
 
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: statRow.modelData.value
-                                color: Color.popups.text
+                                color: Commons.Color.popups.text
                                 font.family: Style.font.family
                                 font.pixelSize: Style.font.body
                                 font.bold: true
@@ -258,7 +259,7 @@ Panel {
                 }
 
                 PanelSeparator {
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                 }
 
                 // The three days Open-Meteo was asked for. Today is one of
@@ -272,7 +273,7 @@ Panel {
 
                     PanelSectionHeader {
                         text: "Next days"
-                        foreground: Color.popups.text
+                        foreground: Commons.Color.popups.text
                     }
 
                     Row {
@@ -291,7 +292,7 @@ Panel {
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.name
-                                    color: Color.popups.text
+                                    color: Commons.Color.popups.text
                                     opacity: 0.75
                                     font.family: Style.font.family
                                     font.pixelSize: Style.font.caption
@@ -302,14 +303,14 @@ Panel {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     name: modelData.icon
                                     size: Style.font.iconLarge
-                                    color: Color.popups.text
+                                    color: Commons.Color.popups.text
                                 }
 
                                 Text {
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.high
-                                    color: Color.popups.text
+                                    color: Commons.Color.popups.text
                                     font.family: Style.font.family
                                     font.pixelSize: Style.font.bodySmall
                                     font.bold: true
@@ -319,7 +320,7 @@ Panel {
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.low
-                                    color: Color.muted
+                                    color: Commons.Color.muted
                                     font.family: Style.font.family
                                     font.pixelSize: Style.font.bodySmall
                                 }
@@ -337,7 +338,7 @@ Panel {
                     width: parent.width
                     wrapMode: Text.Wrap
                     text: Services.Weather.lastError
-                    color: Color.urgent
+                    color: Commons.Color.urgent
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                 }

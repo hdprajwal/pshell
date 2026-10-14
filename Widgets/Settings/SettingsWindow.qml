@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // A plain xdg-toplevel, not a layer-shell surface. The settings window is an
@@ -13,7 +14,7 @@ FloatingWindow {
     id: win
 
     title: "pshell settings"
-    color: Color.background
+    color: Commons.Color.background
     visible: SettingsApp.visible
 
     // Prefs remembers the last size; zero means never opened.

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // One machine on the tailnet.
@@ -43,7 +44,7 @@ Rectangle {
     radius: Style.cornerRadius
     color: hover.containsMouse ? Style.hoverFill : Style.normalFill
     border.width: 1
-    border.color: Util.alpha(Color.popups.text, 0.08)
+    border.color: Util.alpha(Commons.Color.popups.text, 0.08)
 
     MouseArea {
         id: hover
@@ -71,7 +72,7 @@ Rectangle {
                 width: Math.round(Style.font.body * 0.6)
                 height: width
                 radius: width / 2
-                color: root.online ? root.onlineColor : Color.muted
+                color: root.online ? root.onlineColor : Commons.Color.muted
                 opacity: root.online ? 1 : 0.6
             }
 
@@ -81,7 +82,7 @@ Rectangle {
                 anchors.leftMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.hostName
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 opacity: root.online ? 1 : 0.6
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
@@ -92,7 +93,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.isSelf || root.owner !== ""
                 text: root.isSelf ? "This device" : root.owner
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Math.round(Style.font.body * 0.85)
                 elide: Text.ElideRight
@@ -111,7 +112,7 @@ Rectangle {
                 anchors.leftMargin: Math.round(Style.font.body * 0.6) + 8
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.ip
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Math.round(Style.font.body * 0.9)
             }
@@ -123,7 +124,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.ip !== ""
-                foreground: Color.popups.text
+                foreground: Commons.Color.popups.text
                 tooltipText: "Copy address"
                 onClicked: {
                     root.copyRequested(root.ip);
@@ -134,7 +135,7 @@ Rectangle {
                     anchors.centerIn: parent
                     iconSource: Icons.first(["edit-copy-symbolic", "edit-copy"])
                     size: Style.font.icon
-                    color: copied.running ? root.onlineColor : Color.muted
+                    color: copied.running ? root.onlineColor : Commons.Color.muted
                 }
             }
 
@@ -159,7 +160,7 @@ Rectangle {
                 return parts.join("  •  ");
             }
             leftPadding: Math.round(Style.font.body * 0.6) + 8
-            color: Color.muted
+            color: Commons.Color.muted
             opacity: 0.8
             font.family: Style.font.family
             font.pixelSize: Math.round(Style.font.body * 0.85)

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Tailscale state, read straight off the CLI.
@@ -278,7 +279,7 @@ Panel {
         bar: root.bar
         iconSource: Qt.resolvedUrl("tailscale.svg")
         label: root.showLabel ? root.selfName : ""
-        iconColor: root.failed ? Color.urgent : (root.running ? Color.foreground : Color.muted)
+        iconColor: root.failed ? Commons.Color.urgent : (root.running ? Commons.Color.foreground : Commons.Color.muted)
 
         onPressed: b => root.press(b)
     }
@@ -317,12 +318,12 @@ Panel {
                 // matters.
                 PanelHero {
                     width: column.panelWidth
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                     iconComponent: Component {
                         BarIcon {
                             iconSource: Qt.resolvedUrl("tailscale.svg")
                             size: Style.font.display
-                            color: root.failed ? Color.urgent : (root.running ? Color.popups.text : Color.muted)
+                            color: root.failed ? Commons.Color.urgent : (root.running ? Commons.Color.popups.text : Commons.Color.muted)
                         }
                     }
                     title: {
@@ -336,7 +337,7 @@ Panel {
                     trailingControl: Component {
                         Button {
                             text: root.running ? "Disconnect" : "Connect"
-                            foreground: Color.popups.text
+                            foreground: Commons.Color.popups.text
                             bordered: true
                             onClicked: root.running ? root.disconnect() : root.connect()
                         }
@@ -345,7 +346,7 @@ Panel {
 
                 PanelSeparator {
                     width: column.panelWidth
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                 }
 
                 // Exit node. A dropdown rather than a floating menu list of
@@ -358,15 +359,15 @@ Panel {
 
                     PanelSectionHeader {
                         text: "Exit node"
-                        foreground: Color.popups.text
+                        foreground: Commons.Color.popups.text
                     }
 
                     SearchableDropdown {
                         id: exitDropdown
                         width: column.panelWidth
                         showLabel: false
-                        foreground: Color.popups.text
-                        background: Color.popups.background
+                        foreground: Commons.Color.popups.text
+                        background: Commons.Color.popups.background
                         options: root.exitNodeOptions
                         value: root.activeExitValue
                         placeholderText: "Search exit nodes..."
@@ -377,7 +378,7 @@ Panel {
 
                 PanelSeparator {
                     width: column.panelWidth
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                 }
 
                 // Search, filters, and the device list. A manual refresh sits
@@ -390,7 +391,7 @@ Panel {
 
                     PanelSectionHeader {
                         text: "Devices"
-                        foreground: Color.popups.text
+                        foreground: Commons.Color.popups.text
                     }
 
                     Row {
@@ -402,7 +403,7 @@ Panel {
                             width: column.panelWidth - refreshButton.width - parent.spacing
                             text: root.query
                             placeholderText: "Search devices..."
-                            foreground: Color.popups.text
+                            foreground: Commons.Color.popups.text
 
                             onTextChanged: root.query = text
                             // Escape clears and hands focus back, so a
@@ -416,7 +417,7 @@ Panel {
 
                         PanelActionButton {
                             id: refreshButton
-                            foreground: Color.popups.text
+                            foreground: Commons.Color.popups.text
                             tooltipText: "Refresh"
                             onClicked: root.refresh()
 
@@ -424,7 +425,7 @@ Panel {
                                 anchors.centerIn: parent
                                 iconSource: Icons.first(["view-refresh-symbolic", "view-refresh"])
                                 size: Style.font.icon
-                                color: poll.running ? Color.accent : Color.muted
+                                color: poll.running ? Commons.Color.accent : Commons.Color.muted
                             }
                         }
                     }
@@ -478,7 +479,7 @@ Panel {
                         Text {
                             visible: root.filtered.length === 0
                             text: root.query.trim() === "" ? "Nothing matches this filter" : "No device matches “" + root.query.trim() + "”"
-                            color: Color.muted
+                            color: Commons.Color.muted
                             font.family: Style.font.family
                             font.pixelSize: Style.font.body
                         }
@@ -486,7 +487,7 @@ Panel {
                         Text {
                             visible: root.filtered.length > root.maxNodes
                             text: "+" + (root.filtered.length - root.maxNodes) + " more"
-                            color: Color.muted
+                            color: Commons.Color.muted
                             font.family: Style.font.family
                             font.pixelSize: Math.round(Style.font.body * 0.85)
                         }
@@ -500,7 +501,7 @@ Panel {
 
                     PanelSectionHeader {
                         text: "Health"
-                        foreground: Color.urgent
+                        foreground: Commons.Color.urgent
                     }
 
                     Repeater {
@@ -516,14 +517,14 @@ Panel {
                                 anchors.top: parent.top
                                 iconSource: Icons.first(["dialog-warning-symbolic", "dialog-warning"])
                                 size: Style.font.body
-                                color: Color.urgent
+                                color: Commons.Color.urgent
                             }
 
                             Text {
                                 width: column.panelWidth - Style.font.body - Style.spacing.sm
                                 wrapMode: Text.Wrap
                                 text: parent.modelData
-                                color: Color.urgent
+                                color: Commons.Color.urgent
                                 opacity: 0.85
                                 font.family: Style.font.family
                                 font.pixelSize: Math.round(Style.font.body * 0.8)
@@ -537,7 +538,7 @@ Panel {
                     width: column.panelWidth
                     wrapMode: Text.Wrap
                     text: root.lastError
-                    color: Color.urgent
+                    color: Commons.Color.urgent
                     font.family: Style.font.family
                     font.pixelSize: Math.round(Style.font.body * 0.85)
                 }

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The bar's toggle for the idle inhibitor. Only the view lives here: the
@@ -19,7 +20,7 @@ BarIndicator {
     inactiveTooltipText: "Keep the screen awake"
 
     iconSource: Icons.first(IdleInhibit.inhibited ? ["my-caffeine-on-symbolic", "caffeine-cup-full", "preferences-desktop-screensaver-symbolic"] : ["my-caffeine-off-symbolic", "caffeine-cup-empty", "preferences-desktop-screensaver-symbolic"])
-    iconColor: IdleInhibit.inhibited ? Color.accent : Color.foreground
+    iconColor: IdleInhibit.inhibited ? Commons.Color.accent : Commons.Color.foreground
 
     onPressed: b => {
         if (b === Qt.LeftButton)

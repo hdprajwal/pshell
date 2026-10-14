@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // One provider in full: who it is, what it has left, a week of history, and
@@ -39,12 +40,12 @@ Column {
     spacing: Style.spacing.xxl
 
     PanelSeparator {
-        foreground: Color.popups.text
+        foreground: Commons.Color.popups.text
     }
 
     PanelHero {
         width: parent.width
-        foreground: Color.popups.text
+        foreground: Commons.Color.popups.text
         title: root.record ? String(root.record.name || root.record.id || "") : ""
         meta: root.record ? String(root.record.tierLabel || "") : ""
         detail: root.record && root.record.ready === false ? "offline" : ""
@@ -63,7 +64,7 @@ Column {
         spacing: Style.spacing.md
 
         PanelSeparator {
-            foreground: Color.popups.text
+            foreground: Commons.Color.popups.text
         }
 
         Row {
@@ -94,7 +95,7 @@ Column {
             width: parent.width
             visible: root.limits.length === 0
             text: "No usage window reported"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.body
             wrapMode: Text.WordWrap
@@ -108,12 +109,12 @@ Column {
         visible: root.days.length > 0
 
         PanelSeparator {
-            foreground: Color.popups.text
+            foreground: Commons.Color.popups.text
         }
 
         PanelSectionHeader {
             text: "LAST 7 DAYS"
-            foreground: Color.popups.text
+            foreground: Commons.Color.popups.text
         }
 
         UsageChart {
@@ -129,7 +130,7 @@ Column {
         visible: root.models.length > 0
 
         PanelSeparator {
-            foreground: Color.popups.text
+            foreground: Commons.Color.popups.text
         }
 
         PanelSectionHeader {
@@ -137,7 +138,7 @@ Column {
             // and only `todayTotalTokens` is scoped to the day, so saying
             // "today" here -- as the mockup did -- would be wrong.
             text: "BY MODEL"
-            foreground: Color.popups.text
+            foreground: Commons.Color.popups.text
         }
 
         Repeater {
@@ -165,7 +166,7 @@ Column {
                         width: Math.round(track.width * (root.modelPeak > 0 ? modelData.total / root.modelPeak : 0))
                         height: parent.height
                         radius: parent.radius
-                        color: Color.accent
+                        color: Commons.Color.accent
                     }
                 }
             }
@@ -178,7 +179,7 @@ Column {
         spacing: Style.spacing.md
 
         PanelSeparator {
-            foreground: Color.popups.text
+            foreground: Commons.Color.popups.text
         }
 
         StatRow {
@@ -196,7 +197,7 @@ Column {
         width: parent.width
         visible: root.footnote !== ""
         text: root.footnote
-        color: root.troubled ? Color.urgent : Color.muted
+        color: root.troubled ? Commons.Color.urgent : Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.caption
         wrapMode: Text.WordWrap

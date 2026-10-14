@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // The password input, and the only control on the lockscreen.
 //
@@ -44,7 +45,7 @@ Column {
     // Picked as whichever of the palette's two colours is darker rather than
     // hardcoded: in a dark theme that is the background, in a light theme it
     // is the foreground, and the frost is white either way.
-    readonly property color inkOnFrost: Color.background.hslLightness < Color.foreground.hslLightness ? Color.background : Color.foreground
+    readonly property color inkOnFrost: Commons.Color.background.hslLightness < Commons.Color.foreground.hslLightness ? Commons.Color.background : Commons.Color.foreground
 
     signal submitted(string password)
     signal edited
@@ -78,7 +79,7 @@ Column {
         // starts typing over it, and only clears once the parent says so.
         // Idle keeps the frost's own edge -- a themed border here would put
         // an accent line around a surface that is deliberately colourless.
-        border.color: root.failed ? Color.lock.borderError : (root.busy ? Color.lock.borderActive : root.frostBorder)
+        border.color: root.failed ? Commons.Color.lock.borderError : (root.busy ? Commons.Color.lock.borderActive : root.frostBorder)
         border.width: 2
 
         Behavior on border.color {
@@ -105,7 +106,7 @@ Column {
             passwordMaskDelay: 500
 
             color: root.inkOnFrost
-            selectionColor: Color.lock.selection
+            selectionColor: Commons.Color.lock.selection
             selectedTextColor: root.inkOnFrost
             font.family: Style.font.family
             font.pixelSize: Style.font.title
@@ -152,7 +153,7 @@ Column {
         width: root.fieldWidth
         visible: root.capsLock
         text: "Caps Lock is on"
-        color: Color.lock.textError
+        color: Commons.Color.lock.textError
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
         horizontalAlignment: Text.AlignHCenter

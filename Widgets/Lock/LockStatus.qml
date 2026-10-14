@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Networking
 import Quickshell.Services.UPower
 import qs.Commons
+import qs.Commons as Commons
 import qs.Services
 import qs.Ui
 
@@ -75,13 +76,13 @@ Row {
             anchors.verticalCenter: parent.verticalCenter
             name: entry.glyph
             size: Style.font.icon
-            color: Color.lock.text
+            color: Commons.Color.lock.text
         }
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: entry.label
-            color: Color.lock.text
+            color: Commons.Color.lock.text
             font.family: Style.font.family
             font.pixelSize: Style.font.body
         }

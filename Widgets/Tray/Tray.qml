@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Services.SystemTray
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 BarWidget {
@@ -90,7 +91,7 @@ BarWidget {
                             visible: parent.source !== ""
                             iconSource: parent.source
                             size: root.iconSize
-                            color: Color.foreground
+                            color: Commons.Color.foreground
                         }
 
                         // An icon that fails to resolve still needs to be
@@ -103,7 +104,7 @@ BarWidget {
                                 const id = entry.modelData.id || "";
                                 return id === "" ? "?" : id.charAt(0).toUpperCase();
                             }
-                            color: Color.foreground
+                            color: Commons.Color.foreground
                             font.family: Style.font.family
                             font.pixelSize: Math.round(root.iconSize * 0.7)
                         }

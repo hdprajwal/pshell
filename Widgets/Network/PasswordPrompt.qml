@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Password entry for a secured network pshell has no saved secret for.
@@ -67,7 +68,7 @@ Item {
             Text {
                 width: parent.width
                 text: "Connect to " + root.ssid
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 font.family: Style.font.family
                 font.pixelSize: Style.font.subtitle
                 elide: Text.ElideRight
@@ -77,7 +78,7 @@ Item {
                 width: parent.width
                 visible: root.message !== ""
                 text: root.message + ". The saved password may be wrong."
-                color: Color.urgent
+                color: Commons.Color.urgent
                 wrapMode: Text.WordWrap
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
@@ -116,7 +117,7 @@ Item {
                         anchors.centerIn: parent
                         iconSource: Icons.first(field.password ? ["view-conceal-symbolic", "view-private-symbolic", "view-hidden-symbolic"] : ["view-reveal-symbolic", "view-visible-symbolic"])
                         size: Math.round(Style.font.body * 1.1)
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                     }
 
                     MouseArea {

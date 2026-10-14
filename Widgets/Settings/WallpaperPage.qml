@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The wallpaper picker: every image in Config.wallpaperDir as a thumbnail,
@@ -62,7 +63,7 @@ SettingsPage {
         width: parent.width
         visible: Wallpaper.entries.length === 0
         text: Config.wallpaperDir + " holds no images. Drop wallpapers there and they appear here."
-        color: Color.muted
+        color: Commons.Color.muted
         wrapMode: Text.WordWrap
         font.family: Style.font.family
         font.pixelSize: Style.font.body
@@ -115,7 +116,7 @@ SettingsPage {
                     anchors.fill: parent
                     color: "transparent"
                     radius: Style.cornerRadius
-                    borderSpec: thumb.current ? Border.flat(Color.accent, 2) : (hover.containsMouse ? Border.flat(Color.foreground, 1) : Border.none())
+                    borderSpec: thumb.current ? Border.flat(Commons.Color.accent, 2) : (hover.containsMouse ? Border.flat(Commons.Color.foreground, 1) : Border.none())
                 }
 
                 MouseArea {

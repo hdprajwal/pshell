@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The page list. One level and no filter field: both existed to hold the four
@@ -112,13 +113,13 @@ Item {
                 name: row.icon
                 filled: row.current
                 size: Math.round(Style.font.body * 1.1)
-                color: row.current ? Color.accent : Color.foreground
+                color: row.current ? Commons.Color.accent : Commons.Color.foreground
             }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: row.label
-                color: row.current ? Color.accent : Color.foreground
+                color: row.current ? Commons.Color.accent : Commons.Color.foreground
                 elide: Text.ElideRight
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body

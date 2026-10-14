@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The menu a tray icon opens on right click, drawn by pshell rather than
@@ -26,8 +27,8 @@ PopupCard {
 
     anchorItem: popup.activeAnchor
     padding: Style.spacing.popupPadding
-    backgroundColor: Color.menu.background
-    borderColor: Color.menu.border
+    backgroundColor: Commons.Color.menu.background
+    borderColor: Commons.Color.menu.border
     contentWidth: popup.fittedContentWidth(popup.menuWidth)
     contentHeight: popup.fittedContentHeight(column.implicitHeight, popup.maxHeight)
 
@@ -120,7 +121,7 @@ PopupCard {
                     anchors.leftMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
                     text: "‹  " + (stack.count > 0 ? stack.get(stack.count - 1).label : "")
-                    color: Color.menu.text
+                    color: Commons.Color.menu.text
                     opacity: 0.7
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
@@ -137,7 +138,7 @@ PopupCard {
                 width: popup.menuWidth
                 height: 1
                 visible: stack.count > 0
-                color: Util.alpha(Color.menu.border, 0.5)
+                color: Util.alpha(Commons.Color.menu.border, 0.5)
             }
 
             Repeater {
@@ -155,11 +156,11 @@ PopupCard {
                     radius: separator ? 0 : Math.max(2, Style.cornerRadius)
                     color: {
                         if (separator)
-                            return Util.alpha(Color.menu.border, 0.5);
-                        return hover.containsMouse && usable ? Color.menu.selectedBackground : "transparent";
+                            return Util.alpha(Commons.Color.menu.border, 0.5);
+                        return hover.containsMouse && usable ? Commons.Color.menu.selectedBackground : "transparent";
                     }
                     border.width: !separator && hover.containsMouse && usable ? Style.spacing.hairline : 0
-                    border.color: Color.menu.selectedBorder
+                    border.color: Commons.Color.menu.selectedBorder
 
                     MouseArea {
                         id: hover
@@ -193,14 +194,14 @@ PopupCard {
                             radius: row.modelData && row.modelData.buttonType === 2 ? width / 2 : 2
                             color: "transparent"
                             border.width: 1
-                            border.color: Util.alpha(Color.menu.text, 0.4)
+                            border.color: Util.alpha(Commons.Color.menu.text, 0.4)
 
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: parent.width - 6
                                 height: parent.height - 6
                                 radius: parent.radius > 2 ? parent.radius - 3 : 1
-                                color: Color.menu.selectedText
+                                color: Commons.Color.menu.selectedText
                                 visible: row.modelData && row.modelData.checkState === 2
                             }
                         }
@@ -220,7 +221,7 @@ PopupCard {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: row.modelData ? (row.modelData.text || "") : ""
-                            color: hover.containsMouse && row.usable ? Color.menu.selectedText : Color.menu.text
+                            color: hover.containsMouse && row.usable ? Commons.Color.menu.selectedText : Commons.Color.menu.text
                             opacity: row.usable ? 1 : 0.45
                             font.family: Style.font.family
                             font.pixelSize: Style.font.body
@@ -234,7 +235,7 @@ PopupCard {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !row.separator && row.modelData && row.modelData.hasChildren
                         text: "›"
-                        color: Color.menu.text
+                        color: Commons.Color.menu.text
                         opacity: 0.6
                         font.family: Style.font.family
                         font.pixelSize: Style.font.body

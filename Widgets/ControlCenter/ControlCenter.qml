@@ -7,6 +7,7 @@ import qs.Services
 import qs.Widgets.Bluetooth
 import qs.Widgets.Network
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // One panel for the things you actually reach for: volume, brightness, wifi,
@@ -207,14 +208,14 @@ Panel {
                 // ---------- User header: avatar, name/uptime, session actions ----------
                 PanelHero {
                     width: parent.width
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
 
                     iconComponent: Component {
                         BorderSurface {
                             width: Math.round(Style.font.body * 3)
                             height: width
                             radius: width / 2
-                            color: Style.normalFillFor(Color.popups.text, Color.accent)
+                            color: Style.normalFillFor(Commons.Color.popups.text, Commons.Color.accent)
                             clip: true
 
                             Image {
@@ -228,7 +229,7 @@ Panel {
                                 anchors.centerIn: parent
                                 visible: !root.cfg.avatar
                                 text: (Quickshell.env("USER") || "?").charAt(0).toUpperCase()
-                                color: Color.popups.text
+                                color: Commons.Color.popups.text
                                 font.family: Style.font.family
                                 font.pixelSize: Style.font.title
                             }
@@ -249,7 +250,7 @@ Panel {
                             // far end next to "power off" is how a mis-click
                             // becomes a shutdown.
                             PanelActionButton {
-                                foreground: Color.popups.text
+                                foreground: Commons.Color.popups.text
                                 tooltipText: "Settings"
                                 onClicked: {
                                     SettingsApp.open("");
@@ -260,7 +261,7 @@ Panel {
                                     anchors.centerIn: parent
                                     name: Glyphs.settings
                                     size: Style.font.icon
-                                    color: Color.popups.text
+                                    color: Commons.Color.popups.text
                                 }
                             }
 
@@ -275,7 +276,7 @@ Panel {
 
                                     readonly property var action: PowerMenu.actionFor(modelData.id)
 
-                                    foreground: Color.popups.text
+                                    foreground: Commons.Color.popups.text
                                     tooltipText: action ? action.label : ""
                                     onClicked: root.runAction(modelData.id, modelData.override)
 
@@ -283,7 +284,7 @@ Panel {
                                         anchors.centerIn: parent
                                         name: parent.action ? parent.action.icon : ""
                                         size: Style.font.icon
-                                        color: Color.popups.text
+                                        color: Commons.Color.popups.text
                                     }
                                 }
                             }
@@ -302,7 +303,7 @@ Panel {
                         anchors.verticalCenter: parent.verticalCenter
                         name: Glyphs.volume(Audio.muted, Audio.volume)
                         size: Math.round(Style.font.body * 1.4)
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                         opacity: Audio.muted ? 0.45 : 1
                     }
 
@@ -335,7 +336,7 @@ Panel {
                         anchors.verticalCenter: parent.verticalCenter
                         name: Glyphs.brightness(Brightness.fraction)
                         size: Math.round(Style.font.body * 1.4)
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                     }
 
                     PanelSlider {
@@ -368,7 +369,7 @@ Panel {
                         anchors.verticalCenter: parent.verticalCenter
                         name: Glyphs.keyboard
                         size: Math.round(Style.font.body * 1.4)
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                     }
 
                     PanelSlider {
@@ -537,8 +538,8 @@ Panel {
                 id: confirm
 
                 anchors.fill: parent
-                background: Color.popups.background
-                foreground: Color.popups.text
+                background: Commons.Color.popups.background
+                foreground: Commons.Color.popups.text
                 confirmText: PowerMenu.actionFor(root.pendingId) ? PowerMenu.actionFor(root.pendingId).label : "Confirm"
 
                 Keys.onPressed: function (event) {
@@ -669,8 +670,8 @@ Panel {
         // the state that the icon square shows on the tiles that are two.
         // Nesting a lit square inside a lit tile would only say it twice.
         readonly property bool solid: tile.active && !tile.hasDetail
-        readonly property color onColor: Style.selectedStateColor(Color.popups.text, Color.accent)
-        readonly property color ink: tile.solid ? Color.popups.background : Color.popups.text
+        readonly property color onColor: Style.selectedStateColor(Commons.Color.popups.text, Commons.Color.accent)
+        readonly property color ink: tile.solid ? Commons.Color.popups.background : Commons.Color.popups.text
 
         implicitHeight: Math.round(Style.font.body * 4.2)
         radius: Style.cornerRadius
@@ -712,7 +713,7 @@ Panel {
                 width: Math.round(Style.font.body * 2.8)
                 height: width
                 radius: Style.cornerRadius
-                color: tile.solid ? "transparent" : (tile.active ? tile.onColor : (iconHover.containsMouse ? Style.selectedFillFor(Color.popups.text, Color.accent) : Style.hoverFillFor(Color.popups.text, Color.accent)))
+                color: tile.solid ? "transparent" : (tile.active ? tile.onColor : (iconHover.containsMouse ? Style.selectedFillFor(Commons.Color.popups.text, Commons.Color.accent) : Style.hoverFillFor(Commons.Color.popups.text, Commons.Color.accent)))
                 borderSpec: Border.none()
 
                 // Material Symbols carry a solid cut of most icons, so "on"
@@ -722,7 +723,7 @@ Panel {
                     name: tile.iconName
                     filled: tile.active
                     size: Math.round(Style.font.body * 1.4)
-                    color: tile.solid ? tile.ink : (tile.active ? Color.background : Color.popups.text)
+                    color: tile.solid ? tile.ink : (tile.active ? Commons.Color.background : Commons.Color.popups.text)
                 }
 
                 MouseArea {
@@ -752,7 +753,7 @@ Panel {
                     width: parent.width
                     visible: tile.subtitle !== ""
                     text: tile.subtitle
-                    color: tile.solid ? Util.alpha(tile.ink, 0.7) : Color.muted
+                    color: tile.solid ? Util.alpha(tile.ink, 0.7) : Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                     elide: Text.ElideRight

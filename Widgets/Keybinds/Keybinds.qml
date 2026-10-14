@@ -8,6 +8,7 @@ import qs.Services
 // give. The .js library below is imported by path and claims no name at all.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../../Services/Keybinds.js" as K
 
@@ -202,7 +203,7 @@ Panel {
                         width: column.width - refreshButton.width - parent.spacing
                         text: root.query
                         placeholderText: "Filter keys or descriptions..."
-                        foreground: Color.popups.text
+                        foreground: Commons.Color.popups.text
 
                         onTextChanged: root.query = text
                         // Escape clears and hands focus back, so a mistyped
@@ -216,7 +217,7 @@ Panel {
                     PanelActionButton {
                         id: refreshButton
 
-                        foreground: Color.popups.text
+                        foreground: Commons.Color.popups.text
                         tooltipText: "Re-read hyprctl binds"
                         onClicked: root.refresh()
 
@@ -224,7 +225,7 @@ Panel {
                             anchors.centerIn: parent
                             name: Glyphs.refresh
                             size: Style.font.icon
-                            color: reader.running ? Color.accent : Color.muted
+                            color: reader.running ? Commons.Color.accent : Commons.Color.muted
                         }
                     }
                 }
@@ -248,7 +249,7 @@ Panel {
                         // part of the key they are meant to type.
                         return total + " binds, " + missing + " with no description. Hyprland only knows what a bind does when the bind says so, and a Lua bind's action is a closure it cannot read. Give the bind a description where it is bound, or name it in config.json under keybinds.labels, keyed by the combination printed on the row.";
                     }
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                 }
@@ -261,7 +262,7 @@ Panel {
                     visible: root.lastError !== ""
                     wrapMode: Text.WordWrap
                     text: root.lastError
-                    color: Color.urgent
+                    color: Commons.Color.urgent
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                 }
@@ -271,7 +272,7 @@ Panel {
                     visible: !reader.running && root.counted.total === 0
                     wrapMode: Text.WordWrap
                     text: "No binds to show. hyprctl binds -j returned none — either Hyprland has none, or it could not be asked."
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
                 }
@@ -280,14 +281,14 @@ Panel {
                     width: parent.width
                     visible: root.counted.total > 0 && root.shown.length === 0
                     text: "Nothing matches “" + root.query.trim() + "”"
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
                 }
 
                 PanelSeparator {
                     visible: root.shown.length > 0
-                    foreground: Color.popups.text
+                    foreground: Commons.Color.popups.text
                 }
 
                 Flickable {
@@ -321,7 +322,7 @@ Panel {
 
                                 PanelSectionHeader {
                                     text: group.modelData.title
-                                    foreground: Color.popups.text
+                                    foreground: Commons.Color.popups.text
                                 }
 
                                 Repeater {
@@ -349,7 +350,7 @@ Panel {
                                             anchors.verticalCenter: parent.verticalCenter
                                             width: Math.round(row.width * 0.42)
                                             text: row.modelData.combo
-                                            color: Color.popups.text
+                                            color: Commons.Color.popups.text
                                             elide: Text.ElideRight
                                             font.family: Style.font.family
                                             font.pixelSize: Style.font.bodySmall
@@ -365,7 +366,7 @@ Panel {
                                             // nobody has described, so the
                                             // sheet shows at a glance which
                                             // half of it is missing.
-                                            color: row.modelData.source === "none" ? Color.muted : Color.popups.text
+                                            color: row.modelData.source === "none" ? Commons.Color.muted : Commons.Color.popups.text
                                             font.italic: row.modelData.source === "none"
                                             elide: Text.ElideRight
                                             font.family: Style.font.family

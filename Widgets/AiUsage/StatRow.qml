@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // A named figure at the foot of a view: label on the left, number on the
 // right. The panel's other rows are things you press; these are only read,
@@ -9,7 +10,7 @@ Item {
 
     property string label: ""
     property string value: ""
-    property color valueColor: Color.popups.text
+    property color valueColor: Commons.Color.popups.text
 
     width: parent ? parent.width : implicitWidth
     implicitWidth: name.implicitWidth + reading.implicitWidth + Style.spacing.xl
@@ -21,7 +22,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: Math.max(0, parent.width - reading.implicitWidth - Style.spacing.xl)
         text: root.label
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         elide: Text.ElideRight

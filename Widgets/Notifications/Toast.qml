@@ -7,6 +7,7 @@ import qs.Services
 // records for Wallpaper, answered the same way.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // One notification in the toast stack. The view half only: whether this
@@ -95,10 +96,10 @@ Item {
 
             implicitHeight: content.implicitHeight + Style.spacing.lg * 2
             radius: Style.cornerRadius
-            color: Color.popups.background
+            color: Commons.Color.popups.background
             // Urgency wears the border: critical is the bar's urgent
             // colour, everything else the popup chrome every panel uses.
-            borderSpec: toast.critical ? Border.flat(Color.urgent, 2) : Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.spacing.hairline))
+            borderSpec: toast.critical ? Border.flat(Commons.Color.urgent, 2) : Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.spacing.hairline))
 
             // Under the interactive children, so buttons and the reply
             // field take their clicks first and this sees the rest.
@@ -173,7 +174,7 @@ Item {
                             width: parent.width
                             visible: text !== ""
                             text: toast.notification ? toast.notification.appName : ""
-                            color: Color.muted
+                            color: Commons.Color.muted
                             elide: Text.ElideRight
                             font.family: Style.font.family
                             font.pixelSize: Style.font.caption
@@ -186,7 +187,7 @@ Item {
                             text: toast.notification ? toast.notification.summary : ""
                             // Low urgency reads quieter than normal; the
                             // body below is muted for everyone already.
-                            color: toast.low ? Color.muted : Color.popups.text
+                            color: toast.low ? Commons.Color.muted : Commons.Color.popups.text
                             wrapMode: Text.WordWrap
                             maximumLineCount: 2
                             elide: Text.ElideRight
@@ -199,7 +200,7 @@ Item {
                             width: parent.width
                             visible: text !== ""
                             text: toast.notification ? toast.notification.body : ""
-                            color: Color.muted
+                            color: Commons.Color.muted
                             // StyledText is the markup the server
                             // advertises: bold, italic, underline and
                             // clickable links, without RichText's appetite
@@ -210,7 +211,7 @@ Item {
                             elide: Text.ElideRight
                             font.family: Style.font.family
                             font.pixelSize: Style.font.bodySmall
-                            linkColor: Color.accent
+                            linkColor: Commons.Color.accent
                             onLinkActivated: link => Qt.openUrlExternally(link)
                         }
                     }
@@ -229,7 +230,7 @@ Item {
                             text: modelData.text !== "" ? modelData.text : modelData.identifier
                             fontSize: Style.font.bodySmall
                             bordered: true
-                            foreground: Color.popups.text
+                            foreground: Commons.Color.popups.text
                             onClicked: Services.Notifications.invokeAction(toast.notification, modelData)
                         }
                     }

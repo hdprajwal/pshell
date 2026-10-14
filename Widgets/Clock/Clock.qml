@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 BarWidget {
@@ -23,7 +24,7 @@ BarWidget {
         id: label
         anchors.centerIn: parent
         text: Qt.formatDateTime(clock.date, root.format)
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: Style.font.family
         font.pixelSize: Style.font.body
     }

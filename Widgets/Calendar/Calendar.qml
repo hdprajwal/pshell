@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // A clock in the bar that opens a month. The plain `clock` widget stays for
@@ -89,7 +90,7 @@ Panel {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                         text: Qt.formatDateTime(clock.date, root.timeFormat)
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                         font.family: Style.font.family
                         font.pixelSize: Math.round(Style.font.body * 4.2)
                     }
@@ -98,7 +99,7 @@ Panel {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
                         text: Qt.formatDateTime(clock.date, root.dateFormat)
-                        color: Color.muted
+                        color: Commons.Color.muted
                         font.family: Style.font.family
                         font.pixelSize: Math.round(Style.font.body * 1.15)
                     }

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../../Services/NotificationHistory.js" as History
 
@@ -153,7 +154,7 @@ SettingsPage {
             width: parent.width
             visible: page.muteRows.length === 0
             text: "Nothing has notified yet. Apps appear here once they do."
-            color: Color.muted
+            color: Commons.Color.muted
             wrapMode: Text.WordWrap
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall

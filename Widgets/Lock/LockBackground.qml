@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import qs.Commons
+import qs.Commons as Commons
 import qs.Services
 
 // Wallpaper, blurred, under a scrim.
@@ -19,7 +20,7 @@ Item {
     // leave a lock you can still read a password prompt on.
     Rectangle {
         anchors.fill: parent
-        color: Color.background
+        color: Commons.Color.background
     }
 
     Image {
@@ -61,6 +62,6 @@ Item {
     // that -- blur removes detail, not brightness.
     Rectangle {
         anchors.fill: parent
-        color: Util.alpha(Color.background, Config.lock.dim)
+        color: Util.alpha(Commons.Color.background, Config.lock.dim)
     }
 }
