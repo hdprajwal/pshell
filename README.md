@@ -1069,7 +1069,9 @@ amount of copying pushes one out, and copying a pinned entry again leaves it
 pinned and where it was instead of adding it twice. Images can be pinned too,
 and their file stays as long as the pin does. Delete on a pinned entry asks
 before forgetting it; unpinning puts it back at the top of the rolling
-history, where it ages out like any other copy.
+history, where it ages out like any other copy. With `historySize` at 0
+nothing unpinned is kept, so there unpinning forgets the entry, and the panel
+asks first as Delete does.
 
 Pasting puts the entry back on the clipboard and sends Shift+Insert, which
 every app reads as paste. It sets the primary selection too, because kitty,
@@ -1094,8 +1096,10 @@ something already in the history moves it to the top instead of adding it
 twice. Forgetting an entry deletes its image file. A pinned entry is saved
 with `"pinned": true`; a history from before pins existed loads as it is.
 
-Forgetting the newest copy, pinned or not, or clearing the lot, also empties
-the clipboard itself. The copy is still sitting there otherwise, and the shell records
+Whenever the newest copy is forgotten, the clipboard itself is emptied too:
+deleting it, pinned or not; unpinning it with `historySize` at 0; Shift+Delete
+or `clear`, unless the newest copy is pinned and so kept; and `clearAll`,
+always. The copy is still sitting there otherwise, and the shell records
 whatever is on the clipboard each time it starts or reloads — a password you
 just deleted would come straight back.
 
@@ -1121,7 +1125,7 @@ Every part of it answers over IPC, panel or no panel:
     pshell clipboard copy 3          # put number 3 back on the clipboard
     pshell clipboard remove 3        # forget number 3, pinned or not
     pshell clipboard pin 3           # pin number 3
-    pshell clipboard unpin 0         # unpin number 0
+    pshell clipboard unpin 0         # unpin number 0 (forgets it if historySize is 0)
     pshell clipboard pinned          # just the pinned ones, same numbers
     pshell clipboard clear           # forget everything but the pins, without asking
     pshell clipboard clearAll        # forget the pins too
