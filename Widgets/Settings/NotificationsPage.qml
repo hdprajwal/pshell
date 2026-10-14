@@ -146,6 +146,28 @@ SettingsPage {
         }
     }
 
+    // Not a notification, but the other sound the shell makes on its own,
+    // and too small for a page of its own. Writes the `volumeTone` group.
+    FormSection {
+        title: "Volume tone"
+        help: "A short click on the output once its volume stops changing, at the new level, so you hear how loud it is and which device will play. Silent when muted, at 0%, and when the output switches."
+
+        Toggle {
+            width: parent.width
+            label: "Play a tone after a volume change"
+            checked: Config.volumeTone.enabled
+            onClicked: Config.set("volumeTone.enabled", !Config.volumeTone.enabled)
+        }
+
+        Toggle {
+            width: parent.width
+            label: "For the volume keys and other apps too"
+            description: "Off, only the control centre and pshell audio sound."
+            checked: Config.volumeTone.keys
+            onClicked: Config.set("volumeTone.keys", !Config.volumeTone.keys)
+        }
+    }
+
     FormSection {
         title: "Muted apps"
         help: "A muted app's notifications still land in history; they just never toast. The list is every app history has seen."
