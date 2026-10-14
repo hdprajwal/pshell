@@ -165,6 +165,15 @@ ShellRoot {
     // nightlight is turned on.
     readonly property var nightlight: Nightlight
 
+    // And the update indicator, for the lock's reason: `pshell updates open`
+    // is a keybind's door, and the count is something a script may ask on a
+    // bar that does not show it.
+    //
+    // Costs one `command -v` at start and five idle file watches on
+    // arch-update's state directory. Nothing is checked until something
+    // asks: the distro's own timer does the checking.
+    readonly property var updates: Updates
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per
