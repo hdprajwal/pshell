@@ -69,6 +69,19 @@ design and most of the logic kept:
   the snapshot at start, the one-second watcher restart, and the panel's
   layout and keys.
 
+The nightlight follows Omarchy's nightlight service on the same branch
+(`shell/plugins/services/nightlight/Service.qml` and `NightlightModel.js`,
+and `bin/omarchy-toggle-nightlight`): ask hyprsunset over `hyprctl hyprsunset
+temperature`, start one if nothing answers, read the temperature back, 4000K
+as the default and 6000K as the point past which it does nothing. The code is
+rewritten in pshell's style rather than vendored:
+
+- `Services/Nightlight.js` adapts `NightlightModel.js`. Its parser is
+  stricter, and the range, the schedule and the status line are pshell's own.
+- `Services/Nightlight.qml` adapts `Service.qml`. Owning the hyprsunset it
+  starts as a `setpriv --pdeathsig` child, leaving one it did not start
+  alone, and turning off with `identity` rather than 6500K are pshell's own.
+
 ## Material Symbols
 
 `assets/fonts/material-symbols/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf`

@@ -49,6 +49,7 @@ pshell preview                 draw the lockscreen without locking
 pshell run                     start the shell
 pshell launcher                open the application launcher
 pshell clipboard               open the clipboard history
+pshell nightlight              warm the screen, or stop (needs hyprsunset)
 pshell bar toggle              hide or show the bar (also show, hide)
 pshell settings toggle         any IPC target, by name
 pshell ipc show                straight through to qs ipc
@@ -336,7 +337,7 @@ This is the shape Omarchy's own shell uses, which is not a coincidence either.
 
 ## Widgets
 
-Seventeen are built in. These hold something a polled command cannot: a live
+Eighteen are built in. These hold something a polled command cannot: a live
 connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
 single run.
 
@@ -349,6 +350,7 @@ single run.
 | `microphone` | Mute state for the default input. Left click mutes, scroll changes the level, right click runs `onRightClick`. `showVolume` puts the percentage in the bar. |
 | `privacy` | A red dot while something is using the microphone or the camera. Click it to see what. Hidden when nothing is. `showCamera`, `interval`. |
 | `idleInhibitor` | Keeps the screen awake while it is on. Off after every restart. |
+| `nightlight` | Warms the screen through hyprsunset. Click to turn it on or off. Off after every restart unless a schedule says otherwise. The temperature and schedule are configured under `nightlight` rather than on the widget. Hides itself where `hyprsunset` is not installed. See [Nightlight](#nightlight). |
 | `tailscale` | Tailnet state and the machines on it. Left click opens the panel to connect, disconnect and pick an exit node. `interval`, `showName`, `maxNodes`. |
 | `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconScale`, `iconSize` and `spacing` tune the layout. |
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
@@ -356,7 +358,7 @@ single run.
 | `bluetooth` | Adapter state and connected devices, with battery level where the device reports it. Left click opens the panel to pair, connect and disconnect, right click toggles the radio. `showCount`, `maxDevices`. |
 | `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where `pshell-agents` is not installed. |
 | `weather` | The condition and the temperature where you are. Click it for feels-like, humidity, wind and three days of high and low. `showLabel` puts the condition in the bar too. `panelWidth` sizes the panel. Everything else is configured under `weather` rather than on the widget, since one shell fetches once however many bars are on it. |
-| `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output and microphone. Right click mutes, scroll changes volume. |
+| `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output, microphone, night mode and dark mode. Right click mutes, scroll changes volume. |
 | `power` | Lock, suspend, log out, restart, power off. The three that end something ask first and are drawn in the urgent colour. `panelWidth` sizes the panel. The commands themselves are configured under `power` rather than on the widget, and every one of them answers on IPC with no widget in the bar. |
 | `keybinds` | Your Hyprland keybinds, read from `hyprctl binds -j` when the panel opens, grouped by modifier with a filter field. Says how many binds carry no description and what to do about it. `panelWidth`, `listHeight`. The panel is drawn here; `pshell.keybinds` is owned by a service, so the command answers on any bar. |
 
@@ -566,6 +568,84 @@ you pressed last week is a bad surprise.
 It needs something that reads `zwp_idle_inhibit`, which is what hypridle and
 swayidle do. Nothing consumes it otherwise and the toggle will have no effect.
 
+## Nightlight
+
+A warmer screen in the evening, through Hyprland's
+[hyprsunset](https://github.com/hyprwm/hyprsunset). It needs hyprsunset
+installed, and nothing else:
+
+```sh
+sudo pacman -S hyprsunset
+```
+
+Without it the `nightlight` widget and the control centre's Night Mode tile
+hide themselves, and `pshell nightlight on` says what to install and exits 1.
+`off` still succeeds, since the screen is already as it should be.
+Install it while the shell is running and the next `pshell nightlight` after
+the first refusal works; no restart.
+
+```json
+{
+  "right": [ { "type": "nightlight" } ],
+  "nightlight": { "temperature": 4000, "start": "20:00", "end": "07:00" }
+}
+```
+
+`temperature` is in kelvin, from 1000 (very orange) to 6000 (barely
+anything), and defaults to 4000. A value outside that range is pulled to the
+nearest end.
+
+`start` and `end` are an optional schedule, 24-hour local time. The
+nightlight turns on at `start` and off at `end`, through midnight if `end` is
+earlier, and is otherwise left alone: turn it off at 21:00 to watch a film and
+it stays off until the next `start`. Leave either out, or set them equal, for
+no schedule. The clock is checked every thirty seconds, so a laptop that
+slept through 20:00 catches up within half a minute of waking.
+
+Whether it is on is not saved. It is off after every restart, and after a
+reload of the shell's QML, for the idle inhibitor's reason: a screen that
+comes up orange because of something you pressed last week is a bad surprise.
+A schedule is how to have it come back on its own: at start the shell turns
+the nightlight on if the schedule says it is night.
+
+### Who runs hyprsunset
+
+If a hyprsunset is already running, started by your Hyprland config or a
+systemd unit, pshell uses it: `on` sets its temperature over `hyprctl
+hyprsunset`, `off` sends `identity`. It is never stopped.
+
+If nothing answers, pshell starts `hyprsunset -t <temperature>` itself, as
+its own child under `setpriv --pdeathsig TERM`. Turning the nightlight off
+sends `identity` and then stops it. The kernel stops it if the shell exits,
+however the shell exits, so a crashed bar does not leave a stray hyprsunset
+behind. hyprsunset exiting on its own turns the nightlight off and logs
+why; pshell does not restart it.
+
+If you keep hyprsunset profiles in `~/.config/hypr/hyprsunset.conf`, the
+hyprsunset pshell starts may read them too and change the temperature on
+their schedule rather than pshell's. Use one schedule or the other.
+
+### Commands
+
+```
+pshell nightlight                     toggle
+pshell nightlight on                  prints "on 4000K"
+pshell nightlight off
+pshell nightlight isOn                true or false
+pshell nightlight isAvailable         whether hyprsunset is installed
+pshell nightlight temperature         the configured temperature
+pshell nightlight setTemperature 3500 saved to config.json
+pshell nightlight status              one line, e.g.
+                                      on 4000K, hyprsunset started by pshell, hyprsunset reports 4000K
+```
+
+`setTemperature` refuses a value outside 1000 to 6000 rather than guessing
+what you meant by 400.
+
+When the shell cannot do what was asked, the IPC call answers with a line
+starting `error: `. `pshell` prints that to stderr and exits 1 for any
+target, so `pshell nightlight on && ...` stops there.
+
 ## Tailscale
 
 The tailnet, its machines, and what you usually want to do with them.
@@ -627,7 +707,6 @@ you meant to pick a network.
   "type": "controlCenter",
   "name": "Prajwal",
   "avatar": "/var/lib/AccountsService/icons/prajwal",
-  "nightMode": "hyprsunset -t 4000",
   "lock": "loginctl lock-session",
   "power": "systemctl poweroff",
   "logout": "loginctl terminate-user $USER"
@@ -671,8 +750,11 @@ job: pshell expects [swayosd](https://github.com/ErikReider/SwayOSD) bound
 to them, and themes its OSD through the `swayosd` template above so the
 popup wears the bar's colours.
 
-Night mode has no standard tool, so it is whatever command you give it and the
-tile is hidden until you set `nightMode`. Dark mode toggles the GTK
+Night mode is the [nightlight](#nightlight), lit while it is on with the
+temperature underneath, and hidden where hyprsunset is not installed. Set
+`nightMode` to a command and the tile runs that instead, for a machine that
+warms its screen with gammastep or wlsunset; pshell cannot see that state, so
+the tile then stays dark. `"nightMode": false` hides it. Dark mode toggles the GTK
 `color-scheme` unless you override `darkModeCommand`, and pshell recolours with
 it unless you have pinned `mode`.
 
