@@ -1,5 +1,9 @@
 import QtQuick
 import qs.Services
+// Qualified as well, for the collision Widgets/Keybinds describes: this
+// directory's own Nightlight -- this widget -- wins the unqualified name, so
+// a bare `Nightlight` here would be the widget and not the service.
+import qs.Services as Services
 import qs.Commons
 import qs.Ui
 
@@ -16,20 +20,20 @@ BarIndicator {
 
     property var cfg: ({})
 
-    active: Nightlight.active
-    activeTooltipText: "Nightlight on, " + Nightlight.temperature + "K. Click for normal colour"
-    inactiveTooltipText: "Warm the screen to " + Nightlight.temperature + "K"
+    active: Services.Nightlight.active
+    activeTooltipText: "Nightlight on, " + Services.Nightlight.temperature + "K. Click for normal colour"
+    inactiveTooltipText: "Warm the screen to " + Services.Nightlight.temperature + "K"
 
     iconName: Glyphs.nightMode
-    iconColor: Nightlight.active ? Color.accent : Color.foreground
+    iconColor: Services.Nightlight.active ? Color.accent : Color.foreground
 
     // State, never visibility: Section sizes the slot from this, and a
     // binding to `visible` would feed back into itself.
-    concealed: !Nightlight.available || (!effectiveActive && !inactiveRevealed)
-    interactive: Nightlight.available && belongsInBlock && (effectiveActive || indicatorBlock === "inactive" || inactiveRevealed)
+    concealed: !Services.Nightlight.available || (!effectiveActive && !inactiveRevealed)
+    interactive: Services.Nightlight.available && belongsInBlock && (effectiveActive || indicatorBlock === "inactive" || inactiveRevealed)
 
     onPressed: b => {
         if (b === Qt.LeftButton)
-            Nightlight.toggle();
+            Services.Nightlight.toggle();
     }
 }
