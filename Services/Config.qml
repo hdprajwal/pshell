@@ -331,8 +331,10 @@ Singleton {
     }
 
     // The terminal pshell opens things in -- today only the system updater.
-    // A program name or a path, no arguments: each terminal spells "set the
-    // window class and run this" differently, and Services/Updates.js knows
+    // A program name or a path, then any arguments of its own, split on
+    // whitespace and never given to a shell (Updates.js splitTerminal). The
+    // program decides how "set the window class and run this" is spelled:
+    // each terminal spells it differently, and Services/Updates.js knows
     // the spellings for the ones it names. Top level rather than under
     // `updates`, because which terminal you use is one fact for the whole
     // shell. Empty means $TERMINAL, then the first of ghostty, kitty,

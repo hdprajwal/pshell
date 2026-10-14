@@ -111,6 +111,14 @@ updates. You do not need to restart it.
 
 `position` takes `top`, `bottom`, `left`, or `right`.
 
+`terminal` is the terminal pshell opens things in -- today only the system
+updater, see [System updates](#system-updates). A program name or a path,
+optionally followed by arguments of its own, such as `"kitty -1"`. The
+arguments are split on spaces and passed straight to the program, never
+through a shell, so there is no quoting: a path with a space in it cannot be
+used. Leave it out and pshell uses `$TERMINAL`, then the first of ghostty,
+kitty, alacritty, foot and wezterm it finds.
+
 ### Spacing
 
 Three distances, each with its own knob:
@@ -688,10 +696,27 @@ Until the first check has run there is nothing to watch, and the shell looks
 for the files once a minute until they appear.
 
 The widget is hidden while nothing is pending, and where neither tool is
-installed. Right click, or `pshell updates refresh`, runs `cachy-update
---check` -- the same check the timer runs -- straight away. Like the
-timer's, it sends cachy-update's own "N updates available" notification when
-the list has changed since the last check.
+installed. Right click, or `pshell updates refresh`, starts the timer's
+own unit, `arch-update.service`, straight away -- the same check, and the
+same unit, so a refresh while the timer's check is running waits for that
+one rather than starting a second, and a reload of the bar does not cut it
+off. Where there is no such unit it runs `cachy-update --check` itself. Like
+the timer's, the check sends cachy-update's own "N updates available"
+notification when the list has changed since the last check. A refresh is
+refused while the updater is running, since a check then could put back the
+list the update has just cleared.
+
+A check that cannot reach the mirrors -- offline, say -- finishes with an
+empty list, which looks just like "up to date". When it was a refresh of
+pshell's own that failed this way, the count stays at the check before it,
+the tooltip says the last check could not reach the mirrors, and the next
+change to the files takes over. A failed check started by the timer is not
+caught: it reads as up to date until the next one.
+
+The count does not dip while a check runs. The check empties each list file
+before it fills it again, so pshell takes a list file only while it agrees
+with `last_updates_check`, which arch-update replaces in one go once a check
+has finished. Until then the bar keeps the last finished count.
 
 Click it, or `pshell updates open`, to run the updater itself in a terminal:
 it shows the Arch news, lists what will change, asks before it does anything,
@@ -707,11 +732,12 @@ falls as it works and the widget goes away when it is done.
 }
 ```
 
-`terminal` is a program name or a path, with no arguments. Leave it out and
-pshell uses `$TERMINAL`, then the first of ghostty, kitty, alacritty, foot
-and wezterm it finds. Those five get the window class `pshell.updates` and
-the title "System update"; any other terminal is run as `<terminal> -e
-cachy-update`.
+`terminal` is the shell-wide setting described under [Config](#config): a
+program, optionally with arguments. Those five get the window class
+`pshell.updates` and the title "System update", added after your own
+arguments; any other terminal is run as `<terminal> <your arguments> -e
+cachy-update`. A `terminal` or `$TERMINAL` that is not installed is passed
+over for the next one, and `pshell updates open` says so in its reply.
 
 `updates.float`, on by default, floats the terminal in the middle of the
 screen at 60% by 70%. On Hyprland with a Lua config, pshell adds a window
@@ -729,7 +755,8 @@ pshell updates status          one line, e.g.
                                4 updates (3 repo, 1 AUR), checked 2 hours ago, by cachy-update
 pshell updates count           the number pending
 pshell updates list            one per line: repo, aur or flatpak, a tab, and the update
-pshell updates refresh         check now; answers at once, `status` says when it is done
+pshell updates refresh         check now; answers at once, `status` says when it is done.
+                               Fails while the updater is running
 pshell updates open            run the updater in a terminal
 pshell updates isAvailable     whether cachy-update or arch-update is installed
 ```
