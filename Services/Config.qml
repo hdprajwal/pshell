@@ -8,6 +8,7 @@ import Quickshell
 import Quickshell.Io
 import "ConfigPath.js" as ConfigPath
 import "Nightlight.js" as NightlightModel
+import "VolumeTone.js" as VolumeToneModel
 
 Singleton {
     id: root
@@ -358,6 +359,38 @@ Singleton {
         // Off leaves it to the compositor -- and to any rule of your own
         // matching the class `pshell.updates`.
         readonly property bool float: typeof raw.float === "boolean" ? raw.float : true
+    }
+
+    // The tone after a volume change, under one `volumeTone` object --
+    // grouped for the reason `lock` gives above, and with the same shape.
+    // Services/VolumeTone.qml says when it plays and why.
+    readonly property QtObject volumeTone: QtObject {
+        readonly property var raw: root.data.volumeTone && typeof root.data.volumeTone === "object" ? root.data.volumeTone : ({})
+
+        function _bool(key, fallback) {
+            const v = raw[key];
+            return typeof v === "boolean" ? v : fallback;
+        }
+
+        // On unless switched off. The tone is a 70 ms click at whatever
+        // level the sink is now, and it is the only way to hear that level
+        // before something else makes a sound.
+        readonly property bool enabled: _bool("enabled", true)
+
+        // Whether a change made outside pshell sounds too: the volume keys
+        // through swayosd, pavucontrol, an app. On, because the keys are
+        // where most volume changes come from and hearing the new level is
+        // the whole request; Windows does the same. Off leaves only the
+        // control centre's slider and scroll, and `pshell audio`.
+        readonly property bool keys: _bool("keys", true)
+
+        // A sound file of your own. Empty, or unreadable, is the
+        // freedesktop sound theme's volume-change click.
+        readonly property string sound: typeof raw.sound === "string" ? root.expandHome(raw.sound.trim()) : ""
+
+        // How long the level has to hold still, in milliseconds, before the
+        // tone plays. The range is VolumeTone.js's.
+        readonly property int delay: VolumeToneModel.clampDelay(raw.delay)
     }
 
     // Three separate distances, which used to be one:

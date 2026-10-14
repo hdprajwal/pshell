@@ -30,9 +30,16 @@ Singleton {
     readonly property var sinks: Pipewire.nodes.values.filter(n => n.isSink && !n.isStream)
     readonly property var sources: Pipewire.nodes.values.filter(n => !n.isSink && !n.isStream && n.audio)
 
+    // When pshell itself last set the output volume -- the control centre's
+    // slider and scroll, `pshell audio` -- so VolumeTone can tell those from
+    // the keys, which reach Pipewire through swayosd and never pass here.
+    property real lastSetAt: 0
+
     function setVolume(value) {
-        if (sinkReady)
+        if (sinkReady) {
+            root.lastSetAt = Date.now();
             sink.audio.volume = Math.max(0, Math.min(1, value));
+        }
     }
 
     function setMicVolume(value) {
@@ -104,6 +111,14 @@ Singleton {
 
         function micSetVolume(percent: int): void {
             root.setMicVolume(percent / 100);
+        }
+
+        // The tone after a volume change: on, off, toggle, test or status.
+        // One method with a word rather than five, so they read as
+        // `pshell audio tone on` beside the volume they are about. The
+        // service lives in VolumeTone.qml; this target is the audio one.
+        function tone(action: string): string {
+            return VolumeTone.command(action);
         }
 
         // One line a script can grep. "muted" sits directly after the
