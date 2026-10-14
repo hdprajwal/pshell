@@ -219,10 +219,19 @@ call() {
     # `error: `, since an IPC method has no exit code of its own to fail
     # with. Turned into one here, so `pshell nightlight on && ...` does not
     # carry on as if the screen had warmed.
-    case $out in
-    "error: "*)
-        printf 'pshell: %s\n' "${out#error: }" >&2
-        exit 1
+    #
+    # Only for the targets listed, which promise to answer that way. For any
+    # other, output that starts `error: ` is just output: notification
+    # history prints `app: summary` lines, and an app named "error" would
+    # otherwise turn the whole history into a failure with nothing printed.
+    case $1 in
+    pshell.nightlight)
+        case $out in
+        "error: "*)
+            printf 'pshell: %s\n' "${out#error: }" >&2
+            exit 1
+            ;;
+        esac
         ;;
     esac
 
