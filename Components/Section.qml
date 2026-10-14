@@ -28,6 +28,9 @@ import qs.Widgets.PowerMenu as PowerMenuWidget
 // And a fifth, same shape: qs.Services exports the Keybinds singleton that
 // owns the cheat sheet's IPC target and its wanted-open state.
 import qs.Widgets.Keybinds as KeybindsWidget
+// And a sixth: qs.Services exports the Nightlight singleton that owns
+// hyprsunset and the schedule.
+import qs.Widgets.Nightlight as NightlightWidget
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
 import qs.Commons
@@ -47,7 +50,7 @@ Row {
     //
     // Order does not matter for the lookup, but it mirrors the switch in
     // builtinLoader so the three lists stay checkable against each other.
-    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds"]
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds", "nightlight"]
 
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
@@ -175,6 +178,8 @@ Row {
                         return powerMenuComponent;
                     case "keybinds":
                         return keybindsComponent;
+                    case "nightlight":
+                        return nightlightComponent;
                     default:
                         return procComponent;
                     }
@@ -301,6 +306,10 @@ Row {
     Component {
         id: keybindsComponent
         KeybindsWidget.Keybinds {}
+    }
+    Component {
+        id: nightlightComponent
+        NightlightWidget.Nightlight {}
     }
     Component {
         id: procComponent
