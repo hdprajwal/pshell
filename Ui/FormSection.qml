@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 
 // A titled group of setting rows on one filled card.
 //
@@ -30,7 +31,7 @@ Column {
     width: parent.width
     visible: section.help !== ""
     text: section.help
-    color: Color.muted
+    color: Commons.Color.muted
     wrapMode: Text.WordWrap
     font.family: Style.font.family
     font.pixelSize: Style.font.caption

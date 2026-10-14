@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Bluetooth status in the bar with a paired/nearby device list panel. Shaped
@@ -86,7 +87,7 @@ Panel {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Bluetooth"
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                         font.family: Style.font.family
                         font.pixelSize: Style.font.subtitle
                     }
@@ -107,7 +108,7 @@ Panel {
                 Text {
                     visible: deviceList.children.length > 0
                     text: "Right click a device to forget it"
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                 }

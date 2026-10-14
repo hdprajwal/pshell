@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 
 // One month: a header you can page through, a weekday row, and the days.
 //
@@ -91,7 +92,7 @@ Column {
         Text {
             anchors.centerIn: parent
             text: nav.glyph
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: Style.font.family
             font.pixelSize: Math.round(Style.font.body * 1.6)
         }
@@ -124,7 +125,7 @@ Column {
             Text {
                 anchors.centerIn: parent
                 text: Qt.locale().standaloneMonthName(root.viewMonth) + " " + root.viewYear
-                color: Color.foreground
+                color: Commons.Color.foreground
                 font.family: Style.font.family
                 font.pixelSize: Math.round(Style.font.body * 1.15)
             }
@@ -158,7 +159,7 @@ Column {
                 // Two letters rather than the narrow form, which is one letter
                 // and gives you T and T, S and S.
                 text: Qt.locale().dayName((root.weekStart + index) % 7, Locale.ShortFormat).substring(0, 2)
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Math.round(Style.font.body * 0.8)
             }
@@ -195,7 +196,7 @@ Column {
                         height: width
                         radius: width / 2
                         visible: parent.modelData.isToday
-                        color: Color.accent
+                        color: Commons.Color.accent
                     }
 
                     Text {
@@ -203,7 +204,7 @@ Column {
                         text: parent.modelData.day
                         // Against the filled pill the text has to flip to the
                         // panel background to stay readable.
-                        color: parent.modelData.isToday ? Color.background : Color.foreground
+                        color: parent.modelData.isToday ? Commons.Color.background : Commons.Color.foreground
                         opacity: parent.modelData.inMonth ? 1 : 0.3
                         font.family: Style.font.family
                         font.pixelSize: Style.font.body

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // A filter chip with its count. Selected uses Button's own selected fill and
@@ -15,7 +16,7 @@ Button {
 
     text: root.label + " (" + root.count + ")"
     iconText: root.selected ? "✓" : ""
-    foreground: Color.popups.text
+    foreground: Commons.Color.popups.text
     radius: height / 2
     onClicked: root.picked()
 }

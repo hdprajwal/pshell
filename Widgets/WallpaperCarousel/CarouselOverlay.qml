@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The carousel itself: one row of big cards over a scrim, arrows to browse,
@@ -89,7 +90,7 @@ PanelWindow {
     // thing on screen.
     Rectangle {
         anchors.fill: parent
-        color: Util.alpha(Color.background, 0.85)
+        color: Util.alpha(Commons.Color.background, 0.85)
     }
 
     Item {
@@ -220,7 +221,7 @@ PanelWindow {
                 // plate reads as "loading" where bare scrim reads as "gone".
                 Rectangle {
                     anchors.fill: parent
-                    color: Util.alpha(Color.foreground, 0.06)
+                    color: Util.alpha(Commons.Color.foreground, 0.06)
                     radius: Style.cornerRadius
                 }
 
@@ -250,7 +251,7 @@ PanelWindow {
                     anchors.fill: parent
                     color: "transparent"
                     radius: Style.cornerRadius
-                    borderSpec: card.onDesktop ? Border.flat(Color.accent, 2) : Border.none()
+                    borderSpec: card.onDesktop ? Border.flat(Commons.Color.accent, 2) : Border.none()
                 }
 
                 MouseArea {
@@ -283,7 +284,7 @@ PanelWindow {
                         return "";
                     return Wallpaper.entries[at].split("/").pop();
                 }
-                color: Color.foreground
+                color: Commons.Color.foreground
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
             }
@@ -291,7 +292,7 @@ PanelWindow {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: (list.currentIndex + 1) + " of " + Wallpaper.entries.length
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
             }
@@ -302,7 +303,7 @@ PanelWindow {
             anchors.bottomMargin: Style.space(48)
             anchors.horizontalCenter: parent.horizontalCenter
             text: "← →  browse      Enter  apply      Esc  close"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
         }
@@ -315,7 +316,7 @@ PanelWindow {
             width: Math.round(parent.width / 2)
             visible: Wallpaper.entries.length === 0
             text: Config.wallpaperDir + " holds no images. Drop wallpapers there and they appear here."
-            color: Color.foreground
+            color: Commons.Color.foreground
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
             font.family: Style.font.family

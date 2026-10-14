@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // How much of your coding agents' allowances you have spent. The bar carries
@@ -377,7 +378,7 @@ Panel {
             anchors.centerIn: parent
             providerId: tab.providerId
             size: Math.round(Style.font.body * 1.35)
-            fallbackColor: tab.selected ? Color.popups.text : Color.muted
+            fallbackColor: tab.selected ? Commons.Color.popups.text : Commons.Color.muted
             // A dimmed mark on an unselected tab, so the strip reads as one
             // control with one thing chosen rather than five lit buttons.
             opacity: tab.selected || hover.containsMouse ? 1 : 0.55

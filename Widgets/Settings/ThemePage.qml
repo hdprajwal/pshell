@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The matugen palette, picked visually. Scheme, prefer and mode go through
@@ -149,19 +150,19 @@ SettingsPage {
                         color: swatch.modelData.value
                         // A hairline in the foreground, or the background
                         // swatch disappears into the page it sits on.
-                        borderSpec: Border.flat(Util.alpha(Color.foreground, 0.25), 1)
+                        borderSpec: Border.flat(Util.alpha(Commons.Color.foreground, 0.25), 1)
                     }
 
                     Text {
                         text: swatch.modelData.name
-                        color: Color.muted
+                        color: Commons.Color.muted
                         font.family: Style.font.family
                         font.pixelSize: Style.font.caption
                     }
 
                     Text {
                         text: swatch.modelData.value
-                        color: Color.foreground
+                        color: Commons.Color.foreground
                         font.family: Style.font.family
                         font.pixelSize: Style.font.caption
                     }

@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The focused window: its icon, its application name, and its title.
@@ -85,7 +86,7 @@ BarWidget {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.showAppName && root.appName !== ""
             text: root.appName
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.body
         }
@@ -94,7 +95,7 @@ BarWidget {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.showAppName && root.appName !== "" && root.title !== ""
             text: "·"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.body
         }
@@ -107,7 +108,7 @@ BarWidget {
             width: Math.min(implicitWidth, root.maxWidth)
             elide: Text.ElideRight
             text: root.title
-            color: Color.foreground
+            color: Commons.Color.foreground
             opacity: 0.75
             font.family: Style.font.family
             font.pixelSize: Style.font.body

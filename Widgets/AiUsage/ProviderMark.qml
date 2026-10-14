@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // A provider's brand mark, addressed by the id its record carries. The marks
@@ -18,7 +19,7 @@ Item {
 
     property string providerId: ""
     property real size: Style.font.icon
-    property color fallbackColor: Color.popups.text
+    property color fallbackColor: Commons.Color.popups.text
 
     readonly property bool shipped: ["claude", "codex", "fireworks"].indexOf(String(providerId)) >= 0
 

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 
 // Seven days of tokens as seven columns, oldest first, today last. The record
 // calls the field `messageCount`; it counts tokens, and calling it anything
@@ -81,7 +82,7 @@ Column {
                     // day off.
                     height: Math.max(2, Math.round(parent.height * (root.peak > 0 ? dayColumn.tokens / root.peak : 0)))
                     radius: Style.space(2)
-                    color: dayColumn.today ? Color.accent : (dayColumn.tokens > 0 ? Style.selectedFill : Style.normalFill)
+                    color: dayColumn.today ? Commons.Color.accent : (dayColumn.tokens > 0 ? Style.selectedFill : Style.normalFill)
 
                     Behavior on height {
                         NumberAnimation {
@@ -108,7 +109,7 @@ Column {
                 width: root.columnWidth
                 horizontalAlignment: Text.AlignHCenter
                 text: root.initialOf(modelData.date)
-                color: index === root.count - 1 ? Color.popups.text : Color.muted
+                color: index === root.count - 1 ? Commons.Color.popups.text : Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
             }
@@ -123,7 +124,7 @@ Column {
             id: weekTotal
             anchors.left: parent.left
             text: AgentUsage.formatTokens(root.total) + " this week"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
         }
@@ -131,7 +132,7 @@ Column {
         Text {
             anchors.right: parent.right
             text: "avg " + AgentUsage.formatTokens(root.count > 0 ? root.total / root.count : 0) + "/day"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
         }

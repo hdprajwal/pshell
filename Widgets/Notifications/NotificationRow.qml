@@ -4,6 +4,7 @@ import qs.Services
 // with this directory's own Notifications type.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../../Services/NotificationHistory.js" as History
 
@@ -72,7 +73,7 @@ Item {
                     anchors.right: timeLabel.left
                     anchors.rightMargin: Style.spacing.md
                     text: row.record ? row.record.appName : ""
-                    color: Color.muted
+                    color: Commons.Color.muted
                     elide: Text.ElideRight
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
@@ -83,7 +84,7 @@ Item {
 
                     anchors.right: parent.right
                     text: row.record ? History.relativeTime(row.record.time, row.now) : ""
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                 }
@@ -93,7 +94,7 @@ Item {
                 width: parent.width
                 visible: text !== ""
                 text: row.record ? row.record.summary : ""
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 wrapMode: Text.WordWrap
                 maximumLineCount: 2
                 elide: Text.ElideRight
@@ -106,14 +107,14 @@ Item {
                 width: parent.width
                 visible: text !== ""
                 text: row.record ? row.record.body : ""
-                color: Color.muted
+                color: Commons.Color.muted
                 textFormat: Text.StyledText
                 wrapMode: Text.WordWrap
                 maximumLineCount: 3
                 elide: Text.ElideRight
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
-                linkColor: Color.accent
+                linkColor: Commons.Color.accent
                 onLinkActivated: link => Qt.openUrlExternally(link)
             }
 
@@ -130,7 +131,7 @@ Item {
                         text: modelData.text !== "" ? modelData.text : modelData.identifier
                         fontSize: Style.font.caption
                         bordered: true
-                        foreground: Color.popups.text
+                        foreground: Commons.Color.popups.text
                         onClicked: Services.Notifications.invokeAction(row.liveN, modelData)
                     }
                 }

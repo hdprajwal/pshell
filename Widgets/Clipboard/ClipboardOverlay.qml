@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../../Services/ClipboardHistory.js" as History
 
@@ -118,7 +119,7 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: Color.menu.scrim
+        color: Commons.Color.menu.scrim
     }
 
     Item {
@@ -202,8 +203,8 @@ PanelWindow {
             width: Math.min(Style.space(875), parent.width - Style.gapsOut * 2)
             height: Math.min(Style.space(600), parent.height - Style.gapsOut * 2)
             radius: Style.cornerRadius
-            color: Color.menu.background
-            borderSpec: Border.surfaceSpec("menu", "border", Color.menu.border, Math.max(1, Style.normalBorderWidth))
+            color: Commons.Color.menu.background
+            borderSpec: Border.surfaceSpec("menu", "border", Commons.Color.menu.border, Math.max(1, Style.normalBorderWidth))
             padding: Style.spacing.panelPadding
 
             // Swallows clicks on the card, so only the scrim closes it.
@@ -238,7 +239,7 @@ PanelWindow {
                     verticalAlignment: Text.AlignVCenter
                     textFormat: Text.PlainText
                     text: overlay.filter !== "" ? overlay.filter : "Type to search the clipboard"
-                    color: overlay.filter !== "" ? Color.menu.text : Color.muted
+                    color: overlay.filter !== "" ? Commons.Color.menu.text : Commons.Color.muted
                     elide: Text.ElideLeft
                     font.family: Style.font.family
                     font.pixelSize: Style.font.heading
@@ -252,7 +253,7 @@ PanelWindow {
                     anchors.bottom: parent.bottom
                     textFormat: Text.PlainText
                     text: "Enter paste      Shift+Enter copy      Del forget      Shift+Del forget all      Esc close"
-                    color: Color.muted
+                    color: Commons.Color.muted
                     elide: Text.ElideRight
                     horizontalAlignment: Text.AlignHCenter
                     font.family: Style.font.family
@@ -299,7 +300,7 @@ PanelWindow {
 
                             width: ListView.view.width
                             height: Math.round(Style.font.body * 2.6)
-                            foreground: Color.menu.text
+                            foreground: Commons.Color.menu.text
                             hasCursor: index === overlay.selected
 
                             Image {
@@ -329,7 +330,7 @@ PanelWindow {
                                 text: row.modelData.previewText
                                 // Images and files are labels, not content,
                                 // and read a step quieter than copied text.
-                                color: row.hasCursor ? Color.menu.selectedText : (row.modelData.entryType === "text" ? Color.menu.text : Color.muted)
+                                color: row.hasCursor ? Commons.Color.menu.selectedText : (row.modelData.entryType === "text" ? Commons.Color.menu.text : Commons.Color.muted)
                                 elide: Text.ElideRight
                                 wrapMode: Text.NoWrap
                                 font.family: Style.font.family
@@ -364,7 +365,7 @@ PanelWindow {
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         width: Style.normalBorderWidth
-                        color: Util.alpha(Color.menu.border, 0.28)
+                        color: Util.alpha(Commons.Color.menu.border, 0.28)
                         visible: overlay.rows.length > 0
                     }
 
@@ -391,7 +392,7 @@ PanelWindow {
                             visible: overlay.current !== null && !preview.showsImage
                             textFormat: Text.PlainText
                             text: overlay.current ? overlay.current.fullText : ""
-                            color: Color.menu.text
+                            color: Commons.Color.menu.text
                             wrapMode: Text.WrapAnywhere
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignTop
@@ -431,7 +432,7 @@ PanelWindow {
                             anchors.horizontalCenter: parent.horizontalCenter
                             name: "content_paste"
                             size: Style.font.displayLarge
-                            color: Color.muted
+                            color: Commons.Color.muted
                         }
 
                         Text {
@@ -446,7 +447,7 @@ PanelWindow {
                                     return "Clipboard history is off: clipboard.historySize is 0 in config.json.";
                                 return "Nothing copied yet. Copies show up here as you make them.";
                             }
-                            color: Color.menu.text
+                            color: Commons.Color.menu.text
                             font.family: Style.font.family
                             font.pixelSize: Style.font.body
                         }
@@ -462,11 +463,11 @@ PanelWindow {
                 opened: overlay.confirmingClear
                 message: "Forget all " + Clipboard.history.length + " copies? Images saved with them are deleted too."
                 confirmText: "Forget all"
-                background: Color.menu.background
-                foreground: Color.menu.text
-                scrim: Color.menu.scrim
-                selectedBackground: Color.menu.selectedBackground
-                selectedText: Color.menu.selectedText
+                background: Commons.Color.menu.background
+                foreground: Commons.Color.menu.text
+                scrim: Commons.Color.menu.scrim
+                selectedBackground: Commons.Color.menu.selectedBackground
+                selectedText: Commons.Color.menu.selectedText
                 fontFamily: Style.font.family
                 cornerRadius: Style.cornerRadius
 

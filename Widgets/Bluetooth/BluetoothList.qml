@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Connected devices first, then paired, then anything else in range, so the
@@ -26,7 +27,7 @@ Column {
     Text {
         visible: root.enabled && rows.count === 0
         text: "Searching..."
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
     }
@@ -58,14 +59,14 @@ Column {
             width: root.rowWidth
             height: Math.round(Style.font.body * 2.4)
             radius: Style.cornerRadius
-            color: Style.controlFill(false, hot, Color.foreground, Color.accent)
+            color: Style.controlFill(false, hot, Commons.Color.foreground, Commons.Color.accent)
 
             Text {
                 anchors.left: parent.left
                 anchors.leftMargin: Style.spacing.md
                 anchors.verticalCenter: parent.verticalCenter
                 text: devRow.label
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 opacity: devRow.modelData.paired ? 1 : 0.7
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
@@ -86,7 +87,7 @@ Column {
                         return devRow.modelData.batteryAvailable ? Math.round(devRow.modelData.battery * 100) + "%" : "connected";
                     return devRow.modelData.paired ? "paired" : "";
                 }
-                color: devRow.modelData.connected ? Color.accent : Color.popups.text
+                color: devRow.modelData.connected ? Commons.Color.accent : Commons.Color.popups.text
                 opacity: devRow.modelData.connected ? 1 : 0.55
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall

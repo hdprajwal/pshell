@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Where the forecast comes from, in what units, and how often. Everything on
@@ -78,7 +79,7 @@ SettingsPage {
                 width: parent.width
                 visible: page.fixed
                 text: "Coordinates below are set, so they decide where the forecast is for. This name is only the label the panel shows."
-                color: Color.muted
+                color: Commons.Color.muted
                 wrapMode: Text.WordWrap
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
@@ -102,7 +103,7 @@ SettingsPage {
 
                     Text {
                         text: "Latitude"
-                        color: Qt.darker(Color.foreground, 1.4)
+                        color: Qt.darker(Commons.Color.foreground, 1.4)
                         font.family: Style.font.family
                         font.pixelSize: Style.font.bodySmall
                     }
@@ -138,7 +139,7 @@ SettingsPage {
 
                     Text {
                         text: "Longitude"
-                        color: Qt.darker(Color.foreground, 1.4)
+                        color: Qt.darker(Commons.Color.foreground, 1.4)
                         font.family: Style.font.family
                         font.pixelSize: Style.font.bodySmall
                     }
@@ -250,7 +251,7 @@ SettingsPage {
                     anchors.verticalCenter: parent.verticalCenter
                     name: Weather.summary.icon
                     size: Style.font.iconLarge
-                    color: Color.foreground
+                    color: Commons.Color.foreground
                 }
 
                 Column {
@@ -259,7 +260,7 @@ SettingsPage {
 
                     Text {
                         text: Weather.reading !== null ? Weather.summary.temp + "  " + Weather.summary.label : (Weather.configured ? "Waiting for the first reading" : "No location set")
-                        color: Color.foreground
+                        color: Commons.Color.foreground
                         font.family: Style.font.family
                         font.pixelSize: Style.font.body
                     }
@@ -271,7 +272,7 @@ SettingsPage {
                     Text {
                         visible: Weather.reading !== null
                         text: (Weather.place !== "" ? Weather.place : "Nowhere in particular") + " · updated " + Weather.age
-                        color: Color.muted
+                        color: Commons.Color.muted
                         font.family: Style.font.family
                         font.pixelSize: Style.font.caption
                     }

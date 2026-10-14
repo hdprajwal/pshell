@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 
 // The desktop background, painted by pshell itself. Nothing else on this
 // machine draws one -- no swww, no swaybg, no hyprpaper -- so this window is
@@ -82,7 +83,7 @@ Variants {
         // hole.
         Rectangle {
             anchors.fill: parent
-            color: Color.background
+            color: Commons.Color.background
         }
 
         Slot {

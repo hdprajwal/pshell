@@ -1,6 +1,7 @@
 import QtQuick
 import Qt5Compat.GraphicalEffects
 import qs.Commons
+import qs.Commons as Commons
 
 // A themed icon tinted to the foreground colour. Symbolic icons ship in a
 // fixed dark colour, so they need recolouring to be visible on a dark bar.
@@ -9,7 +10,7 @@ Item {
 
     property string iconSource: ""
     property int size: 16
-    property color color: Color.foreground
+    property color color: Commons.Color.foreground
 
     implicitWidth: size
     implicitHeight: size

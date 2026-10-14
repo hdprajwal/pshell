@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Networking
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Wi-Fi + wired status in the bar with a network list panel. Shaped the way
@@ -115,7 +116,7 @@ Panel {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Wi-Fi"
-                        color: Color.popups.text
+                        color: Commons.Color.popups.text
                         font.family: Style.font.family
                         font.pixelSize: Style.font.subtitle
                     }
@@ -130,7 +131,7 @@ Panel {
                 Text {
                     visible: root.wiredUp
                     text: "Wired connected"
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
                 }
@@ -145,7 +146,7 @@ Panel {
                 Text {
                     visible: networkList.children.length > 0
                     text: "Right click a network to forget it"
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                 }

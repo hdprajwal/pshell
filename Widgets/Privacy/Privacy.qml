@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Whether anything is listening or watching right now.
@@ -56,7 +57,7 @@ BarIndicator {
     // The mic takes the icon when both are live: it is the event-driven
     // half, so it is the one worth not missing.
     iconSource: root.micActive ? Icons.microphone(false) : Icons.first(["camera-web-symbolic", "camera-video-symbolic", "camera-photo-symbolic"])
-    iconColor: Color.urgent
+    iconColor: Commons.Color.urgent
 
     // The old panel listed every capturing program by name; that detail
     // lives on here as a tooltip rather than a click target, since a status

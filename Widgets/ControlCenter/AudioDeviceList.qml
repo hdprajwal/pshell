@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Services.Pipewire
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Output or input device picker. `input` switches which list is shown.
@@ -49,7 +50,7 @@ Column {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             text: root.input ? "Input Devices" : "Audio Devices"
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: Style.font.family
             font.pixelSize: Math.round(Style.font.body * 1.25)
         }
@@ -67,7 +68,7 @@ Column {
                 anchors.centerIn: parent
                 name: Glyphs.settings
                 size: Math.round(Style.font.body * 1.1)
-                color: Color.foreground
+                color: Commons.Color.foreground
                 opacity: 0.7
             }
 
@@ -92,7 +93,7 @@ Column {
             anchors.verticalCenter: parent.verticalCenter
             name: Glyphs.microphone(Audio.micMuted)
             size: Math.round(Style.font.body * 1.4)
-            color: Color.foreground
+            color: Commons.Color.foreground
             opacity: Audio.micMuted ? 0.45 : 1
         }
 
@@ -131,7 +132,7 @@ Column {
                 radius: 8
                 color: hover.containsMouse && !selected ? Style.hoverFill : "transparent"
                 border.width: selected ? 1 : 0
-                border.color: Util.alpha(Color.foreground, 0.45)
+                border.color: Util.alpha(Commons.Color.foreground, 0.45)
 
                 MouseArea {
                     id: hover
@@ -159,7 +160,7 @@ Column {
                         anchors.verticalCenter: parent.verticalCenter
                         name: root.input ? Glyphs.source(devRow.modelData) : Glyphs.sink(devRow.modelData)
                         size: Math.round(Style.font.body * 1.2)
-                        color: Color.foreground
+                        color: Commons.Color.foreground
                         opacity: 0.85
                     }
 
@@ -169,7 +170,7 @@ Column {
 
                         Text {
                             text: devRow.modelData.description || devRow.modelData.nickname || devRow.modelData.name
-                            color: Color.foreground
+                            color: Commons.Color.foreground
                             font.family: Style.font.family
                             font.pixelSize: Style.font.body
                             width: root.rowWidth - 130
@@ -179,7 +180,7 @@ Column {
                         Text {
                             visible: devRow.selected
                             text: "Active"
-                            color: Color.foreground
+                            color: Commons.Color.foreground
                             opacity: 0.55
                             font.family: Style.font.family
                             font.pixelSize: Math.round(Style.font.body * 0.85)
@@ -206,14 +207,14 @@ Column {
                             name: Glyphs.pin
                             filled: devRow.pinned
                             size: Math.round(Style.font.body * 0.95)
-                            color: Color.foreground
+                            color: Commons.Color.foreground
                             opacity: devRow.pinned ? 1 : 0.7
                         }
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: devRow.pinned ? "Pinned" : "Pin"
-                            color: Color.foreground
+                            color: Commons.Color.foreground
                             opacity: devRow.pinned ? 1 : 0.7
                             font.family: Style.font.family
                             font.pixelSize: Math.round(Style.font.body * 0.85)
@@ -234,7 +235,7 @@ Column {
 
     Text {
         text: root.input ? "Recording" : "Playback"
-        color: Color.foreground
+        color: Commons.Color.foreground
         opacity: 0.55
         font.family: Style.font.family
         font.pixelSize: Math.round(Style.font.body * 0.9)
@@ -243,7 +244,7 @@ Column {
     Text {
         visible: root.streams.length === 0
         text: root.input ? "Nothing recording" : "Nothing playing"
-        color: Color.foreground
+        color: Commons.Color.foreground
         opacity: 0.35
         font.family: Style.font.family
         font.pixelSize: Math.round(Style.font.body * 0.85)
@@ -269,7 +270,7 @@ Column {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     text: parent.modelData.description || parent.modelData.name
-                    color: Color.foreground
+                    color: Commons.Color.foreground
                     opacity: 0.8
                     font.family: Style.font.family
                     font.pixelSize: Math.round(Style.font.body * 0.9)
@@ -281,7 +282,7 @@ Column {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     text: parent.modelData.audio ? Math.round(parent.modelData.audio.volume * 100) + "%" : ""
-                    color: Color.foreground
+                    color: Commons.Color.foreground
                     opacity: 0.55
                     font.family: Style.font.family
                     font.pixelSize: Math.round(Style.font.body * 0.85)

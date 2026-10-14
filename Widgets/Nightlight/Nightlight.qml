@@ -5,6 +5,7 @@ import qs.Services
 // a bare `Nightlight` here would be the widget and not the service.
 import qs.Services as Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // The bar's toggle for the nightlight. Only the view lives here, for the
@@ -25,7 +26,7 @@ BarIndicator {
     inactiveTooltipText: "Warm the screen to " + Services.Nightlight.temperature + "K"
 
     iconName: Glyphs.nightMode
-    iconColor: Services.Nightlight.active ? Color.accent : Color.foreground
+    iconColor: Services.Nightlight.active ? Commons.Color.accent : Commons.Color.foreground
 
     // State, never visibility: Section sizes the slot from this, and a
     // binding to `visible` would feed back into itself.

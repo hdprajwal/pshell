@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // A Material Symbols Rounded glyph, addressed by name the way DMS addresses
 // them: `name: "battery_5_bar"`, not a codepoint. The font maps those names
@@ -19,12 +20,12 @@ Item {
 
     property string name: ""
     property real size: Style.font.icon
-    property color color: Color.foreground
+    property color color: Commons.Color.foreground
     property bool filled: false
 
     property real fill: filled ? 1.0 : 0.0
     property int weight: filled ? 500 : 400
-    property int grade: Color.background.hslLightness > 0.5 ? 0 : -25
+    property int grade: Commons.Color.background.hslLightness > 0.5 ? 0 : -25
 
     implicitWidth: Math.round(size)
     implicitHeight: Math.round(size)

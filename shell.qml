@@ -12,6 +12,7 @@ import Quickshell.Wayland
 import qs.Components
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 // Qualified, because the unqualified name collides: qs.Services also has a
 // `Wallpaper` -- the singleton the keep-alive line below reads -- and two
 // modules both offering the name would leave this file using whichever one
@@ -201,10 +202,10 @@ ShellRoot {
             readonly property bool vertical: Config.position === "left" || Config.position === "right"
             readonly property string position: Config.position
             readonly property int barSize: Style.bar.sizeHorizontal
-            readonly property color foreground: Color.foreground
-            readonly property color barForeground: Color.foreground
-            readonly property color background: Color.background
-            readonly property color urgent: Color.urgent
+            readonly property color foreground: Commons.Color.foreground
+            readonly property color barForeground: Commons.Color.foreground
+            readonly property color background: Commons.Color.background
+            readonly property color urgent: Commons.Color.urgent
             readonly property string fontFamily: Style.font.family
             // Omarchy's widgets animate their foreground unless the bar says
             // not to. pshell has no setting for it, so it is simply on.
@@ -322,7 +323,7 @@ ShellRoot {
             // corner that has nothing behind it just eats the background.
             Rectangle {
                 anchors.fill: parent
-                color: Color.background
+                color: Commons.Color.background
                 radius: Style.spacing.barDetached ? Style.cornerRadius : 0
             }
 
@@ -372,16 +373,16 @@ ShellRoot {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: Color.tooltip.background
+                    color: Commons.Color.tooltip.background
                     radius: Style.cornerRadius
                     border.width: Style.spacing.hairline
-                    border.color: Color.tooltip.border
+                    border.color: Commons.Color.tooltip.border
 
                     Text {
                         id: tooltipLabel
                         anchors.centerIn: parent
                         text: tooltip.text
-                        color: Color.foreground
+                        color: Commons.Color.foreground
                         font.family: Style.font.family
                         font.pixelSize: Style.font.body
                     }

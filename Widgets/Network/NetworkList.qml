@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Networking
 import qs.Services
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Wi-Fi networks, strongest first with the connected one pinned to the top.
@@ -105,7 +106,7 @@ Column {
         Text {
             width: root.rowWidth
             text: root.failure
-            color: Color.urgent
+            color: Commons.Color.urgent
             wrapMode: Text.WordWrap
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -121,7 +122,7 @@ Column {
     Text {
         visible: Networking.wifiEnabled && rows.count === 0
         text: "Scanning..."
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
     }
@@ -150,7 +151,7 @@ Column {
             width: root.rowWidth
             height: Math.round(Style.font.body * 2.4)
             radius: Style.cornerRadius
-            color: Style.controlFill(false, hot, Color.foreground, Color.accent)
+            color: Style.controlFill(false, hot, Commons.Color.foreground, Commons.Color.accent)
 
             Row {
                 anchors.left: parent.left
@@ -162,13 +163,13 @@ Column {
                     anchors.verticalCenter: parent.verticalCenter
                     name: Glyphs.wifi(true, true, netRow.modelData.signalStrength)
                     size: Math.round(Style.font.body * 1.1)
-                    color: Color.popups.text
+                    color: Commons.Color.popups.text
                 }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: netRow.modelData.name
-                    color: Color.popups.text
+                    color: Commons.Color.popups.text
                     font.family: Style.font.family
                     font.pixelSize: Style.font.body
                     width: root.rowWidth - 150
@@ -187,7 +188,7 @@ Column {
                         return "connected";
                     return Math.round(netRow.modelData.signalStrength * 100) + "%";
                 }
-                color: netRow.modelData.connected ? Color.accent : Color.popups.text
+                color: netRow.modelData.connected ? Commons.Color.accent : Commons.Color.popups.text
                 opacity: netRow.modelData.connected ? 1 : 0.6
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
@@ -252,7 +253,7 @@ Column {
                     anchors.centerIn: parent
                     name: Glyphs.edit
                     size: Math.round(Style.font.body * 0.95)
-                    color: Color.popups.text
+                    color: Commons.Color.popups.text
                     opacity: editHover.containsMouse ? 1 : 0.55
                 }
 

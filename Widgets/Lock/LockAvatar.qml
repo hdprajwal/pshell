@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import qs.Commons
+import qs.Commons as Commons
 import qs.Services
 
 // The user's picture, drawn round.
@@ -56,6 +57,6 @@ Item {
         radius: width / 2
         color: "transparent"
         border.width: Style.spacing.hairline
-        border.color: Color.lock.border
+        border.color: Commons.Color.lock.border
     }
 }
