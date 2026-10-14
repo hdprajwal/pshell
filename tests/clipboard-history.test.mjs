@@ -222,3 +222,126 @@ test("an image's label takes a time only when given a formatter", () => {
     assert.equal(H.previewText(image("/s/a.png", { time: 5 }), () => "Mon 14:02"), "Image from Mon 14:02");
     assert.equal(H.previewText(image("/s/a.jpg", { mime: "image/jpeg" })), "JPEG image");
 });
+
+// -------------------------------------------------------------------- pins
+
+const pin = e => ({ ...e, pinned: true });
+const texts = h => h.map(e => (e.pinned ? "*" : "") + e.text);
+
+test("a history from before pins loads with nothing pinned and no new field", () => {
+    const h = H.parseHistory(JSON.stringify([text("a"), image("/s/x.png")]), Infinity);
+    assert.deepEqual(h, [text("a"), image("/s/x.png")]);
+    assert.equal(H.pinnedCount(h), 0);
+});
+
+test("normalizeEntry keeps pinned only when it is exactly true", () => {
+    assert.equal(H.normalizeEntry(pin(text("a"))).pinned, true);
+    assert.equal("pinned" in H.normalizeEntry(text("a", { pinned: "yes" })), false);
+    assert.equal("pinned" in H.normalizeEntry(text("a", { pinned: false })), false);
+});
+
+test("parseHistory reads every pin whatever the cap, and puts them first", () => {
+    const raw = JSON.stringify([text("a"), text("b"), pin(text("p")), text("c")]);
+    assert.deepEqual(texts(H.parseHistory(raw, 1)), ["*p", "a"]);
+    assert.deepEqual(texts(H.parseHistory(raw, 0)), ["*p"]);
+});
+
+test("pins never count toward the cap, and copies never push them off", () => {
+    let h = [pin(text("keep")), pin(text("also"))];
+    for (let i = 0; i < 10; i++)
+        h = H.addEntry(h, text(String(i)), 3);
+    assert.deepEqual(texts(h), ["*keep", "*also", "9", "8", "7"]);
+});
+
+test("re-copying a pinned entry neither duplicates it nor unpins it, and stamps its time", () => {
+    const h = [pin(text("p", { time: 1 })), text("a", { time: 2 })];
+    const out = H.addEntry(h, text("p", { time: 9 }), 10);
+    assert.deepEqual(texts(out), ["*p", "a"]);
+    assert.equal(out[0].time, 9);
+    assert.equal(H.newestIndex(out), 0);
+});
+
+test("re-copying a pinned entry does not evict a rolling one at the cap", () => {
+    const h = [pin(text("p")), text("a"), text("b")];
+    assert.deepEqual(texts(H.addEntry(h, text("p"), 2)), ["*p", "a", "b"]);
+});
+
+test("a copy arriving marked pinned is still recorded unpinned", () => {
+    assert.deepEqual(texts(H.addEntry([], pin(text("x")), 10)), ["x"]);
+});
+
+test("a cap of zero keeps the pins and nothing else", () => {
+    assert.deepEqual(texts(H.addEntry([pin(text("p")), text("a")], text("b"), 0)), ["*p"]);
+    assert.deepEqual(texts(H.capHistory([text("a"), pin(text("p"))], 0)), ["*p"]);
+});
+
+test("setPinned moves a pin to the end of the pinned entries", () => {
+    const h = [pin(text("p")), text("a"), text("b"), text("c")];
+    assert.deepEqual(texts(H.setPinned(h, 2, true, 10)), ["*p", "*b", "a", "c"]);
+});
+
+test("setPinned unpins back to the top of the rolling history", () => {
+    const h = [pin(text("p")), pin(text("q")), text("a")];
+    assert.deepEqual(texts(H.setPinned(h, 0, false, 10)), ["*q", "p", "a"]);
+});
+
+test("unpinning at a full cap pushes the oldest rolling entry off, not the unpinned one", () => {
+    const h = [pin(text("p")), text("a"), text("b")];
+    assert.deepEqual(texts(H.setPinned(h, 0, false, 2)), ["p", "a"]);
+});
+
+test("unpinning with a cap of zero forgets the entry", () => {
+    assert.deepEqual(H.setPinned([pin(text("p"))], 0, false, 0), []);
+});
+
+test("setPinned ignores a bad index and a pin that is already one", () => {
+    const h = [pin(text("p")), text("a")];
+    assert.deepEqual(texts(H.setPinned(h, 5, true, 10)), ["*p", "a"]);
+    assert.deepEqual(texts(H.setPinned(h, -1, true, 10)), ["*p", "a"]);
+    assert.deepEqual(texts(H.setPinned(h, 0, true, 10)), ["*p", "a"]);
+    assert.deepEqual(texts(H.setPinned(h, 1, false, 10)), ["*p", "a"]);
+});
+
+test("setPinned does not mutate the array it was given", () => {
+    const h = [text("a")];
+    H.setPinned(h, 0, true, 10);
+    assert.deepEqual(h, [text("a")]);
+});
+
+test("pinnedOnly is what clearing leaves", () => {
+    const h = [pin(text("p")), text("a"), pin(image("/s/x.png"))];
+    assert.deepEqual(H.pinnedOnly(h).map(e => e.text || e.path), ["p", "/s/x.png"]);
+});
+
+test("an image a pin references is never named an orphan", () => {
+    const h = [pin(image("/s/img/x.png")), image("/s/img/y.png")];
+    assert.deepEqual(H.orphanedImages(h, H.pinnedOnly(h), "/s/img"), ["/s/img/y.png"]);
+    let rolled = h;
+    for (let i = 0; i < 5; i++)
+        rolled = H.addEntry(rolled, text(String(i)), 2);
+    assert.deepEqual(H.orphanedImages(h, rolled, "/s/img"), ["/s/img/y.png"]);
+});
+
+test("newestIndex finds the latest copy, pinned or not", () => {
+    assert.equal(H.newestIndex([]), -1);
+    assert.equal(H.newestIndex([pin(text("p", { time: 1 })), text("a", { time: 5 })]), 1);
+    assert.equal(H.newestIndex([pin(text("p", { time: 7 })), text("a", { time: 5 })]), 0);
+});
+
+test("newestIndex prefers the rolling history's first entry on a tie", () => {
+    assert.equal(H.newestIndex([pin(text("p")), text("a"), text("b")]), 1);
+    assert.equal(H.newestIndex([text("a"), text("b")]), 0);
+});
+
+test("displayRows draws pins first, marked, and searches them like the rest", () => {
+    const h = [pin(text("pinned token")), text("plain token"), text("other")];
+    const rows = H.displayRows(h, "", 10);
+    assert.deepEqual(rows.map(r => r.pinned), [true, false, false]);
+    const found = H.displayRows(h, "TOKEN", 10);
+    assert.deepEqual(found.map(r => [r.index, r.pinned]), [[0, true], [1, false]]);
+});
+
+test("a huge pinned entry is drawn capped and still marked pinned", () => {
+    const big = pin(text("x".repeat(H.displayTextLimit + 10)));
+    assert.equal(H.cappedEntry(big).pinned, true);
+});

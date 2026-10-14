@@ -17,6 +17,13 @@
 //   { type: "image", path, mime, time }
 // `path` is the content-addressed copy capture wrote under the state
 // directory, never wherever the image came from.
+//
+// Either shape may also carry `pinned: true`. Pinned entries sit at the
+// front of the history, in the order they were pinned, and the rolling
+// history follows them newest first. The cap counts only the rolling part,
+// so nothing that is copied afterwards can push a pinned entry off the end.
+// The field is left out rather than written false, so a history from before
+// pins existed is already in the current format.
 
 // Newest first, as the history itself is. The default the shell falls back
 // to when config.json does not say.
@@ -32,6 +39,13 @@ var displayTextLimit = 8192;
 // of the two shapes or not at all. A whitespace-only text is dropped: there
 // is nothing to show for it and nothing anyone would want pasted back.
 function normalizeEntry(value) {
+    var entry = normalizeShape(value);
+    if (entry && value.pinned === true)
+        entry.pinned = true;
+    return entry;
+}
+
+function normalizeShape(value) {
     if (typeof value === "string")
         return value.trim().length > 0 ? {
             type: "text",
@@ -92,15 +106,54 @@ function clampLimit(limit) {
     return Math.max(0, Math.floor(n));
 }
 
+function isPinned(entry) {
+    return !!entry && entry.pinned === true;
+}
+
+// Any history into the shape the shell keeps: every entry normalised,
+// pinned ones first in the order they came, then the rolling ones, of which
+// at most `limit` are kept. A cap of zero keeps the pins and nothing else.
+function capHistory(history, limit) {
+    var max = limit === Infinity ? Infinity : clampLimit(limit);
+    var values = Array.isArray(history) ? history : [];
+    var pinned = [];
+    var rolling = [];
+    for (var i = 0; i < values.length; i++) {
+        var entry = normalizeEntry(values[i]);
+        if (!entry)
+            continue;
+        if (entry.pinned)
+            pinned.push(entry);
+        else if (rolling.length < max)
+            rolling.push(entry);
+    }
+    return pinned.concat(rolling);
+}
+
+// The pinned entries alone: what clearing the history leaves behind.
+function pinnedOnly(history) {
+    return capHistory(history, 0);
+}
+
+function pinnedCount(history) {
+    var values = Array.isArray(history) ? history : [];
+    var n = 0;
+    for (var i = 0; i < values.length; i++) {
+        if (isPinned(values[i]))
+            n++;
+    }
+    return n;
+}
+
 // history.json's text into a history. Anything unreadable is an empty
 // history rather than an exception: a corrupt file must not take the
 // watchers down with it, and the next copy rewrites it whole.
 //
 // A limit of Infinity reads every entry. The shell loads that way, so a file
 // holding more than the cap is noticed -- and cut down, images and all --
-// rather than quietly read short and left on disk as it was.
+// rather than quietly read short and left on disk as it was. Pinned entries
+// are always read, whatever the limit, and come back first.
 function parseHistory(raw, limit) {
-    var max = limit === Infinity ? Infinity : clampLimit(limit);
     var parsed;
     try {
         parsed = JSON.parse(String(raw || "[]"));
@@ -109,14 +162,7 @@ function parseHistory(raw, limit) {
     }
     if (!Array.isArray(parsed))
         return [];
-
-    var out = [];
-    for (var i = 0; i < parsed.length && out.length < max; i++) {
-        var entry = normalizeEntry(parsed[i]);
-        if (entry)
-            out.push(entry);
-    }
-    return out;
+    return capHistory(parsed, limit === Infinity ? Infinity : clampLimit(limit));
 }
 
 // One JSON line from capture into an entry, or null for anything else --
@@ -138,6 +184,11 @@ function parseEntryJson(line) {
 // adding a second row, which is what makes "copy it again" the way to keep
 // something near the top.
 //
+// Copying something that is pinned does neither: the pinned entry stays
+// where it is, still pinned, and only its time moves, so it is still known
+// to be the copy on the clipboard now. A second, unpinned row of it would
+// be the duplicate pins exist to avoid.
+//
 // Returns a NEW array and never touches its input, for the reason
 // NotificationHistory.append gives: QML re-evaluates bindings on a property
 // only when it is reassigned.
@@ -146,19 +197,80 @@ function addEntry(history, entry, limit) {
     var values = Array.isArray(history) ? history : [];
     var normalized = normalizeEntry(entry);
     if (!normalized)
-        return values.slice(0, max);
-    if (max === 0)
-        return [];
+        return capHistory(values, max);
+    // A copy arrives unpinned; only the panel or IPC pins anything.
+    delete normalized.pinned;
 
     var key = entryKey(normalized);
-    var out = [normalized];
-    for (var i = 0; i < values.length && out.length < max; i++) {
+    var pinned = [];
+    var rolling = [normalized];
+    var alreadyPinned = false;
+    for (var i = 0; i < values.length; i++) {
         var existing = normalizeEntry(values[i]);
-        if (!existing || entryKey(existing) === key)
+        if (!existing)
             continue;
-        out.push(existing);
+        var same = entryKey(existing) === key;
+        if (existing.pinned) {
+            if (same && !alreadyPinned) {
+                existing.time = normalized.time;
+                alreadyPinned = true;
+            }
+            pinned.push(existing);
+        } else if (!same) {
+            rolling.push(existing);
+        }
     }
-    return out;
+    if (alreadyPinned)
+        rolling.shift();
+    return pinned.concat(rolling.slice(0, max));
+}
+
+// Pin or unpin the entry at `index`. A pin goes to the end of the pinned
+// entries, so the ones already there keep their places. An unpinned entry
+// goes back to the top of the rolling history, where it ages out like a
+// fresh copy rather than vanishing at once for being old -- unless the cap
+// is zero, which keeps nothing that is not pinned.
+//
+// Anything that changes nothing -- a bad index, pinning a pin -- returns the
+// history as it was.
+function setPinned(history, index, pinned, limit) {
+    var values = capHistory(history, Infinity);
+    var at = Number(index);
+    if (!isFinite(at) || at < 0 || at >= values.length || Math.floor(at) !== at)
+        return values;
+    var entry = values[at];
+    if (isPinned(entry) === !!pinned)
+        return values;
+
+    values.splice(at, 1);
+    if (pinned)
+        entry.pinned = true;
+    else
+        delete entry.pinned;
+    values.splice(pinnedCount(values), 0, entry);
+    return capHistory(values, limit);
+}
+
+// Where the copy that is on the clipboard now sits: the entry with the
+// latest time. Usually the first rolling entry, but a pinned one copied
+// again is newer than all of them. On a tie -- entries from before times
+// were kept all read zero -- the rolling history's own order wins, since
+// its first entry is the last thing copied. -1 for an empty history.
+function newestIndex(history) {
+    var values = Array.isArray(history) ? history : [];
+    var best = -1;
+    var bestTime = -1;
+    for (var i = 0; i < values.length; i++) {
+        var e = values[i];
+        if (!e)
+            continue;
+        var time = Number(e.time) || 0;
+        if (best < 0 || time > bestTime || (time === bestTime && isPinned(values[best]) && !isPinned(e))) {
+            best = i;
+            bestTime = time;
+        }
+    }
+    return best;
 }
 
 function removeEntryAt(history, index) {
@@ -286,11 +398,14 @@ function cappedEntry(entry) {
     if (!entry || entry.type !== "text" || entry.text.length <= displayTextLimit)
         return entry;
     var cut = entry.text.lastIndexOf("\n", displayTextLimit);
-    return {
+    var out = {
         type: "text",
         text: entry.text.slice(0, cut > 0 ? cut : displayTextLimit),
         time: entry.time
     };
+    if (entry.pinned)
+        out.pinned = true;
+    return out;
 }
 
 function searchableText(entry) {
@@ -302,7 +417,7 @@ function searchableText(entry) {
     return String(entry.text || "") + (paths.length > 0 ? " " + paths.map(fileName).join(" ") : "");
 }
 
-// The rows the panel draws: newest first, filtered by a case-insensitive
+// The rows the panel draws: pinned first, then newest first, filtered by a case-insensitive
 // substring, at most `limit` of them. Each row remembers its `index` into
 // history, because a filtered row's position on screen says nothing about
 // where its entry is -- and the paste has to read the full, uncapped entry
@@ -333,7 +448,8 @@ function displayRows(history, query, limit, formatTime) {
             // capped text otherwise, nothing for an image.
             fullText: isImage ? "" : (isFile ? paths.join("\n") : entry.text),
             previewImage: image,
-            mime: isImage ? entry.mime : "text/plain"
+            mime: isImage ? entry.mime : "text/plain",
+            pinned: isPinned(entry)
         });
     }
     return rows;
