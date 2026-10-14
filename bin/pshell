@@ -151,7 +151,9 @@ need_walker() {
 # target, and listed anyway: it is the other half of the pair the README
 # documents together, and its bare form is a shorthand like `lock`.
 # nightlight is listed for the same shorthand, and because it needs something
-# installed before it can work; updates for the same two reasons.
+# installed before it can work; updates for the same two reasons. audio tone
+# is listed because it is a method taking a word, which `ipc show` prints
+# as a signature rather than as the four words it takes.
 usage() {
     cat <<'EOF'
 usage: pshell <command> [arguments]
@@ -167,6 +169,8 @@ usage: pshell <command> [arguments]
   nightlight              turn the nightlight on or off (needs hyprsunset)
   updates                 pending package updates (needs cachy-update or
                           arch-update); `pshell updates open` runs them
+  audio tone [on|off|toggle|test]
+                          the tone after a volume change; bare, its status
 
   <target> <method> [..]  call any IPC target directly:
                             pshell calendar toggle
@@ -234,8 +238,11 @@ call() {
     # pshell.weather is listed for `hourly`, which has nothing to print
     # before the first reading. Its other answers start with a temperature,
     # a dash or an hour, and the place name is never first.
+    #
+    # pshell.audio is listed because `tone` answers that way, and its only
+    # other free text is `status`, which starts with `volume`.
     case $1 in
-    pshell.nightlight | pshell.updates | pshell.weather)
+    pshell.nightlight | pshell.updates | pshell.weather | pshell.audio)
         case $out in
         "error: "*)
             printf 'pshell: %s\n' "${out#error: }" >&2
@@ -372,6 +379,19 @@ updates)
         call pshell.updates status
     else
         call pshell.updates "$@"
+    fi
+    ;;
+audio)
+    # Only to give `pshell audio tone` a bare form: the method takes its
+    # action as an argument, and qs refuses a call missing one. Everything
+    # else is the target dispatch below, unchanged.
+    if [ $# -eq 1 ] && [ "$1" = tone ]; then
+        call pshell.audio tone status
+    elif [ $# -eq 0 ]; then
+        echo "pshell: audio needs a method, eg. pshell audio toggleMute" >&2
+        exit 1
+    else
+        call pshell.audio "$@"
     fi
     ;;
 *)
