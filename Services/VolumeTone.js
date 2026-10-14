@@ -34,9 +34,10 @@ var DEFAULT_DELAY = 180;
 var MIN_DELAY = 50;
 var MAX_DELAY = 2000;
 
-// How long a change pshell made itself counts as pshell's: the delay the
-// tone waits for, and slack for Pipewire to report it back.
-var OWN_SLACK_MS = 500;
+// How long after pshell sets the volume a change can land and still be
+// pshell's: Pipewire reports a level set through Quickshell back within a
+// few milliseconds, and a key press a moment later is not pshell's.
+var OWN_LAG_MS = 150;
 
 // The players, in the order they are tried. pw-play first because it is
 // Pipewire's own and takes a node by name; paplay talks to the same server
@@ -78,10 +79,11 @@ function same(a, b) {
 // What a new reading does to the state, and whether it starts (or
 // restarts) the wait for the level to settle.
 //
-// state = { key, settled, last, muted, quietUntil }, or null before the
-// first reading. `settled` is the level the last tone was about, or the
-// level the sink came up at; the tone is for a move away from it. `last` is
-// the previous reading, so that only a moving level keeps the wait going.
+// state = { key, settled, last, muted, quietUntil, changedAt }, or null
+// before the first reading. `settled` is the level the last tone was about,
+// or the level the sink came up at; the tone is for a move away from it.
+// `last` is the previous reading, so that only a moving level keeps the
+// wait going. `changedAt` is when the level last moved, for isOwnChange.
 //
 // Returns { state, arm }. Never arms on:
 //   - no sink, or a sink that is not ready yet;
@@ -98,31 +100,35 @@ function observe(state, seen, now) {
 
     if (!state || state.key !== seen.key) {
         return {
-            state: { key: seen.key, settled: volume, last: volume, muted: muted, quietUntil: now + QUIET_MS },
+            state: { key: seen.key, settled: volume, last: volume, muted: muted, quietUntil: now + QUIET_MS, changedAt: 0 },
             arm: false
         };
     }
 
     if (now < state.quietUntil) {
         return {
-            state: { key: state.key, settled: volume, last: volume, muted: muted, quietUntil: state.quietUntil },
+            state: { key: state.key, settled: volume, last: volume, muted: muted, quietUntil: state.quietUntil, changedAt: 0 },
             arm: false
         };
     }
 
+    var moved = !same(volume, state.last);
     return {
-        state: { key: state.key, settled: state.settled, last: volume, muted: muted, quietUntil: state.quietUntil },
-        arm: !same(volume, state.last)
+        state: { key: state.key, settled: state.settled, last: volume, muted: muted, quietUntil: state.quietUntil, changedAt: moved ? now : (state.changedAt || 0) },
+        arm: moved
     };
 }
 
-// Whether the level pshell is looking at now came from pshell itself: the
-// control centre's slider or scroll, or `pshell audio`. Anything else --
-// swayosd on the volume keys, pavucontrol, an app -- is outside.
-function isOwnChange(lastOwnAt, firedAt, delay) {
-    if (!lastOwnAt)
+// Whether the last change to land came from pshell itself: the control
+// centre's slider or scroll, or `pshell audio`. Anything else -- swayosd on
+// the volume keys, pavucontrol, an app -- is outside. Asked of the change,
+// not of the moment the tone is due: a scroll followed half a second later
+// by a volume key is the key's level, and the key's to answer for.
+function isOwnChange(lastOwnAt, changedAt) {
+    if (!lastOwnAt || !changedAt)
         return false;
-    return firedAt - lastOwnAt <= clampDelay(delay) + OWN_SLACK_MS;
+    var lag = changedAt - lastOwnAt;
+    return lag >= 0 && lag <= OWN_LAG_MS;
 }
 
 // Whether the tone plays now that the level has held still. `opts` is
@@ -154,7 +160,7 @@ function settle(state, seen) {
     if (!state || !seen || seen.key !== state.key)
         return state;
     var volume = Number(seen.volume) || 0;
-    return { key: state.key, settled: volume, last: volume, muted: !!seen.muted, quietUntil: state.quietUntil };
+    return { key: state.key, settled: volume, last: volume, muted: !!seen.muted, quietUntil: state.quietUntil, changedAt: state.changedAt || 0 };
 }
 
 // ---------------------------------------------------------------- playing

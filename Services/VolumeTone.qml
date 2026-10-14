@@ -96,7 +96,7 @@ Singleton {
         const why = Model.verdict(root._state, seen, {
             enabled: root.enabled,
             keys: root.keys,
-            own: Model.isOwnChange(Audio.lastSetAt, Date.now(), root.delay)
+            own: Model.isOwnChange(Audio.lastSetAt, root._state ? root._state.changedAt : 0)
         });
         root._state = Model.settle(root._state, seen);
         if (why === "")

@@ -155,11 +155,36 @@ test("settle leaves a state alone when the sink moved under it", () => {
   assert.equal(T.settle(null, seen(0.5)), null);
 });
 
-test("isOwnChange counts a pshell change inside the wait and its slack", () => {
-  assert.equal(T.isOwnChange(0, 10000, 180), false);
-  assert.equal(T.isOwnChange(9800, 10000, 180), true);
-  assert.equal(T.isOwnChange(10000 - 680, 10000, 180), true);
-  assert.equal(T.isOwnChange(10000 - 681, 10000, 180), false);
+test("isOwnChange counts a change that lands just after pshell set the level", () => {
+  assert.equal(T.isOwnChange(0, 10000), false, "pshell never set it");
+  assert.equal(T.isOwnChange(9990, 0), false, "nothing has moved");
+  assert.equal(T.isOwnChange(10000, 10000), true);
+  assert.equal(T.isOwnChange(10000, 10150), true);
+  assert.equal(T.isOwnChange(10000, 10151), false);
+  assert.equal(T.isOwnChange(10000, 9990), false, "a change from before pshell set it");
+});
+
+// keys: false. A scroll in the control centre, then a volume key 400 ms
+// later, before the wait for the scroll's tone has run out: the level that
+// lands is the key's, so it is not pshell's to sound for.
+test("a key press just after pshell's own change is not pshell's", () => {
+  let state = settledAt(0.4);
+  const scrollAt = 10000;
+  state = T.observe(state, seen(0.45), scrollAt + 5).state;
+  assert.equal(T.isOwnChange(scrollAt, state.changedAt), true, "the scroll alone is pshell's");
+  state = T.observe(state, seen(0.5), scrollAt + 400).state;
+  const own = T.isOwnChange(scrollAt, state.changedAt);
+  assert.equal(own, false);
+  assert.equal(T.verdict(state, seen(0.5), { enabled: true, keys: false, own }), "not pshell's");
+});
+
+test("observe keeps when the level last moved, and settle carries it", () => {
+  let state = settledAt(0.4);
+  state = T.observe(state, seen(0.45), 10000).state;
+  assert.equal(state.changedAt, 10000);
+  state = T.observe(state, seen(0.45, { muted: true }), 10300).state;
+  assert.equal(state.changedAt, 10000, "a mute toggle is not a change of level");
+  assert.equal(T.settle(state, seen(0.45)).changedAt, 10000);
 });
 
 test("clampDelay defaults and bounds the wait", () => {
