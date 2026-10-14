@@ -42,8 +42,8 @@ exit "\${QS_EXIT:-0}"
 `);
     chmodSync(join(bin, "qs"), 0o755);
 
-    // The same trick for walker, which `pshell launcher` and `pshell
-    // clipboard` exec rather than call over IPC. A fake is the only way to
+    // The same trick for walker, which `pshell launcher` execs rather than
+    // calling over IPC. A fake is the only way to
     // see what they run: the real walker wants a Wayland display and an
     // elephant socket, and is not installed here anyway.
     const walkerLog = join(root, "walker.log");
@@ -201,7 +201,7 @@ test("run starts the shell and forwards qs options", () => {
     assert.deepEqual(calls(box), [["-p", repo, "-d"]]);
 });
 
-// ------------------------------------------------- the two that run walker
+// --------------------------------------- the launcher, and the clipboard
 
 test("launcher runs walker bare, naming no provider of its own", () => {
     const box = sandbox();
@@ -223,13 +223,24 @@ test("launcher runs walker bare, naming no provider of its own", () => {
     assert.deepEqual(calls(box), []);
 });
 
-test("clipboard opens walker on the clipboard provider", () => {
+// The clipboard history is pshell's own now, so the command that used to
+// open walker's clipboard provider talks to the shell like every other one.
+// Bare, it toggles -- the keybind that opens the panel also closes it.
+test("clipboard toggles pshell's own panel rather than opening walker", () => {
     const box = sandbox();
     const out = run(box, ["clipboard"]);
 
     assert.equal(out.status, 0);
-    assert.deepEqual(walkerCalls(box), [["--provider", "clipboard"]]);
-    assert.deepEqual(calls(box), []);
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.clipboard", "toggle"]]);
+    assert.deepEqual(walkerCalls(box), []);
+});
+
+test("clipboard with a method calls that method instead", () => {
+    const box = sandbox();
+    run(box, ["clipboard", "history", "10"]);
+
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.clipboard", "history", "10"]]);
+    assert.deepEqual(walkerCalls(box), []);
 });
 
 test("both are documented, unlike the targets", () => {
@@ -254,25 +265,25 @@ test("a missing walker says what to install rather than failing at exec", () => 
     assert.deepEqual(calls(box), []);
 });
 
-test("clipboard gets the same guard, not just launcher", () => {
+// The guard that used to cover both now covers only the launcher: a machine
+// without walker still has a clipboard history.
+test("clipboard needs no walker any more", () => {
     const box = sandbox();
     const out = run(box, ["clipboard"], { PATH: `${box.noWalker}:${box.bare}` });
 
-    assert.equal(out.status, 1);
-    assert.match(out.stderr, /walker is not on your PATH/);
-    assert.deepEqual(calls(box), []);
+    assert.equal(out.status, 0);
+    assert.doesNotMatch(out.stderr, /walker/);
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.clipboard", "toggle"]]);
 });
 
-test("neither takes arguments, so a typo cannot reach walker's own flags", () => {
-    for (const cmd of ["launcher", "clipboard"]) {
-        const box = sandbox();
-        const out = run(box, [cmd, "--dmenu"]);
+test("launcher takes no arguments, so a typo cannot reach walker's own flags", () => {
+    const box = sandbox();
+    const out = run(box, ["launcher", "--dmenu"]);
 
-        assert.equal(out.status, 1, `${cmd} accepted an argument`);
-        assert.match(out.stderr, /takes no arguments/);
-        assert.deepEqual(walkerCalls(box), []);
-        assert.deepEqual(calls(box), []);
-    }
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /takes no arguments/);
+    assert.deepEqual(walkerCalls(box), []);
+    assert.deepEqual(calls(box), []);
 });
 
 // Adding two named commands to the case block is exactly how the catch-all
