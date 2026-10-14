@@ -602,8 +602,10 @@ Singleton {
         }
 
         // The next 24 hours, one line each: hour, temperature, chance of
-        // rain, condition. A full day whatever `hourlyHours` is, since that
-        // setting is about room in the panel and a script has no panel.
+        // rain, condition. Up to a day whatever `hourlyHours` is, since that
+        // setting is about room in the panel and a script has no panel. An
+        // `error: ` line when there is no hour to print, which bin/pshell
+        // turns into a failure.
         function hourly(): string {
             return W.hourlyLines(root.reading, Date.now(), 24);
         }

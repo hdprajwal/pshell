@@ -622,7 +622,7 @@ test("a cache from before the hourly row, or one too old to have a future, draws
     const old = Weather.parseForecast(PAYLOAD, NOW, "metric");
     delete old.hours;
     assert.deepEqual(Weather.hourlyStrip(old, NOW, 12, false), []);
-    assert.equal(Weather.hourlyLines(old, NOW, 12), "");
+    assert.equal(Weather.hourlyLines(old, NOW, 12), "error: no hourly forecast yet", "never an empty success");
     // And the rest of the panel still reads it.
     assert.equal(Weather.summarise(old).temp, "24°C");
     assert.equal(Weather.dailyStrip(old).length, 3);

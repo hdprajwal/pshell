@@ -1498,17 +1498,21 @@ one it says so rather than pretending.
 ```
 pshell weather refresh                fetch now
 pshell weather current                one line: temperature, condition, place, age
-pshell weather hourly                 the next 24 hours, one line each
+pshell weather hourly                 up to the next 24 hours, one line each
 pshell weather toggle                 open or close the panel
 pshell weather setLocation Mysuru     re-resolve and refetch
 pshell weather setCoordinates 12.97 77.59   pin the exact spot
 pshell weather clearCoordinates       back to deciding by name
 ```
 
-`hourly` prints a full day whatever `hourlyHours` says, since that setting is
-about room in the panel. Each line is the hour as `HH:MM`, the temperature,
-the chance of rain and the condition, two spaces apart, with the condition
-last because it is the one with spaces in it:
+`hourly` prints up to a day whatever `hourlyHours` says, since that setting is
+about room in the panel. Fewer when the last reading is old enough that the
+forecast runs out first, and none, with `error: no hourly forecast yet` and a
+non-zero exit, when there is no reading or no hour left in it.
+
+Each line is the hour as `HH:MM`, the temperature, the chance of rain and the
+condition, two spaces apart, with the condition last because it is the one
+with spaces in it:
 
 ```
 21:00  24°C  40%  Light rain
