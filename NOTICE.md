@@ -69,7 +69,7 @@ design and most of the logic kept:
   `shell/plugins/clipboard/ClipboardHistory.js`: the entry shapes, dedupe,
   cap, display truncation, search and file-URI handling. Entries carry an
   epoch time instead of a formatted string, the translation layer is gone,
-  and `orphanedImages` is pshell's own.
+  and `orphanedImages` and pinning are pshell's own.
 - `Services/clipboard.sh` adapts `shell/plugins/clipboard/capture.sh` (the
   password-manager skip, the bounded reads, the UTF-16 detection and the
   content-addressed images) and `bin/omarchy-clipboard-paste-text` and
