@@ -258,6 +258,19 @@ test("clipboard pin, unpin and pinned reach the shell with their index", () => {
     ]);
 });
 
+// history marks pins inside the preview column, so the script has nothing
+// to do but pass the lines through -- two tab-separated fields each, which
+// is what `cut -f1` after fzf relies on.
+test("clipboard history passes pinned lines through, marker and all", () => {
+    const box = sandbox();
+    const lines = "0\t[pin] ssh key\n1\tlatest copy";
+    const out = run(box, ["clipboard", "history", "20"], { QS_STDOUT: lines });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, lines + "\n");
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.clipboard", "history", "20"]]);
+});
+
 test("both are documented, unlike the targets", () => {
     const box = sandbox();
     const out = run(box, ["help"]);

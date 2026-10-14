@@ -345,3 +345,41 @@ test("a huge pinned entry is drawn capped and still marked pinned", () => {
     const big = pin(text("x".repeat(H.displayTextLimit + 10)));
     assert.equal(H.cappedEntry(big).pinned, true);
 });
+
+test("displayRows' limit counts only unpinned rows, so pins never hide recent copies", () => {
+    const h = [];
+    for (let i = 0; i < 60; i++)
+        h.push(pin(text("pin " + i)));
+    for (let i = 0; i < 60; i++)
+        h.push(text("copy " + i));
+    const rows = H.displayRows(h, "", 50);
+    assert.equal(rows.filter(r => r.pinned).length, 60);
+    assert.equal(rows.filter(r => !r.pinned).length, 50);
+    assert.equal(rows[60].previewText, "copy 0");
+    // Filtered, the same: matching pins, then up to the limit of the rest.
+    const found = H.displayRows(h, "1", 3);
+    assert.deepEqual(found.map(r => r.previewText), [
+        "pin 1", "pin 10", "pin 11", "pin 12", "pin 13", "pin 14", "pin 15", "pin 16", "pin 17", "pin 18", "pin 19",
+        "pin 21", "pin 31", "pin 41", "pin 51", "copy 1", "copy 10", "copy 11",
+    ]);
+});
+
+test("historyLines lists every pin, marked, then N of the rest, numbered by index", () => {
+    const h = [pin(text("p0")), pin(text("p1")), text("a"), text("b"), text("c")];
+    assert.equal(H.historyLines(h, 2), "0\t[pin] p0\n1\t[pin] p1\n2\ta\n3\tb");
+    assert.equal(H.historyLines(h, 0), "0\t[pin] p0\n1\t[pin] p1\n2\ta\n3\tb\n4\tc");
+    assert.equal(H.historyLines(h, -1).split("\n").length, 5);
+    assert.equal(H.historyLines([], 5), "");
+});
+
+test("historyLines numbers match displayRows' indexes", () => {
+    const h = [pin(text("p")), text("a\nb"), image("/s/i.png")];
+    const fromCli = H.historyLines(h, 50).split("\n").map(l => Number(l.split("\t")[0]));
+    assert.deepEqual(fromCli, H.displayRows(h, "", 50).map(r => r.index));
+});
+
+test("historyLine marks a pin inside the preview column, keeping two fields", () => {
+    assert.equal(H.historyLine(pin(text("x\ty")), 0).split("\t").length, 2);
+    assert.equal(H.historyLine(text("x"), 4), "4\tx");
+    assert.equal(H.historyLine(pin(image("/s/i.png")), 1), "1\t[pin] Image");
+});

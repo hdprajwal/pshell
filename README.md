@@ -1121,7 +1121,7 @@ Every part of it answers over IPC, panel or no panel:
 
     pshell clipboard toggle          # also open / close
     pshell clipboard count           # how many copies are kept, pins included
-    pshell clipboard history 20      # the first twenty, numbered, one per line
+    pshell clipboard history 20      # the pins, then the twenty newest copies, numbered
     pshell clipboard copy 3          # put number 3 back on the clipboard
     pshell clipboard remove 3        # forget number 3, pinned or not
     pshell clipboard pin 3           # pin number 3
@@ -1131,9 +1131,13 @@ Every part of it answers over IPC, panel or no panel:
     pshell clipboard clearAll        # forget the pins too
 
 `history` lists the pinned entries first and then the rest, newest first, in
-the panel's order, and every command takes the numbers it prints. `pinned`
-prints the first lines of it, so its numbers are the same. Pinning, unpinning
-and forgetting move entries, so list again before using a number twice.
+the panel's order, and every command takes the numbers it prints. A pinned
+line's preview starts with `[pin] `. The number counts only the copies after
+the pins, so `history 20` is every pin and then the twenty latest copies,
+however many pins there are; the panel likewise shows every pin and fifty
+others. `pinned` prints the first lines of it, so its numbers are the same.
+Pinning, unpinning and forgetting move entries, so list again before using a
+number twice.
 
 `copy` only copies. From a script there is no telling which window would get
 a pasted keystroke, so pasting is the panel's job.
