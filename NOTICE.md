@@ -47,6 +47,28 @@ is what bridges a widget written for one shell onto the other.
 The manifest format for widgets under `~/.config/pshell/widgets/` is Omarchy's,
 as are the `qs.Commons` and `qs.Ui` module names.
 
+The clipboard history is adapted from Omarchy's first-party clipboard plugin
+on the same `quattro` branch, at commit
+`84cfb93959f4fe0bbb71de71593b36647d2ba78d`. Unlike the files above these are
+not vendored byte for byte; they are rewritten in pshell's style, with the
+design and most of the logic kept:
+
+- `Services/ClipboardHistory.js` is adapted from
+  `shell/plugins/clipboard/ClipboardHistory.js`: the entry shapes, dedupe,
+  cap, display truncation, search and file-URI handling. Entries carry an
+  epoch time instead of a formatted string, the translation layer is gone,
+  and `orphanedImages` is pshell's own.
+- `Services/clipboard.sh` adapts `shell/plugins/clipboard/capture.sh` (the
+  password-manager skip, the bounded reads, the UTF-16 detection and the
+  content-addressed images) and `bin/omarchy-clipboard-paste-text` and
+  `-file` (copy, wait, Shift+Insert). Its `reap` verb is pshell's own and
+  narrower than Omarchy's `pkill`; setting the primary selection on paste is
+  pshell's own too.
+- `Services/Clipboard.qml` and `Widgets/Clipboard/ClipboardOverlay.qml` follow
+  `shell/plugins/clipboard/Clipboard.qml`: the `setpriv --pdeathsig` watchers,
+  the snapshot at start, the one-second watcher restart, and the panel's
+  layout and keys.
+
 ## Material Symbols
 
 `assets/fonts/material-symbols/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf`
