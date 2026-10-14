@@ -175,6 +175,13 @@ ShellRoot {
     // asks: the distro's own timer does the checking.
     readonly property var updates: Updates
 
+    // And the volume tone, for the nightlight's first reason: it answers
+    // every volume change, the keys' included, so it cannot wait for an
+    // audio widget to touch it -- a bar without one would be silent.
+    //
+    // Costs one `command -v` sh at start. A player runs only for the tone.
+    readonly property var volumeTone: VolumeTone
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per
