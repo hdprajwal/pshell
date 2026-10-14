@@ -82,6 +82,15 @@ rewritten in pshell's style rather than vendored:
   starts as a `setpriv --pdeathsig` child, leaving one it did not start
   alone, and turning off with `identity` rather than 6500K are pshell's own.
 
+The update indicator follows Omarchy's `SystemUpdate.qml` bar widget on the
+same branch (`shell/plugins/bar/widgets/SystemUpdate.qml`): hidden unless
+something is pending, a refresh over IPC, and a click that runs the updater
+in a floating terminal. No code is taken from it. Where its updates come
+from is pshell's own: Omarchy polls `omarchy-update-available` every six
+hours, and `Services/Updates.qml` watches the state files arch-update's own
+timer writes instead, counting what is pending rather than whether anything
+is.
+
 ## Material Symbols
 
 `assets/fonts/material-symbols/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf`
