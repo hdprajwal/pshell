@@ -248,6 +248,16 @@ test("no player or no file is no command", () => {
   assert.deepEqual(T.playerArgv("pw-play", "", "x"), []);
 });
 
+test("a sound whose path starts with a dash is not read as an option", () => {
+  for (const player of ["pw-play", "paplay", "canberra-gtk-play"]) {
+    const argv = T.playerArgv(player, "-tick.wav", "x");
+    assert.ok(!argv.includes("-tick.wav"), player);
+    assert.ok(argv.includes("./-tick.wav"), player);
+  }
+  assert.equal(T.safePath("/home/me/-tick.wav"), "/home/me/-tick.wav");
+  assert.equal(T.safePath(""), "");
+});
+
 // What each player's stream looks like to Pipewire, seen live: pw-play and
 // paplay carry the name they are given, canberra-gtk-play its own name.
 test("isToneStream hides the tone from every player, and nothing else", () => {
