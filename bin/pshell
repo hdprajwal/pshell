@@ -150,6 +150,8 @@ need_walker() {
 # knows it exists, so it is the only thing that can say so. clipboard is a
 # target, and listed anyway: it is the other half of the pair the README
 # documents together, and its bare form is a shorthand like `lock`.
+# nightlight is listed for the same shorthand, and because it is the one
+# command here that needs something installed before it can work.
 usage() {
     cat <<'EOF'
 usage: pshell <command> [arguments]
@@ -162,6 +164,7 @@ usage: pshell <command> [arguments]
 
   launcher                open the application launcher (walker)
   clipboard               open or close the clipboard history
+  nightlight              turn the nightlight on or off (needs hyprsunset)
 
   <target> <method> [..]  call any IPC target directly:
                             pshell calendar toggle
@@ -211,6 +214,17 @@ call() {
         printf '%s\n' "$out" >&2
         exit 1
     fi
+
+    # A target that cannot do what it was asked answers with a line starting
+    # `error: `, since an IPC method has no exit code of its own to fail
+    # with. Turned into one here, so `pshell nightlight on && ...` does not
+    # carry on as if the screen had warmed.
+    case $out in
+    "error: "*)
+        printf 'pshell: %s\n' "${out#error: }" >&2
+        exit 1
+        ;;
+    esac
 
     if [ -n "$out" ]; then
         printf '%s\n' "$out"
@@ -319,6 +333,15 @@ clipboard)
         call pshell.clipboard toggle
     else
         call pshell.clipboard "$@"
+    fi
+    ;;
+nightlight)
+    # Bare `pshell nightlight` toggles, `clipboard`'s shape, so one keybind
+    # turns it on and off; anything after it is a method on the same target.
+    if [ $# -eq 0 ]; then
+        call pshell.nightlight toggle
+    else
+        call pshell.nightlight "$@"
     fi
     ;;
 *)
