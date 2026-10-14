@@ -419,23 +419,30 @@ function searchableText(entry) {
     return String(entry.text || "") + (paths.length > 0 ? " " + paths.map(fileName).join(" ") : "");
 }
 
-// The rows the panel draws: pinned first, then newest first, filtered by a case-insensitive
-// substring, at most `limit` of them. Each row remembers its `index` into
-// history, because a filtered row's position on screen says nothing about
-// where its entry is -- and the paste has to read the full, uncapped entry
-// back from there.
+// The rows the panel draws: pinned first, then newest first, filtered by a
+// case-insensitive substring. Every pin that matches, and at most `limit` of
+// the rest: the limit is there to keep the list short, and counting pins
+// against it would let enough of them hide every recent copy. Each row
+// remembers its `index` into history, because a filtered row's position on
+// screen says nothing about where its entry is -- and the paste has to read
+// the full, uncapped entry back from there.
 function displayRows(history, query, limit, formatTime) {
     var values = Array.isArray(history) ? history : [];
     var needle = String(query || "").trim().toLowerCase();
     var max = limit === undefined || limit === null ? 50 : Math.max(0, Number(limit) || 0);
 
     var rows = [];
-    for (var i = 0; i < values.length && rows.length < max; i++) {
+    var rolling = 0;
+    for (var i = 0; i < values.length; i++) {
         var entry = cappedEntry(normalizeEntry(values[i]));
         if (!entry)
             continue;
+        if (!entry.pinned && rolling >= max)
+            break;
         if (needle !== "" && searchableText(entry).toLowerCase().indexOf(needle) < 0)
             continue;
+        if (!entry.pinned)
+            rolling++;
 
         var paths = filePaths(entry);
         var isImage = entry.type === "image";
@@ -455,4 +462,43 @@ function displayRows(history, query, limit, formatTime) {
         });
     }
     return rows;
+}
+
+// ------------------------------------------------------------ ipc lines
+
+// What a pinned line's preview starts with in `pshell clipboard history`.
+// Plain ASCII, inside the preview column rather than a column of its own, so
+// `cut -f1` and anything reading two tab-separated fields still work.
+var pinMarker = "[pin] ";
+
+// One `index<TAB>preview` line, as history and pinned print them.
+function historyLine(entry, index) {
+    var capped = cappedEntry(normalizeEntry(entry));
+    if (!capped)
+        return "";
+    return index + "\t" + (isPinned(capped) ? pinMarker : "") + previewText(capped);
+}
+
+// `pshell clipboard history N`: every pin, then the N newest of the rest --
+// the panel's rows, unfiltered, numbered with their index into history. A
+// limit of zero or less lists everything. N counts the rolling entries for
+// displayRows' reason: with enough pins, "the last twenty copies" would
+// otherwise be no copies at all.
+function historyLines(history, limit) {
+    var values = Array.isArray(history) ? history : [];
+    var max = Number(limit) > 0 ? Math.floor(Number(limit)) : Infinity;
+    var out = [];
+    var rolling = 0;
+    for (var i = 0; i < values.length; i++) {
+        var pinned = isPinned(values[i]);
+        if (!pinned && rolling >= max)
+            break;
+        var line = historyLine(values[i], i);
+        if (line === "")
+            continue;
+        if (!pinned)
+            rolling++;
+        out.push(line);
+    }
+    return out.join("\n");
 }
