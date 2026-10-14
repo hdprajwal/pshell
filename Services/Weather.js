@@ -531,6 +531,24 @@ function hourlyStrip(reading, nowMs, count, twelveHour) {
     return out;
 }
 
+// What changes the hourly row, as one string: the first hour still running at
+// `nowMs`, and whether it has started. The row is rebuilt when this or the
+// reading changes rather than on every minute of the clock -- a fresh array is
+// a fresh Repeater model, and that is every cell of the row torn down and
+// made again, in every bar, with the panel closed. "" when no hour is left.
+function hourlyKey(reading, nowMs) {
+    if (!reading || !Array.isArray(reading.hours))
+        return "";
+    var now = Number(nowMs);
+    for (var i = 0; i < reading.hours.length; i++) {
+        var at = _num((reading.hours[i] || {}).at);
+        if (!isFinite(at) || (isFinite(now) && at + 3600000 <= now))
+            continue;
+        return String(at) + (isFinite(now) && at <= now ? ":now" : ":next");
+    }
+    return "";
+}
+
 // What `pshell weather hourly` prints: one line per hour, the same columns in
 // the same order every time, so `awk '{print $2}'` is the temperatures. The
 // chance is always printed here, unlike the panel, because a script reading

@@ -484,6 +484,36 @@ test("the hourly row starts at the location's current hour, not at midnight", ()
     assert.equal(Weather.hourlyStrip(reading, NOW + 60 * 60_000, 12, false)[0].name, "Now");
 });
 
+// The slot is the half-open hour [at, at + 1h). 21:00 in Bengaluru is
+// 15:30Z, so its hour ends at 16:30:00Z exactly.
+test("the hourly row moves on at the exact end of the hour, not a millisecond late", () => {
+    const reading = Weather.parseForecast({ ...PAYLOAD, ...hourly("2026-08-31", 19800) }, NOW, "metric");
+    const before = Weather.hourlyStrip(reading, Date.parse("2026-08-31T16:29:59.999Z"), 2, false);
+    assert.equal(before[0].time, "2026-08-31T21:00");
+    assert.equal(before[0].name, "Now");
+    const at = Weather.hourlyStrip(reading, Date.parse("2026-08-31T16:30:00Z"), 2, false);
+    assert.equal(at[0].time, "2026-08-31T22:00");
+    assert.equal(at[0].name, "Now");
+});
+
+// The service rebuilds the row when this key changes, not every minute, so
+// it has to change exactly when the row would and at no other time.
+test("the hourly key changes with the first hour and nothing else", () => {
+    const reading = Weather.parseForecast({ ...PAYLOAD, ...hourly("2026-08-31", 19800) }, NOW, "metric");
+    const key = t => Weather.hourlyKey(reading, Date.parse(t));
+    assert.equal(key("2026-08-31T15:31:00Z"), key("2026-08-31T16:29:59.999Z"), "same hour, same key");
+    assert.notEqual(key("2026-08-31T16:29:59.999Z"), key("2026-08-31T16:30:00Z"), "the row moves, so does the key");
+
+    // A forecast that starts after now has no "Now" yet, and gains one when
+    // its first hour begins -- a change of label the key must not miss.
+    const early = Date.parse("2026-08-31T15:00:00Z");
+    assert.notEqual(Weather.hourlyKey(reading, early), Weather.hourlyKey(reading, Date.parse("2026-08-31T15:30:00Z")));
+    assert.notEqual(Weather.hourlyStrip(reading, early, 1, false)[0].name, "Now");
+
+    assert.equal(Weather.hourlyKey(reading, NOW + 4 * 86_400_000), "", "nothing left");
+    assert.equal(Weather.hourlyKey(null, NOW), "");
+});
+
 test("a location west of the machine starts at its own hour", () => {
     // New York at -4h. 15:45Z is 11:45 there and 21:15 in Bengaluru; the
     // same instant must start the two rows at different wall-clock hours.
