@@ -230,8 +230,12 @@ call() {
     # pshell.updates is listed because its only free text is `list`, and
     # every line of that starts with `repo`, `aur` or `flatpak` and a tab --
     # a package called "error" cannot make it start `error: `.
+    #
+    # pshell.weather is listed for `hourly`, which has nothing to print
+    # before the first reading. Its other answers start with a temperature,
+    # a dash or an hour, and the place name is never first.
     case $1 in
-    pshell.nightlight | pshell.updates)
+    pshell.nightlight | pshell.updates | pshell.weather)
         case $out in
         "error: "*)
             printf 'pshell: %s\n' "${out#error: }" >&2

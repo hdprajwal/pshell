@@ -383,7 +383,7 @@ test("notification history from an app named error is output, not a failure", ()
 
 test("the error: rule is the opted-in targets', not every target's", () => {
     const box = sandbox();
-    const out = run(box, ["weather", "current"], { QS_STDOUT: "error: nope" });
+    const out = run(box, ["clipboard", "history"], { QS_STDOUT: "error: nope" });
 
     assert.equal(out.status, 0);
     assert.equal(out.stdout, "error: nope\n");
@@ -397,6 +397,26 @@ test("an answer that only mentions an error is still output", () => {
 
     assert.equal(out.status, 0);
     assert.equal(out.stdout, "0\terror: something I copied\n");
+});
+
+// With no reading yet, `weather hourly` has nothing to print, and printing
+// nothing with a 0 would read as a day with no hours in it.
+test("weather hourly with nothing to show fails the command", () => {
+    const box = sandbox();
+    const out = run(box, ["weather", "hourly"], { QS_STDOUT: "error: no hourly forecast yet" });
+
+    assert.equal(out.status, 1);
+    assert.equal(out.stdout, "");
+    assert.equal(out.stderr, "pshell: no hourly forecast yet\n");
+});
+
+test("weather hourly lines are output", () => {
+    const box = sandbox();
+    const lines = "21:00  24°C  40%  Light rain\n22:00  23°C  10%  Overcast";
+    const out = run(box, ["weather", "hourly"], { QS_STDOUT: lines });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, lines + "\n");
 });
 
 // --------------------------------------------------------------- updates
