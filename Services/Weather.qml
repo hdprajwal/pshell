@@ -86,13 +86,30 @@ Singleton {
 
     // The hourly row's dial follows the clock in the bar. pshell has no
     // twelve/twenty-four setting of its own; the clock widget's `format` is
-    // the user's answer, and the calendar's `timeFormat` when there is no
-    // clock. Neither in the bar is Qt's default and the shell's: 24 hours.
-    readonly property bool twelveHour: W.uses12Hour(Config.widgetSetting("clock", "format", "") || Config.widgetSetting("calendar", "timeFormat", ""))
+    // the user's answer, and the calendar's `timeFormat` only when there is
+    // no clock. A clock with no `format` draws its own default, which is 24
+    // hours, so that is what the row follows -- not a calendar beside it set
+    // to `h:mm AP`, which would put a 12-hour row next to a 24-hour clock.
+    // The default is Widgets/Clock/Clock.qml's, repeated here.
+    readonly property bool twelveHour: W.uses12Hour(Config.hasWidget("clock") ? Config.widgetSetting("clock", "format", "") || "ddd dd MMM  HH:mm" : Config.widgetSetting("calendar", "timeFormat", ""))
 
-    // Re-sliced on the minute hand, so the row moves on at the top of the
-    // hour without waiting for the next fetch.
-    readonly property var hourly: W.hourlyStrip(reading, now, Config.weather.hourlyHours, twelveHour)
+    // The row moves on at the top of the hour without waiting for the next
+    // fetch, but it is only rebuilt when something in it changes: the
+    // reading, the setting, the dial, or which hour is first. A binding on
+    // `now` would hand every bar's Repeater a new array each minute, and a
+    // new model is every cell destroyed and made again, panel open or not.
+    readonly property string hourlyKey: W.hourlyKey(reading, now)
+    readonly property int hourlyHours: Config.weather.hourlyHours
+    property var hourly: []
+
+    function _sliceHourly() {
+        root.hourly = W.hourlyStrip(root.reading, root.now, root.hourlyHours, root.twelveHour);
+    }
+
+    onHourlyKeyChanged: _sliceHourly()
+    onReadingChanged: _sliceHourly()
+    onTwelveHourChanged: _sliceHourly()
+    onHourlyHoursChanged: _sliceHourly()
 
     // --------------------------------------------------------- geocoding
     //
