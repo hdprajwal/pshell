@@ -667,8 +667,8 @@ what you meant by 400.
 When the shell cannot do what was asked, the IPC call answers with a line
 starting `error: `. `pshell` prints that to stderr and exits 1, so
 `pshell nightlight on && ...` stops there. Only the targets that promise to
-answer that way get this -- the nightlight and `updates` -- since for the
-rest a line starting `error: ` can be ordinary output.
+answer that way get this -- the nightlight, `updates` and `audio` -- since
+for the rest a line starting `error: ` can be ordinary output.
 
 ## System updates
 
@@ -892,6 +892,62 @@ it unless you have pinned `mode`.
 
 Both tiles have no detail list, so the whole tile is the button rather than
 just its icon.
+
+## Volume tone
+
+After the volume changes, pshell plays one short click on the output once the
+level has held still for 180 ms. You hear how loud it is now, and which device
+is going to play, before anything else makes a sound. Windows does the same
+when you let go of its volume slider. The idea, and the timing, come from
+[omarchy-volume-beep](https://github.com/GruperTal/omarchy-volume-beep), a
+prototype for an [Omarchy request](https://github.com/omacom/omarchy/discussions/15016).
+
+It is on by default. It answers every change to the default output's volume,
+whoever made it: the volume keys through swayosd, the control centre's slider
+or scroll, `pshell audio`, pavucontrol, an app. A drag or a held key is one
+tone at the end, at the level you landed on. It stays silent:
+
+- at start, when an output first appears, and when the default switches to
+  another device -- a change made within a second of a switch is silent too,
+  because that is when a device reports the level it had stored;
+- while the output is muted, and for a mute toggle;
+- at 0%, and when the level ends up where it started.
+
+The tone plays on the output whose volume changed, aimed at it by name, at
+that output's own volume and never louder. A new tone stops one that is still
+playing, so tones never stack.
+
+It needs a player: `pw-play` (part of pipewire), else `paplay`, else
+`canberra-gtk-play`, which cannot be aimed at an output and plays on the
+default. The sound is the freedesktop theme's volume-change click from
+`sound-theme-freedesktop`. Without either, nothing plays and the shell logs
+one warning.
+
+```json
+{
+  "volumeTone": { "enabled": true, "keys": true, "sound": "~/sounds/tick.wav", "delay": 180 }
+}
+```
+
+`keys: false` keeps the tone to changes pshell makes itself -- the control
+centre and `pshell audio` -- and leaves the keys, pavucontrol and apps silent.
+`sound` is any file the player can read; one it cannot read falls back to the
+freedesktop click, with a warning. `delay` is the wait in milliseconds, from
+50 to 2000: lower answers sooner and is more likely to sound in the middle of a
+slow drag. The two switches are also on the settings app's Notifications page.
+
+swayosd plays no sound of its own (0.3 has no option for it), so the keys
+beep once. If you bind the keys to something else that clicks -- a script
+calling `canberra-gtk-play`, say -- you will hear both; turn one off.
+
+```
+pshell audio tone                     the status, e.g.
+                                      on, after 180ms, with pw-play, /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga
+pshell audio tone on                  saved to config.json
+pshell audio tone off
+pshell audio tone toggle
+pshell audio tone test                play it once now, even when off
+```
 
 ## Session menu
 
@@ -1200,7 +1256,8 @@ Everything answers on one IPC target, widget or no widget:
 
 Five pages: **Wallpaper** — the thumbnail grid documented above —
 **Theme** — scheme, prefer, mode and the live palette — **Notifications** —
-toast lifetimes, stack size, position, history depth and per-app muting —
+toast lifetimes, stack size, position, history depth, per-app muting and
+the [volume tone](#volume-tone) —
 **Weather** — place, exact coordinates, units, refresh interval, how many
 hours the panel shows and the current reading with a Refresh now beside it
 — and **About**, the facts neofetch prints plus where pshell keeps its files.
