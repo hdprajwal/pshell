@@ -54,9 +54,9 @@ pshell settings toggle         any IPC target, by name
 pshell ipc show                straight through to qs ipc
 ```
 
-Everything there is an IPC call into the shell except `launcher` and
-`clipboard`, which run [walker](https://github.com/abenz1267/walker) — see
-below for why that is not a shell feature, and what you need installed.
+Everything there is an IPC call into the shell except `launcher`, which runs
+[walker](https://github.com/abenz1267/walker) — see below for why that is
+not a shell feature, and what you need installed.
 
 Symlink it, and it needs nothing else:
 
@@ -787,21 +787,19 @@ does not have to care what is in your bar today. The *sheet* is drawn by the
 widget, so without `{"type": "keybinds"}` in a section the command tells you
 which entry to add rather than opening anything.
 
-## Launcher and clipboard
+## Launcher
 
 pshell does not have a launcher and is not going to grow one.
 [walker](https://github.com/abenz1267/walker) is better at fuzzy search than
-anything worth writing here, and its backend
-[elephant](https://github.com/abenz1267/elephant) already keeps a clipboard
-history, so this is the one job pshell hands to someone else outright:
+anything worth writing here, so this is the one job pshell hands to someone
+else outright:
 
     pshell launcher       walker, however you have configured it
-    pshell clipboard      clipboard history, text and images
 
-Both `exec walker` rather than calling into the shell — they are the only two
-commands in `bin/pshell` that do. They exist so a keybind can say
-`pshell launcher` and not name a third-party binary, which is what makes
-walker replaceable later without touching your Hyprland config.
+It runs `exec walker` rather than calling into the shell — the only command
+in `bin/pshell` that does. It exists so a keybind can say `pshell launcher`
+and not name a third-party binary, which is what makes walker replaceable
+later without touching your Hyprland config.
 
 You need both halves. On Arch:
 
@@ -833,6 +831,65 @@ searches is walker's default and then yours, in `providers.default` in your
 own config — pshell does not name one. That keeps `=` for the calculator,
 `.` for emoji, `:` for the clipboard and the rest of walker's prefixes alive
 inside the bind, which naming a provider would switch off wholesale.
+
+## Clipboard
+
+pshell keeps its own clipboard history, modelled on Omarchy's clipboard
+panel. No cliphist, and no daemon: the shell itself runs two
+`wl-paste --watch` processes, one for text and one for PNG images, as its own
+children, and the kernel takes them down with it however it exits.
+
+    pshell clipboard                 # open or close the panel; bind it
+
+Type to filter. Arrows, Page Up/Down and Home/End move. **Enter** pastes the
+entry into the window you came from, **Shift+Enter** copies it without
+pasting, **Delete** forgets it, **Shift+Delete** forgets everything after
+asking, and **Escape** clears the filter, then closes. Images show as
+thumbnails with a larger preview of the selected one, and files copied from a
+file manager show by name.
+
+Pasting puts the entry back on the clipboard and sends Shift+Insert, which
+every app reads as paste. It sets the primary selection too, because kitty,
+alacritty and ghostty paste the *primary* selection on Shift+Insert.
+
+A bind, in Lua:
+
+```lua
+hl.bind("SUPER + CTRL + V", hl.dsp.exec_cmd("pshell clipboard"), { description = "Clipboard" })
+```
+
+What it does not record: anything a password manager marks as secret.
+KeePassXC and friends say so on the clipboard, and those copies never reach
+the history file.
+
+The history is `~/.local/state/pshell/clipboard.json`, newest first, and
+images are kept beside it in `clipboard-images/`, stored once each under
+their sha256. Copying something already in the history moves it to the top
+instead of adding it twice. Forgetting an entry deletes its image file.
+
+```jsonc
+"clipboard": {
+  "historySize": 500     // how many copies to keep; 0 turns recording off
+}
+```
+
+Lowering `historySize` forgets the oldest copies past the new cap straight
+away. Zero stops the watchers and forgets everything.
+
+You need `wl-clipboard` and `wtype`, plus `perl` (it decodes the UTF-16 some
+apps copy) and `setpriv` from util-linux, which most installs already have.
+
+Every part of it answers over IPC, panel or no panel:
+
+    pshell clipboard toggle          # also open / close
+    pshell clipboard count           # how many copies are kept
+    pshell clipboard history 20      # the newest twenty, numbered, one per line
+    pshell clipboard copy 3          # put number 3 back on the clipboard
+    pshell clipboard remove 3        # forget number 3
+    pshell clipboard clear           # forget everything, without asking
+
+`copy` only copies. From a script there is no telling which window would get
+a pasted keystroke, so pasting is the panel's job.
 
 ## Notifications
 
