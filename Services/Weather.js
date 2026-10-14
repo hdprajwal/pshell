@@ -220,13 +220,21 @@ function formatPercent(value) {
 //
 // `forecast_days=3` because the strip is three days. Asking for the week and
 // showing three would be a bigger reply every fifteen minutes for nothing.
+// It also covers the hourly row: three days of hours always reaches a full
+// day past now, whatever time of the first day it is.
+//
+// `hourly` rides on the same request rather than a second one. It is the same
+// place, the same model run and the same units, so a second round trip would
+// buy nothing but a window where the hours and the current reading come from
+// different fetches. `is_day` is per hour so the row's icons turn to the moon
+// at the location's own sunset, not at a guess.
 function forecastUrl(latitude, longitude, units) {
     var lat = _num(latitude);
     var lon = _num(longitude);
     if (!isFinite(lat) || !isFinite(lon))
         return "";
     var imperial = String(units) === "imperial";
-    return "https://api.open-meteo.com/v1/forecast" + "?latitude=" + lat + "&longitude=" + lon + "&current=temperature_2m,weather_code,relative_humidity_2m,apparent_temperature,wind_speed_10m" + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset" + "&timezone=auto&forecast_days=3" + "&temperature_unit=" + (imperial ? "fahrenheit" : "celsius") + "&wind_speed_unit=" + (imperial ? "mph" : "kmh");
+    return "https://api.open-meteo.com/v1/forecast" + "?latitude=" + lat + "&longitude=" + lon + "&current=temperature_2m,weather_code,relative_humidity_2m,apparent_temperature,wind_speed_10m" + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset" + "&hourly=temperature_2m,weather_code,precipitation_probability,is_day" + "&timezone=auto&forecast_days=3" + "&temperature_unit=" + (imperial ? "fahrenheit" : "celsius") + "&wind_speed_unit=" + (imperial ? "mph" : "kmh");
 }
 
 // A different host from the forecast, and also keyless. `count=1` because the
@@ -285,6 +293,66 @@ function _dayAt(daily, index, key) {
     return column[index];
 }
 
+// The instant a "YYYY-MM-DDTHH:MM" from the payload names, as epoch ms.
+//
+// Open-Meteo's local times are not the zone's wall clock. With
+// `timezone=auto` it takes the offset in force when the request is answered,
+// reports it as `utc_offset_seconds`, and writes the whole series as UTC plus
+// that one offset -- checked against the live API over Sydney's spring-forward
+// night and Berlin's fall-back one: 02:00 is there on the morning it does not
+// exist, the hour that repeats appears once, and `timeformat=unixtime` shows
+// every step exactly 3600 s apart. So the string's fields through Date.UTC,
+// less that same offset, is exact for every hour in the reply, on either side
+// of a change.
+//
+// Date.UTC rather than new Date(y, m, ...): the machine's zone has nothing to
+// do with where the forecast is for, and the local constructor would add it.
+function localToEpoch(localIso, offsetSeconds) {
+    var text = String(localIso || "");
+    var offset = _num(offsetSeconds);
+    if (!ISO_LOCAL.test(text) || !isFinite(offset))
+        return NaN;
+    var at = Date.UTC(Number(text.substr(0, 4)), Number(text.substr(5, 2)) - 1, Number(text.substr(8, 2)), Number(text.substr(11, 2)), Number(text.substr(14, 2)));
+    return isFinite(at) ? at - offset * 1000 : NaN;
+}
+
+// The hourly block, as rows that carry their own instant.
+//
+// `at` is worked out once, here, while the offset the strings were written
+// with is still beside them. Everything downstream then compares instants
+// with instants, so a cache read back after a DST change -- or on a laptop
+// that flew to another zone -- still finds the right hour.
+//
+// Hours already over when the reply arrived are dropped: nothing ever shows
+// them, and they would be most of a day of dead JSON in the cache.
+function _hoursFrom(payload, nowMs) {
+    var hourly = payload.hourly && typeof payload.hourly === "object" ? payload.hourly : null;
+    if (!hourly || !Array.isArray(hourly.time))
+        return [];
+    var offset = payload.utc_offset_seconds;
+    var now = Number(nowMs);
+    var out = [];
+    for (var i = 0; i < hourly.time.length; i++) {
+        var at = localToEpoch(hourly.time[i], offset);
+        if (!isFinite(at))
+            continue;
+        if (isFinite(now) && now > 0 && at + 3600000 <= now)
+            continue;
+        var isDay = _dayAt(hourly, i, "is_day");
+        out.push({
+            time: String(hourly.time[i]),
+            at: at,
+            code: _dayAt(hourly, i, "weather_code"),
+            temperature: _num(_dayAt(hourly, i, "temperature_2m")),
+            precipitation: _num(_dayAt(hourly, i, "precipitation_probability")),
+            // 1, 0, or absent. Absent stays null rather than becoming day or
+            // night, so iconFor() is the one deciding what that falls back to.
+            isDay: isDay === null || isDay === undefined ? null : Number(isDay) === 1
+        });
+    }
+    return out;
+}
+
 // The forecast payload reduced to the object the widget draws and the cache
 // stores. Every field is coerced here so nothing downstream has to guess, and
 // a payload missing a block yields a reading with holes rather than throwing
@@ -331,7 +399,8 @@ function parseForecast(payload, nowMs, units) {
         // daytime icons for days that have not started.
         sunrise: String(_dayAt(daily, 0, "sunrise") || ""),
         sunset: String(_dayAt(daily, 0, "sunset") || ""),
-        days: days
+        days: days,
+        hours: _hoursFrom(payload, when)
     };
 }
 
@@ -384,6 +453,96 @@ function dailyStrip(reading) {
         });
     }
     return out;
+}
+
+// Whether a Qt date format puts the hour on a twelve-hour dial.
+//
+// pshell has no clock setting of its own: the clock and calendar widgets each
+// take a Qt format string, and that string is the user's answer. In Qt's
+// grammar `h` is only twelve-hour when an AM/PM marker is present -- "h:mm"
+// alone is 0..23 -- so the marker is the whole test. Quoted text is literal
+// and comes out first, or "'at' HH:mm" would count as asking for AM/PM.
+function uses12Hour(format) {
+    var text = String(format || "").replace(/'[^']*'/g, "");
+    return /a/i.test(text);
+}
+
+// "14:00" or "2 PM", from the hour in the payload's own string.
+//
+// Read off the text and not off a Date, for the reason isDaytime gives: the
+// string is already in the location's zone, and every Date accessor but the
+// UTC ones would move it into the machine's.
+function hourLabel(localIso, twelveHour) {
+    var text = String(localIso || "");
+    if (!ISO_LOCAL.test(text))
+        return "";
+    var hour = Number(text.substr(11, 2));
+    if (!twelveHour)
+        return text.substr(11, 5);
+    return String(hour % 12 === 0 ? 12 : hour % 12) + (hour < 12 ? " AM" : " PM");
+}
+
+// A chance below this is left blank in the row. Almost every hour of almost
+// every forecast carries a few percent, and a number under every slot would
+// make the one that matters -- the 60% at five o'clock -- harder to find.
+var PRECIPITATION_SHOWN = 20;
+
+// The next `count` hours from now, already worded, for the panel's row.
+//
+// "From now" is decided on instants, not on strings: the slot whose hour
+// contains `nowMs` comes first and is called "Now". `nowMs` is the machine's
+// clock and `at` was fixed against the forecast's own offset when the reply
+// was parsed, so neither the machine's zone nor the location's enters into
+// the comparison -- a laptop in Berlin showing Bengaluru starts at
+// Bengaluru's current hour.
+//
+// A cache from before the hourly row existed has no `hours` and gets an empty
+// row, which the panel hides.
+function hourlyStrip(reading, nowMs, count, twelveHour) {
+    if (!reading || !Array.isArray(reading.hours))
+        return [];
+    var wanted = Math.floor(Number(count));
+    if (!isFinite(wanted) || wanted <= 0)
+        return [];
+    var now = Number(nowMs);
+    var units = reading.units;
+    var out = [];
+    for (var i = 0; i < reading.hours.length && out.length < wanted; i++) {
+        var hour = reading.hours[i] || {};
+        var at = _num(hour.at);
+        if (!isFinite(at) || (isFinite(now) && at + 3600000 <= now))
+            continue;
+        var chance = _num(hour.precipitation);
+        var described = describe(hour.code);
+        out.push({
+            time: String(hour.time || ""),
+            at: at,
+            name: out.length === 0 && isFinite(now) && at <= now ? "Now" : hourLabel(hour.time, twelveHour),
+            hour: hourLabel(hour.time, twelveHour),
+            icon: iconFor(hour.code, hour.isDay),
+            label: described.label,
+            temp: formatTemp(hour.temperature, units),
+            precipitation: isFinite(chance) ? formatPercent(chance) : "—",
+            // What the panel prints: the chance when it is worth reading, and
+            // nothing otherwise.
+            wet: isFinite(chance) && chance >= PRECIPITATION_SHOWN ? formatPercent(chance) : ""
+        });
+    }
+    return out;
+}
+
+// What `pshell weather hourly` prints: one line per hour, the same columns in
+// the same order every time, so `awk '{print $2}'` is the temperatures. The
+// chance is always printed here, unlike the panel, because a script reading
+// column three must not find it missing at 5%. And the hour is always
+// "HH:MM", whatever the clock widget says: "2 PM" is two fields to awk, and
+// the condition is last because it is the one column with spaces in it.
+function hourlyLines(reading, nowMs, count) {
+    var strip = hourlyStrip(reading, nowMs, count, false);
+    var lines = [];
+    for (var i = 0; i < strip.length; i++)
+        lines.push([strip[i].hour, strip[i].temp, strip[i].precipitation, strip[i].label].join("  "));
+    return lines.join("\n");
 }
 
 // Everything the bar and the panel draw, shaped once so the two cannot
