@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { loadQmlJs } from "./load-qml-js.mjs";
 
 const Weather = loadQmlJs("Services/Weather.js");
@@ -209,7 +210,7 @@ test("the forecast URL asks for the unit rather than converting after the fact",
     // Every field the parser reads has to be asked for. Pinned as a list
     // because a request that quietly drops one shows a dash forever and looks
     // like a network problem.
-    for (const field of ["temperature_2m", "weather_code", "relative_humidity_2m", "apparent_temperature", "wind_speed_10m", "temperature_2m_max", "temperature_2m_min", "sunrise", "sunset"])
+    for (const field of ["temperature_2m", "weather_code", "relative_humidity_2m", "apparent_temperature", "wind_speed_10m", "temperature_2m_max", "temperature_2m_min", "sunrise", "sunset", "precipitation_probability", "is_day"])
         assert.ok(metric.includes(field), `${field} is not in the request`);
     assert.ok(metric.includes("timezone=auto"));
     assert.ok(metric.includes("forecast_days=3"));
@@ -418,4 +419,212 @@ test("the IPC line is one line with every column present", () => {
     assert.equal(empty.indexOf("\n"), -1);
     assert.ok(empty.includes("—"));
     assert.ok(empty.endsWith("never"));
+});
+
+// ----------------------------------------------------------------- hourly
+
+// An hourly block the way Open-Meteo writes one: naive local strings for
+// `days` days from local midnight, every one of them UTC plus the single
+// `offset` the reply reports -- including across a DST change, which the live
+// API was checked for (Sydney's 2026-10-04T02:00 is in the reply although the
+// clocks skipped it). Temperatures count up from 10 so a slot's position is
+// readable off its value.
+function hourly(firstDate, offsetSeconds, days = 3, extra = {}) {
+    const [y, m, d] = firstDate.split("-").map(Number);
+    const time = [];
+    const temperature_2m = [];
+    const weather_code = [];
+    const precipitation_probability = [];
+    const is_day = [];
+    for (let i = 0; i < days * 24; i++) {
+        time.push(new Date(Date.UTC(y, m - 1, d, i)).toISOString().slice(0, 16));
+        temperature_2m.push(10 + i);
+        weather_code.push(i % 2 === 0 ? 0 : 61);
+        precipitation_probability.push((i * 5) % 100);
+        is_day.push(i % 24 >= 6 && i % 24 < 18 ? 1 : 0);
+    }
+    return { utc_offset_seconds: offsetSeconds, hourly: { time, temperature_2m, weather_code, precipitation_probability, is_day }, ...extra };
+}
+
+test("the hourly row is asked for in the same request, not a second one", () => {
+    const url = Weather.forecastUrl(12.97, 77.59, "metric");
+    assert.equal(url.split("?").length, 2);
+    assert.ok(/[?&]hourly=[^&]*temperature_2m/.test(url));
+    assert.ok(/[?&]hourly=[^&]*precipitation_probability/.test(url));
+    assert.ok(/[?&]hourly=[^&]*is_day/.test(url));
+});
+
+test("localToEpoch reads the payload's string against the payload's offset", () => {
+    assert.equal(Weather.localToEpoch("2026-08-31T21:00", 19800), Date.parse("2026-08-31T15:30:00Z"));
+    assert.equal(Weather.localToEpoch("2026-08-31T21:00", -14400), Date.parse("2026-09-01T01:00:00Z"));
+    assert.equal(Weather.localToEpoch("2026-08-31T21:00", 0), Date.parse("2026-08-31T21:00:00Z"));
+    assert.ok(Number.isNaN(Weather.localToEpoch("2026-08-31T21:00", null)), "no offset is no instant, not UTC");
+    assert.ok(Number.isNaN(Weather.localToEpoch("tonight", 19800)));
+});
+
+test("the hourly row starts at the location's current hour, not at midnight", () => {
+    // NOW is 15:45Z, which is 21:15 in Bengaluru.
+    const reading = Weather.parseForecast({ ...PAYLOAD, ...hourly("2026-08-31", 19800) }, NOW, "metric");
+    // The 21 hours already over when the reply landed are not cached.
+    assert.equal(reading.hours[0].time, "2026-08-31T21:00");
+    assert.equal(reading.hours.length, 72 - 21);
+
+    const strip = Weather.hourlyStrip(reading, NOW, 12, false);
+    assert.equal(strip.length, 12);
+    assert.equal(strip[0].name, "Now");
+    assert.equal(strip[0].hour, "21:00");
+    assert.equal(strip[0].temp, "31°C");
+    assert.equal(strip[1].name, "22:00");
+    assert.equal(strip[3].name, "00:00", "the row carries on past midnight");
+    assert.equal(strip[3].time, "2026-09-01T00:00");
+
+    // Forty minutes on, still the 21:00 hour; an hour on, the row moves.
+    assert.equal(Weather.hourlyStrip(reading, NOW + 40 * 60_000, 12, false)[0].time, "2026-08-31T21:00");
+    assert.equal(Weather.hourlyStrip(reading, NOW + 60 * 60_000, 12, false)[0].time, "2026-08-31T22:00");
+    assert.equal(Weather.hourlyStrip(reading, NOW + 60 * 60_000, 12, false)[0].name, "Now");
+});
+
+test("a location west of the machine starts at its own hour", () => {
+    // New York at -4h. 15:45Z is 11:45 there and 21:15 in Bengaluru; the
+    // same instant must start the two rows at different wall-clock hours.
+    const reading = Weather.parseForecast(hourly("2026-08-31", -14400), NOW, "metric");
+    const strip = Weather.hourlyStrip(reading, NOW, 3, false);
+    assert.deepEqual(strip.map(s => s.time), ["2026-08-31T11:00", "2026-08-31T12:00", "2026-08-31T13:00"]);
+});
+
+test("the hourly row is the same whatever zone the machine is in", () => {
+    // Nothing in the code reads the machine's zone, and this is what holds it
+    // to that: the same reading and the same instant, sliced under three
+    // TZs, one of which is on the other side of the date line from the
+    // forecast.
+    const script = `
+        import { loadQmlJs } from ${JSON.stringify(new URL("./load-qml-js.mjs", import.meta.url).href)};
+        const W = loadQmlJs("Services/Weather.js");
+        const reading = JSON.parse(process.argv[1]);
+        console.log(JSON.stringify(W.hourlyStrip(reading, Number(process.argv[2]), 6, true)));
+    `;
+    const reading = JSON.stringify(Weather.parseForecast({ ...PAYLOAD, ...hourly("2026-08-31", 19800) }, NOW, "metric"));
+    const run = tz => execFileSync(process.execPath, ["--input-type=module", "-e", script, reading, String(NOW)], { env: { ...process.env, TZ: tz } }).toString();
+    const utc = run("UTC");
+    assert.equal(run("America/Los_Angeles"), utc);
+    assert.equal(run("Pacific/Kiritimati"), utc);
+    assert.equal(JSON.parse(utc)[0].hour, "9 PM");
+});
+
+test("a cache read after the clocks went forward still finds the right hour", () => {
+    // Fetched in Sydney at 22:00 on 3 October, still +10. The reply's
+    // strings are all +10, including 02:00 on the 4th, which never happened
+    // on a Sydney wall clock.
+    const fetchedAt = Date.parse("2026-10-03T12:00:00Z");
+    const reading = Weather.parseForecast(hourly("2026-10-03", 36000), fetchedAt, "metric");
+
+    // Read back at 05:00 AEDT (+11) on the 4th, i.e. 18:00Z on the 3rd.
+    const later = Date.parse("2026-10-03T18:00:00Z");
+    const strip = Weather.hourlyStrip(reading, later, 6, false);
+    assert.equal(strip[0].at, later);
+    assert.equal(strip[0].time, "2026-10-04T04:00", "labelled in the offset the reply was written in");
+
+    // One real hour between every slot, straight through the change: no gap
+    // and no repeat, because the series never had either.
+    for (let i = 1; i < reading.hours.length; i++)
+        assert.equal(reading.hours[i].at - reading.hours[i - 1].at, 3_600_000);
+});
+
+test("the night the clocks go back keeps one slot per hour", () => {
+    // Berlin, fetched at 23:00 on 24 October at +2. At 03:30Z on the 25th the
+    // clocks have gone back to +1, so the wall says 04:30; the reply, written
+    // at +2, calls that hour 05:00.
+    const fetchedAt = Date.parse("2026-10-24T21:00:00Z");
+    const reading = Weather.parseForecast(hourly("2026-10-24", 7200), fetchedAt, "metric");
+    const strip = Weather.hourlyStrip(reading, Date.parse("2026-10-25T03:30:00Z"), 4, false);
+    assert.deepEqual(strip.map(s => s.hour), ["05:00", "06:00", "07:00", "08:00"]);
+    assert.equal(strip[0].name, "Now");
+
+    // The next fetch reports +1 and the same instant reads 04:00.
+    const refetched = Weather.parseForecast(hourly("2026-10-24", 3600), Date.parse("2026-10-25T03:30:00Z"), "metric");
+    assert.equal(Weather.hourlyStrip(refetched, Date.parse("2026-10-25T03:30:00Z"), 1, false)[0].hour, "04:00");
+});
+
+test("each hour draws its own day or night icon, and its rain chance only when it is worth reading", () => {
+    const reading = Weather.parseForecast({ ...PAYLOAD, ...hourly("2026-08-31", 19800) }, NOW, "metric");
+    const strip = Weather.hourlyStrip(reading, NOW, 24, false);
+    // 21:00 is code 61 (odd hour) and night; 22:00 is code 0 at night.
+    assert.equal(strip[0].icon, Weather.iconFor(61, false));
+    assert.equal(strip[1].icon, Weather.describe(0).night);
+    // 06:00 the next morning is code 0 by day.
+    const six = strip.find(s => s.time === "2026-09-01T06:00");
+    assert.equal(six.icon, Weather.describe(0).icon);
+
+    // 21:00 is hour 21 of the fixture: 105 % 100 = 5% -- left blank in the
+    // panel, printed for scripts.
+    assert.equal(strip[0].wet, "");
+    assert.equal(strip[0].precipitation, "5%");
+    const wet = strip.find(s => s.time === "2026-09-01T04:00");
+    assert.equal(wet.wet, "40%");
+
+    // No is_day at all draws the day picture, the same default iconFor has.
+    const noDay = hourly("2026-08-31", 19800);
+    delete noDay.hourly.is_day;
+    const dayless = Weather.hourlyStrip(Weather.parseForecast(noDay, NOW, "metric"), NOW, 2, false);
+    assert.equal(dayless[1].icon, Weather.describe(0).icon);
+});
+
+test("the hour follows the clock widget's twelve- or twenty-four-hour dial", () => {
+    assert.equal(Weather.uses12Hour("HH:mm"), false);
+    assert.equal(Weather.uses12Hour("ddd dd MMM  HH:mm"), false);
+    assert.equal(Weather.uses12Hour("h:mm"), false, "h without a marker is still 0..23 in Qt");
+    assert.equal(Weather.uses12Hour("h:mm AP"), true);
+    assert.equal(Weather.uses12Hour("hh:mm ap"), true);
+    assert.equal(Weather.uses12Hour("'at' HH:mm"), false, "quoted text is literal");
+    assert.equal(Weather.uses12Hour(""), false);
+    assert.equal(Weather.uses12Hour(null), false);
+
+    assert.equal(Weather.hourLabel("2026-08-31T00:00", true), "12 AM");
+    assert.equal(Weather.hourLabel("2026-08-31T09:00", true), "9 AM");
+    assert.equal(Weather.hourLabel("2026-08-31T12:00", true), "12 PM");
+    assert.equal(Weather.hourLabel("2026-08-31T21:00", true), "9 PM");
+    assert.equal(Weather.hourLabel("2026-08-31T21:00", false), "21:00");
+    assert.equal(Weather.hourLabel("", false), "");
+});
+
+test("a cache from before the hourly row, or one too old to have a future, draws no row", () => {
+    // Exactly what an older pshell wrote to weather.json: no `hours` key.
+    const old = Weather.parseForecast(PAYLOAD, NOW, "metric");
+    delete old.hours;
+    assert.deepEqual(Weather.hourlyStrip(old, NOW, 12, false), []);
+    assert.equal(Weather.hourlyLines(old, NOW, 12), "");
+    // And the rest of the panel still reads it.
+    assert.equal(Weather.summarise(old).temp, "24°C");
+    assert.equal(Weather.dailyStrip(old).length, 3);
+
+    const reading = Weather.parseForecast({ ...PAYLOAD, ...hourly("2026-08-31", 19800) }, NOW, "metric");
+    assert.deepEqual(Weather.hourlyStrip(reading, NOW + 4 * 86_400_000, 12, false), []);
+    assert.deepEqual(Weather.hourlyStrip(reading, NOW, 0, false), [], "0 is the setting that hides it");
+    assert.deepEqual(Weather.hourlyStrip(null, NOW, 12, false), []);
+
+    // A reply with no hourly block parses to an empty list, not a throw.
+    assert.deepEqual(Weather.parseForecast(PAYLOAD, NOW, "metric").hours, []);
+    // Hours with no offset to read them against are dropped rather than
+    // guessed at as UTC.
+    assert.deepEqual(Weather.parseForecast({ hourly: hourly("2026-08-31", 0).hourly }, NOW, "metric").hours, []);
+});
+
+test("the hourly row survives the cache round trip", () => {
+    const payload = { ...PAYLOAD, ...hourly("2026-08-31", 19800) };
+    payload.hourly.temperature_2m[22] = null;
+    const reading = Weather.parseForecast(payload, NOW, "metric");
+    const revived = JSON.parse(JSON.stringify(reading));
+    const strip = Weather.hourlyStrip(revived, NOW, 3, false);
+    assert.deepEqual(strip, Weather.hourlyStrip(reading, NOW, 3, false));
+    assert.equal(strip[1].temp, "—", "a missing reading is a dash after the round trip, not 0°");
+});
+
+test("the hourly IPC output is one fixed-column line per hour", () => {
+    const reading = Weather.parseForecast({ ...PAYLOAD, ...hourly("2026-08-31", 19800) }, NOW, "metric");
+    const lines = Weather.hourlyLines(reading, NOW, 24).split("\n");
+    assert.equal(lines.length, 24);
+    assert.equal(lines[0], "21:00  31°C  5%  Light rain");
+    assert.equal(lines[1], "22:00  32°C  10%  Clear sky");
+    for (const line of lines)
+        assert.equal(line.indexOf("\t"), -1);
 });
