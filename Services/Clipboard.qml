@@ -61,7 +61,11 @@ Singleton {
         if (!entry || !root.recording)
             return;
         entry.time = Date.now();
-        root._replace(History.addEntry(root.history, entry, root.limit));
+        // Debounced: a browser's image copy fires both watchers at once,
+        // and nobody is waiting on a copy to reach the disk.
+        root._replace(History.addEntry(root.history, entry, root.limit), true);
+        root._unsaved = root._unsaved.concat([entry]);
+        carry.pending = JSON.stringify(root._unsaved);
     }
 
     // Forgetting the newest entry, or all of them, also takes that copy off
@@ -88,12 +92,18 @@ Singleton {
     // that follow one: the file is rewritten, and an image no entry points
     // at any more is deleted -- capture stored it, and nothing else ever
     // would clean it up.
-    function _replace(next) {
+    //
+    // A copy may wait half a second to be written. Forgetting never waits:
+    // somebody deleting an entry wants it off the disk now.
+    function _replace(next, later) {
         const gone = History.orphanedImages(root.history, next, root.imageDir);
         root.history = next;
         if (gone.length > 0)
             Quickshell.execDetached(["rm", "-f", "--"].concat(gone));
-        root._save();
+        if (later)
+            saveTimer.restart();
+        else
+            root._save();
     }
 
     // Lowering the cap forgets the copies past it now, rather than at the
@@ -206,10 +216,40 @@ Singleton {
     // before the load finished would truncate the history it was about to
     // read. The watchers wait on the load too, so the snapshot at start
     // cannot be the first thing written over a file nobody has read yet.
+    //
+    // Compact, not indented: this is the whole history, rewritten on every
+    // copy, and nobody reads it by eye.
     function _save() {
+        saveTimer.stop();
         if (!root._loaded)
             return;
-        historyFile.setText(JSON.stringify(root.history, null, 2) + "\n");
+        historyFile.setText(JSON.stringify(root.history) + "\n");
+        root._unsaved = [];
+        carry.pending = "";
+    }
+
+    // Half a second for the reason Notifications.qml gives for its own:
+    // copies come in bursts, and each one would otherwise be a full rewrite.
+    Timer {
+        id: saveTimer
+
+        interval: 500
+        onTriggered: root._save()
+    }
+
+    // The copies the timer has not written yet. A config reload tears this
+    // generation down without running a single destruction handler, so they
+    // cannot be flushed on the way out; instead they ride across the reload
+    // here and the next generation adds them back once it has loaded. Only
+    // the unsaved copies, not the history, so keeping it current costs one
+    // small stringify per copy.
+    property var _unsaved: []
+
+    PersistentProperties {
+        id: carry
+
+        reloadableId: "pshellClipboardUnsaved"
+        property string pending: ""
     }
 
     // Read every entry, not just `limit` of them. A cap lowered while the
@@ -224,6 +264,15 @@ Singleton {
         root._loaded = true;
         if (full.length > root.limit)
             root._replace(full.slice(0, root.limit));
+
+        const carried = History.parseHistory(carry.pending, Infinity);
+        carry.pending = "";
+        if (carried.length === 0 || !root.recording)
+            return;
+        var next = root.history;
+        for (var i = 0; i < carried.length; i++)
+            next = History.addEntry(next, carried[i], root.limit);
+        root._replace(next);
     }
 
     // FileView does not create parent directories, and the history's has to

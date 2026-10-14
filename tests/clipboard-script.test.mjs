@@ -121,6 +121,26 @@ test("an empty copy records nothing", () => {
 
 // Password managers are the whole reason this check exists: a history file
 // on disk is the last place a secret should end up.
+// Every copy rewrites the whole history file, so one huge copy in it would be
+// rewritten on every copy after. It is skipped, not cut short.
+test("a text copy past the size cap is not recorded", () => {
+    const box = sandbox();
+    const env = { PSHELL_CLIPBOARD_MAX_TEXT: "16" };
+    const fits = run(box, ["capture", "text"], { input: "x".repeat(16), env });
+    const over = run(box, ["capture", "text"], { input: "x".repeat(17), env });
+
+    assert.deepEqual(lines(fits), [{ type: "text", text: "x".repeat(16) }]);
+    assert.equal(over.status, 0);
+    assert.deepEqual(lines(over), []);
+});
+
+test("the default size cap is one MiB", () => {
+    const box = sandbox();
+    const out = run(box, ["capture", "text"], { input: "x".repeat(1024 * 1024 + 1) });
+
+    assert.deepEqual(lines(out), []);
+});
+
 test("a copy a password manager marks is never recorded", () => {
     const box = sandbox();
     const hinted = run(box, ["capture", "text"], {
