@@ -330,6 +330,29 @@ Singleton {
         readonly property string end: _str("end")
     }
 
+    // The terminal pshell opens things in -- today only the system updater.
+    // A program name or a path, no arguments: each terminal spells "set the
+    // window class and run this" differently, and Services/Updates.js knows
+    // the spellings for the ones it names. Top level rather than under
+    // `updates`, because which terminal you use is one fact for the whole
+    // shell. Empty means $TERMINAL, then the first of ghostty, kitty,
+    // alacritty, foot and wezterm that is installed.
+    readonly property string terminal: typeof data.terminal === "string" ? data.terminal.trim() : ""
+
+    // The update indicator's one knob, under one `updates` object -- grouped
+    // for the reason `lock` gives above. Which tool and which files are not
+    // here: Services/Updates.qml finds cachy-update or arch-update on PATH,
+    // and the files are wherever that tool keeps them.
+    readonly property QtObject updates: QtObject {
+        readonly property var raw: root.data.updates && typeof root.data.updates === "object" ? root.data.updates : ({})
+
+        // Whether the updater's terminal floats, centred, over the windows
+        // already open, by way of a Hyprland window rule added when it opens.
+        // Off leaves it to the compositor -- and to any rule of your own
+        // matching the class `pshell.updates`.
+        readonly property bool float: typeof raw.float === "boolean" ? raw.float : true
+    }
+
     // Three separate distances, which used to be one:
     //   gap     - between two widgets in a section
     //   padding - between the bar's own edge and the first or last widget
