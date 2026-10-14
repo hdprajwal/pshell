@@ -262,6 +262,96 @@ Panel {
                     foreground: Commons.Color.popups.text
                 }
 
+                // The hours ahead, from the one the location is in now. Rows
+                // of six rather than one strip that scrolls: a dozen hours fit
+                // the panel's width at a glance, and nothing in a keyboard-
+                // driven panel should be hidden behind a horizontal flick.
+                //
+                // Hidden when the setting is 0 and when the cache predates
+                // the hourly data -- the service hands back an empty list
+                // for both.
+                Column {
+                    id: hourlySection
+
+                    readonly property int columns: Math.min(6, Math.max(1, Services.Weather.hourly.length))
+                    // The chance-of-rain line is there for every slot or for
+                    // none, so a single wet hour does not leave the row's
+                    // temperatures at two different heights.
+                    readonly property bool anyWet: Services.Weather.hourly.some(h => h.wet !== "")
+
+                    width: parent.width
+                    spacing: Style.spacing.lg
+                    visible: Services.Weather.hourly.length > 0
+
+                    PanelSectionHeader {
+                        text: "Next hours"
+                        foreground: Commons.Color.popups.text
+                    }
+
+                    Grid {
+                        width: parent.width
+                        columns: hourlySection.columns
+                        rowSpacing: Style.spacing.lg
+
+                        Repeater {
+                            model: Services.Weather.hourly
+
+                            Column {
+                                required property var modelData
+
+                                width: column.width / hourlySection.columns
+                                spacing: Style.spacing.xs
+
+                                Text {
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: modelData.name
+                                    color: Commons.Color.popups.text
+                                    opacity: 0.75
+                                    font.family: Style.font.family
+                                    font.pixelSize: Style.font.caption
+                                    font.bold: true
+                                }
+
+                                MaterialIcon {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    name: modelData.icon
+                                    size: Style.font.icon
+                                    color: Commons.Color.popups.text
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: modelData.temp
+                                    color: Commons.Color.popups.text
+                                    font.family: Style.font.family
+                                    font.pixelSize: Style.font.bodySmall
+                                    font.bold: true
+                                }
+
+                                Text {
+                                    visible: hourlySection.anyWet
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    // A space, not "", so a dry slot
+                                    // keeps the line's height beside a wet
+                                    // one.
+                                    text: modelData.wet !== "" ? modelData.wet : " "
+                                    color: Commons.Color.accent
+                                    font.family: Style.font.family
+                                    font.pixelSize: Style.font.caption
+                                }
+                            }
+                        }
+                    }
+                }
+
+                PanelSeparator {
+                    visible: hourlySection.visible
+                    foreground: Commons.Color.popups.text
+                }
+
                 // The three days Open-Meteo was asked for. Today is one of
                 // them and is named "Today" by its date rather than by its
                 // index, so a cache served after midnight does not call
