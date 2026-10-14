@@ -297,6 +297,67 @@ test("adding them left the target dispatch alone", () => {
     assert.deepEqual(walkerCalls(box), []);
 });
 
+// ------------------------------------------------------------ nightlight
+
+// Bare, it toggles, for the clipboard's reason: the keybind that turns it on
+// also turns it off.
+test("nightlight toggles", () => {
+    const box = sandbox();
+    const out = run(box, ["nightlight"], { QS_STDOUT: "on 4000K" });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, "on 4000K\n");
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.nightlight", "toggle"]]);
+});
+
+test("nightlight with a method calls that method instead", () => {
+    const box = sandbox();
+    run(box, ["nightlight", "setTemperature", "3500"]);
+
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.nightlight", "setTemperature", "3500"]]);
+});
+
+test("nightlight is documented, and says what it needs", () => {
+    const box = sandbox();
+    const out = run(box, ["help"]);
+
+    assert.match(out.stdout, /^\s+nightlight\s+.*hyprsunset/m);
+});
+
+// The shell has no way to fail an IPC call -- qs exits 0 whatever the method
+// returns -- so a target that cannot do what it was asked says `error: ...`
+// and the script turns that into an exit code. Without it, a machine with no
+// hyprsunset would answer `pshell nightlight on` with success.
+test("an error: answer fails the command and goes to stderr", () => {
+    const box = sandbox();
+    const out = run(box, ["nightlight", "on"], {
+        QS_STDOUT: "error: hyprsunset is not installed, so there is no nightlight. Install it with: sudo pacman -S hyprsunset",
+    });
+
+    assert.equal(out.status, 1);
+    assert.equal(out.stdout, "");
+    assert.match(out.stderr, /^pshell: hyprsunset is not installed/);
+    assert.match(out.stderr, /sudo pacman -S hyprsunset/);
+});
+
+test("the error: rule holds for any target, not only the nightlight", () => {
+    const box = sandbox();
+    const out = run(box, ["weather", "current"], { QS_STDOUT: "error: nope" });
+
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /pshell: nope/);
+});
+
+// Only a leading `error: ` counts. A clipboard entry that happens to contain
+// the word, numbered and tabbed as history prints it, is output.
+test("an answer that only mentions an error is still output", () => {
+    const box = sandbox();
+    const out = run(box, ["clipboard", "history"], { QS_STDOUT: "0\terror: something I copied" });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, "0\terror: something I copied\n");
+});
+
 // ------------------------------------------------------- what it refuses
 
 test("a target with no method is refused before qs is bothered", () => {
