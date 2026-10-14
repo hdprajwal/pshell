@@ -229,7 +229,9 @@ function addEntry(history, entry, limit) {
 // entries, so the ones already there keep their places. An unpinned entry
 // goes back to the top of the rolling history, where it ages out like a
 // fresh copy rather than vanishing at once for being old -- unless the cap
-// is zero, which keeps nothing that is not pinned.
+// is zero, which keeps nothing that is not pinned. The shell never unpins
+// through here at zero: it forgets the entry the way Delete does, so the
+// newest-copy rule in Clipboard.remove() still runs.
 //
 // Anything that changes nothing -- a bad index, pinning a pin -- returns the
 // history as it was.
