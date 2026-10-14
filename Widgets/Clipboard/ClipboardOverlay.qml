@@ -17,6 +17,12 @@ import "../../Services/ClipboardHistory.js" as History
 // surface Omarchy's draws on, so a shell.toml that styles the one styles
 // the other.
 //
+// Pins are pshell's own: Ctrl+P pins or unpins the selected entry. Ctrl,
+// because every plain letter is already the filter's. Pinned entries are
+// listed first with a pin beside them, Shift+Delete leaves them alone, and
+// Delete on one asks first -- it was kept on purpose, so one stray key
+// should not be enough to lose it.
+//
 // A fullscreen overlay with an exclusive keyboard grab rather than a bar
 // popout, for the carousel's reason: it is opened by a keybind from inside
 // some other window, and needs every key until it is gone.
@@ -43,7 +49,12 @@ PanelWindow {
 
     property string filter: ""
     property int selected: 0
-    property bool confirmingClear: false
+    // "" when no question is up, "clear" for Shift+Delete, "forget" for
+    // Delete on a pinned entry.
+    property string confirming: ""
+    // Which entry "forget" means, by what it is rather than where: a copy
+    // landing while the question is up can move it.
+    property string forgetKey: ""
 
     // At most fifty rows, as Omarchy draws: a history is searched, not
     // scrolled through, and fifty is more than a screen's worth.
@@ -63,7 +74,7 @@ PanelWindow {
             return;
         overlay.filter = "";
         overlay.selected = 0;
-        overlay.confirmingClear = false;
+        overlay.confirming = "";
         pointerGate.reset();
         list.positionViewAtBeginning();
         keys.forceActiveFocus();
@@ -101,18 +112,55 @@ PanelWindow {
     }
 
     function removeSelected() {
-        if (overlay.current)
-            Clipboard.remove(overlay.current.index);
+        if (!overlay.current)
+            return;
+        if (overlay.current.pinned) {
+            overlay.forgetKey = History.entryKey(Clipboard.history[overlay.current.index]);
+            overlay.ask("forget");
+            return;
+        }
+        Clipboard.remove(overlay.current.index);
         pointerGate.reset();
     }
 
     function requestClear() {
-        if (Clipboard.history.length === 0)
+        if (Clipboard.history.length === Clipboard.pinnedCount)
             return;
-        // Cancel first, the PowerMenu rule: Return on a destructive question
-        // must not answer it before anyone has read the sentence.
+        overlay.ask("clear");
+    }
+
+    // Cancel first, the PowerMenu rule: Return on a destructive question
+    // must not answer it before anyone has read the sentence.
+    function ask(what) {
         confirm.selectedIndex = 0;
-        overlay.confirmingClear = true;
+        overlay.confirming = what;
+    }
+
+    function historyIndexOf(key) {
+        for (var i = 0; i < Clipboard.history.length; i++) {
+            if (History.entryKey(Clipboard.history[i]) === key)
+                return i;
+        }
+        return -1;
+    }
+
+    // The cursor goes with the entry, which pinning moves to the end of the
+    // pins and unpinning to the top of the rest -- otherwise Ctrl+P twice
+    // would toggle two different entries.
+    function togglePin() {
+        if (!overlay.current)
+            return;
+        const key = History.entryKey(Clipboard.history[overlay.current.index]);
+        Clipboard.togglePin(overlay.current.index);
+        const at = overlay.historyIndexOf(key);
+        for (var i = 0; i < overlay.rows.length; i++) {
+            if (overlay.rows[i].index === at) {
+                overlay.selected = i;
+                list.positionViewAtIndex(i, ListView.Contain);
+                break;
+            }
+        }
+        pointerGate.reset();
     }
 
     // ------------------------------------------------------------ drawing
@@ -129,8 +177,14 @@ PanelWindow {
         focus: true
 
         Keys.onPressed: event => {
-            if (overlay.confirmingClear) {
+            if (overlay.confirming !== "") {
                 confirm.handleKey(event);
+                event.accepted = true;
+                return;
+            }
+
+            if (event.key === Qt.Key_P && event.modifiers === Qt.ControlModifier) {
+                overlay.togglePin();
                 event.accepted = true;
                 return;
             }
@@ -252,7 +306,7 @@ PanelWindow {
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     textFormat: Text.PlainText
-                    text: "Enter paste      Shift+Enter copy      Del forget      Shift+Del forget all      Esc close"
+                    text: "Enter paste      Shift+Enter copy      Ctrl+P pin      Del forget      Shift+Del forget all      Esc close"
                     color: Commons.Color.muted
                     elide: Text.ElideRight
                     horizontalAlignment: Text.AlignHCenter
@@ -323,8 +377,8 @@ PanelWindow {
                             Text {
                                 anchors.left: thumbnail.right
                                 anchors.leftMargin: row.hasImage ? Style.spacing.lg : 0
-                                anchors.right: parent.right
-                                anchors.rightMargin: Style.spacing.rowPaddingX
+                                anchors.right: pinMark.left
+                                anchors.rightMargin: row.modelData.pinned ? Style.spacing.md : 0
                                 anchors.verticalCenter: parent.verticalCenter
                                 textFormat: Text.PlainText
                                 text: row.modelData.previewText
@@ -335,6 +389,22 @@ PanelWindow {
                                 wrapMode: Text.NoWrap
                                 font.family: Style.font.family
                                 font.pixelSize: Style.font.body
+                            }
+
+                            // Sized from the row's data, not from its own
+                            // visibility, for the thumbnail's reason.
+                            MaterialIcon {
+                                id: pinMark
+
+                                anchors.right: parent.right
+                                anchors.rightMargin: Style.spacing.rowPaddingX
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: row.modelData.pinned ? implicitWidth : 0
+                                visible: row.modelData.pinned
+                                name: Glyphs.pin
+                                filled: true
+                                size: Style.font.body
+                                color: row.hasCursor ? Commons.Color.menu.selectedText : Commons.Color.muted
                             }
 
                             MouseArea {
@@ -460,9 +530,14 @@ PanelWindow {
 
                 anchors.fill: parent
                 z: 10
-                opened: overlay.confirmingClear
-                message: "Forget all " + Clipboard.history.length + " copies? Images saved with them are deleted too."
-                confirmText: "Forget all"
+                opened: overlay.confirming !== ""
+                message: {
+                    if (overlay.confirming === "forget")
+                        return "Forget this pinned copy? It was pinned to keep it.";
+                    const rolling = Clipboard.history.length - Clipboard.pinnedCount;
+                    return "Forget all " + rolling + " copies? Images saved with them are deleted too." + (Clipboard.pinnedCount > 0 ? " Pinned copies are kept." : "");
+                }
+                confirmText: overlay.confirming === "forget" ? "Forget" : "Forget all"
                 background: Commons.Color.menu.background
                 foreground: Commons.Color.menu.text
                 scrim: Commons.Color.menu.scrim
@@ -471,10 +546,18 @@ PanelWindow {
                 fontFamily: Style.font.family
                 cornerRadius: Style.cornerRadius
 
-                onCanceled: overlay.confirmingClear = false
+                onCanceled: overlay.confirming = ""
                 onConfirmed: {
-                    overlay.confirmingClear = false;
-                    Clipboard.clear();
+                    const what = overlay.confirming;
+                    overlay.confirming = "";
+                    if (what === "clear") {
+                        Clipboard.clear();
+                        return;
+                    }
+                    const at = overlay.historyIndexOf(overlay.forgetKey);
+                    if (at >= 0)
+                        Clipboard.remove(at);
+                    pointerGate.reset();
                 }
             }
         }
