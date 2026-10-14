@@ -185,8 +185,11 @@ installed there are no thumbnails: the grid shows empty plates, and the
 carousel decodes the full images, which is slow on a big directory.
 
 The settings app's Wallpaper page shows `wallpaperDir` as a grid of
-thumbnails; click one to set it. The same moves are scriptable through the
-`pshell.wallpaper` IPC target:
+thumbnails, in pages that fit the window; click one to set it. Click the
+folder at the top to change the directory. The wheel, a swipe or the arrows
+under the grid turn pages. On the keyboard, the arrow keys move, Enter sets,
+Page Up and Page Down turn pages, and Home and End jump to the ends. The same
+moves are scriptable through the `pshell.wallpaper` IPC target:
 
 ```
 pshell wallpaper set ~/wallpapers/foo.png
@@ -1651,7 +1654,8 @@ what I used before this. It is around 500 QML files on top of a Go daemon. Its
 AxisContext is the simplest way I have seen to support all four screen edges
 without writing every widget twice. One object holds the edge name and a flag
 for whether the bar is vertical, and each widget reads it to pick a row or a
-column. pshell copies that idea.
+column. pshell copies that idea. The wallpaper page's layout is theirs too:
+pages that snap sideways, and arrow keys that walk off one page onto the next.
 
 [Omarchy](https://github.com/basecamp/omarchy) 4 (MIT) replaced Waybar, Walker,
 Mako, SwayOSD, hyprlock, hypridle and swaybg with one Quickshell process. Its

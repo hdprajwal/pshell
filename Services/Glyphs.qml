@@ -249,6 +249,16 @@ Singleton {
     readonly property string palette: "palette"
     readonly property string info: "info"
 
+    // The wallpaper page's toolbar and grid. `view_carousel` is the
+    // three-cards-in-a-row picture, which is what the carousel overlay looks
+    // like when it opens; `check` is the badge on the wallpaper that is up.
+    readonly property string folder: "folder"
+    readonly property string shuffle: "shuffle"
+    readonly property string carousel: "view_carousel"
+    readonly property string check: "check"
+    readonly property string previous: "chevron_left"
+    readonly property string next: "chevron_right"
+
     // The weather page's row. `partly_cloudy_day` and not `thermostat`, which
     // this file already has: that one is the panel's "feels like" symbol and
     // means temperature, so in a nav row it would name the one setting on the

@@ -21,6 +21,15 @@ Item {
     property string subtitle: ""
     property string error: ""
 
+    // False for a page that lays itself out in exactly the space it is given
+    // instead of growing a column -- the wallpaper picker, which pages its
+    // grid rather than scrolling it. The Flickable stays, so every page sits
+    // in the same place under the header, but it stops scrolling, and the
+    // page sizes its one child from bodyHeight. Every other page leaves this
+    // alone and keeps the scrolling column.
+    property bool scrolls: true
+    readonly property alias bodyHeight: body.height
+
     // `data` and not `children`: a page declares Connections, Timers and
     // inline Components alongside its sections, and a `children` alias
     // refuses anything that is not a QQuickItem. `data` takes both and the
@@ -83,6 +92,7 @@ Item {
     }
 
     Flickable {
+        id: body
         anchors.top: banner.bottom
         anchors.topMargin: Style.spacing.xxl
         anchors.left: parent.left
@@ -92,9 +102,9 @@ Item {
         anchors.rightMargin: Style.spacing.panelPadding
         anchors.bottomMargin: Style.spacing.panelPadding
         contentWidth: width
-        contentHeight: column.implicitHeight
+        contentHeight: page.scrolls ? column.implicitHeight : height
         clip: true
-        interactive: contentHeight > height
+        interactive: page.scrolls && contentHeight > height
         boundsBehavior: Flickable.StopAtBounds
 
         Column {
