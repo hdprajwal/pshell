@@ -9,9 +9,9 @@
 # upgrade. What this saves is knowing where the checkout lives, which is the
 # only part of those commands that was ever hard to remember.
 #
-# Two commands are not that: `launcher` and `clipboard` run walker, because
-# that is the one job pshell hands to someone else. The case block says why
-# they are here rather than in the keybind.
+# One command is not that: `launcher` runs walker, because that is the one
+# job pshell hands to someone else. The case block says why it is here
+# rather than in the keybind.
 
 set -eu
 
@@ -130,8 +130,8 @@ need_walker() {
         return 0
     fi
 
-    echo "pshell: walker is not on your PATH. pshell hands the launcher and the" >&2
-    echo "pshell: clipboard to walker rather than building its own." >&2
+    echo "pshell: walker is not on your PATH. pshell hands the launcher to" >&2
+    echo "pshell: walker rather than building its own." >&2
     echo "pshell:" >&2
     echo "pshell:   sudo pacman -S walker    # the window you type into" >&2
     echo "pshell:   yay -S elephant-all-bin  # the backend it searches" >&2
@@ -145,10 +145,11 @@ need_walker() {
 # and a copy in this file would be one more thing to forget to update --
 # `pshell ipc show` asks the shell itself, and cannot go stale.
 #
-# launcher and clipboard are listed because they are not targets. No QML
-# declares them and `pshell ipc show` will never mention them; this file is
-# the only thing that knows they exist, so it is the only thing that can say
-# so. The case block explains why they are here at all.
+# launcher is listed because it is not a target. No QML declares it and
+# `pshell ipc show` will never mention it; this file is the only thing that
+# knows it exists, so it is the only thing that can say so. clipboard is a
+# target, and listed anyway: it is the other half of the pair the README
+# documents together, and its bare form is a shorthand like `lock`.
 usage() {
     cat <<'EOF'
 usage: pshell <command> [arguments]
@@ -160,7 +161,7 @@ usage: pshell <command> [arguments]
   ipc <arguments>         pass straight through to qs ipc
 
   launcher                open the application launcher (walker)
-  clipboard               open the clipboard history (walker)
+  clipboard               open or close the clipboard history
 
   <target> <method> [..]  call any IPC target directly:
                             pshell calendar toggle
@@ -258,33 +259,31 @@ preview)
     call pshell.lock preview
     ;;
 
-# The next two are the only exceptions to everything this file says about
+# The next one is the only exception to everything this file says about
 # itself, and it is worth being clear that neither of those claims has gone
 # wrong.
 #
 # The comment at the top says every command is one rewrite into
 # `qs ipc call`; the one above usage() says the target list belongs to the
-# QML. Both hold for every other command here. launcher and clipboard run a
-# program instead of talking to the shell, so they cannot go through call():
-# there is no IPC target behind them and there is not going to be one. The
-# launcher is the single thing pshell decided not to build -- walker is
-# better at fuzzy search than anything worth writing here, and elephant
-# already keeps the clipboard history.
+# QML. Both hold for every other command here. launcher runs a program
+# instead of talking to the shell, so it cannot go through call(): there is
+# no IPC target behind it and there is not going to be one. The launcher is
+# the single thing pshell decided not to build -- walker is better at fuzzy
+# search than anything worth writing here.
 #
-# They live in this file anyway, and in usage(), because a keybind should
-# read `pshell launcher` and not name a third-party binary. That is their
-# whole purpose: the day walker is swapped for something else, the bind in
-# binds-user.lua does not move -- these two cases do.
+# It lives in this file anyway, and in usage(), because a keybind should read
+# `pshell launcher` and not name a third-party binary. That is its whole
+# purpose: the day walker is swapped for something else, the bind in
+# binds-user.lua does not move -- this case does.
 #
-# `--provider clipboard`, not `--modules`: walker 1.x called them modules,
-# 2.x calls them providers and takes the name of one elephant serves. Taken
-# from add_flags() in walker 2.17.0's src/main.rs.
+# It does not forward arguments, deliberately. Forwarding walker's flags
+# would put walker's command line back inside the keybind, which is the thing
+# this exists to keep out of it. Anyone who wants walker's own options wants
+# to type `walker`.
 #
-# Neither forwards arguments, deliberately. Forwarding walker's flags would
-# put walker's command line back inside the keybind, which is the thing these
-# two exist to keep out of it, and would make `pshell launcher --provider
-# clipboard` a second spelling of `pshell clipboard`. Anyone who wants
-# walker's own options wants to type `walker`.
+# clipboard used to be its twin, `walker --provider clipboard`. The history
+# is pshell's own now (Services/Clipboard.qml), so it is an ordinary target
+# again and its case is the one below the launcher's.
 launcher)
     # Bare `walker`, with no provider named, and that is the whole point of
     # delegating: which providers a launcher searches is walker's decision
@@ -312,9 +311,15 @@ launcher)
     exec walker
     ;;
 clipboard)
-    no_arguments clipboard $#
-    need_walker
-    exec walker --provider clipboard
+    # Bare `pshell clipboard` toggles the panel, so the keybind that opens it
+    # also closes it -- `lock`'s shape: anything after it is a method on the
+    # same target, so `pshell clipboard history 10` still means what it
+    # looks like.
+    if [ $# -eq 0 ]; then
+        call pshell.clipboard toggle
+    else
+        call pshell.clipboard "$@"
+    fi
     ;;
 *)
     # Anything else is a target name, left unvalidated for the same reason
