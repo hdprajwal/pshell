@@ -340,12 +340,25 @@ test("an error: answer fails the command and goes to stderr", () => {
     assert.match(out.stderr, /sudo pacman -S hyprsunset/);
 });
 
-test("the error: rule holds for any target, not only the nightlight", () => {
+// Opt-in, not universal: only targets that promise to answer `error: ...`
+// get the rule. Notification history prints `app: summary` lines, so after
+// `notify-send -a error hi` its output starts `error: ` and is still output.
+test("notification history from an app named error is output, not a failure", () => {
+    const box = sandbox();
+    const history = "error: hi\nfirefox: Download finished — report.pdf";
+    const out = run(box, ["notifications", "history"], { QS_STDOUT: history });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, history + "\n");
+    assert.equal(out.stderr, "");
+});
+
+test("the error: rule is the nightlight's, not every target's", () => {
     const box = sandbox();
     const out = run(box, ["weather", "current"], { QS_STDOUT: "error: nope" });
 
-    assert.equal(out.status, 1);
-    assert.match(out.stderr, /pshell: nope/);
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, "error: nope\n");
 });
 
 // Only a leading `error: ` counts. A clipboard entry that happens to contain
