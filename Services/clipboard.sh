@@ -50,6 +50,11 @@ init() {
     mkdir -p -m 700 -- "$dir" || return 1
     chmod 700 -- "$dir" || return 1
     mkdir -p -m 700 -- "$image_dir" 2>/dev/null || true
+    # The shell's first write would create history.json under its own umask,
+    # 0644, and only the next start's chmod below would tighten it. Made
+    # here, empty and 0600, the shell rewrites a file whose mode it keeps.
+    # An empty history reads as an empty list.
+    (umask 077 && [[ -e $dir/history.json ]] || : >"$dir/history.json") || return 1
     find "$dir" -mindepth 1 -maxdepth 2 -type d ! -perm 700 -exec chmod 700 {} + 2>/dev/null
     find "$dir" -mindepth 1 -maxdepth 2 -type f ! -perm 600 -exec chmod 600 {} + 2>/dev/null
     return 0

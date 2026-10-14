@@ -265,6 +265,22 @@ test("init tightens a directory and files that were already there", () => {
     assert.equal(mode(join(images, "a.png")), 0o600);
 });
 
+// Created empty and 0600 rather than left for the shell's first write,
+// which would make it 0644 until the next start tightened it.
+test("init creates an empty, private history file, and leaves one there alone", () => {
+    const box = sandbox();
+    const dir = join(box.root, "fresh");
+    const out = run(box, ["init", dir], { env: { PSHELL_CLIPBOARD_IMAGES: join(dir, "images") } });
+
+    assert.equal(out.status, 0);
+    assert.equal(mode(join(dir, "history.json")), 0o600);
+    assert.equal(readFileSync(join(dir, "history.json"), "utf8"), "");
+
+    writeFileSync(join(dir, "history.json"), "[\"kept\"]");
+    run(box, ["init", dir], { env: { PSHELL_CLIPBOARD_IMAGES: join(dir, "images") } });
+    assert.equal(readFileSync(join(dir, "history.json"), "utf8"), '["kept"]');
+});
+
 test("init without a directory fails", () => {
     const box = sandbox();
     assert.notEqual(run(box, ["init"]).status, 0);
