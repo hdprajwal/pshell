@@ -7,6 +7,7 @@ import QtQml
 import Quickshell
 import Quickshell.Io
 import "ConfigPath.js" as ConfigPath
+import "Nightlight.js" as NightlightModel
 
 Singleton {
     id: root
@@ -305,6 +306,28 @@ Singleton {
         // and whatever history was kept is forgotten -- the same thing
         // lowering it does to the copies past the new cap.
         readonly property int historySize: _num("historySize", 500, 0, 5000)
+    }
+
+    // The nightlight's knobs, under one `nightlight` object -- grouped for
+    // the reason `lock` gives above. Whether it is on is not here: that is
+    // session state Services/Nightlight.qml holds, for the reason it gives.
+    readonly property QtObject nightlight: QtObject {
+        readonly property var raw: root.data.nightlight && typeof root.data.nightlight === "object" ? root.data.nightlight : ({})
+
+        function _str(key) {
+            const v = raw[key];
+            return typeof v === "string" ? v.trim() : "";
+        }
+
+        // Kelvin, 1000 to 6000, default 4000. The range and the clamping
+        // are Nightlight.js's, so the IPC setter and this agree on them.
+        readonly property int temperature: NightlightModel.clampTemperature(raw.temperature)
+
+        // "HH:MM" each, 24-hour, local time. Both set and different is a
+        // schedule; anything else is none, and the nightlight is only ever
+        // switched by hand.
+        readonly property string start: _str("start")
+        readonly property string end: _str("end")
     }
 
     // Three separate distances, which used to be one:

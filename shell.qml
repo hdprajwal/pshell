@@ -155,6 +155,16 @@ ShellRoot {
     // LazyLoader that stays inactive until something opens it.
     readonly property var clipboard: Clipboard
 
+    // And the nightlight, for both reasons at once: `pshell nightlight` is a
+    // keybind's door on a bar with no nightlight widget, and the schedule
+    // lives in the singleton, so until something touched it 20:00 would
+    // come and go with the screen still blue.
+    //
+    // Costs one `command -v` at start and, with a schedule set, a clock
+    // check every thirty seconds. hyprsunset is only started when the
+    // nightlight is turned on.
+    readonly property var nightlight: Nightlight
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per

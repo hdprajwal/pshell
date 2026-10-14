@@ -475,23 +475,38 @@ Panel {
                     }
                 }
 
-                // Shell-command toggles. Night mode has no standard tool, so it
-                // is whatever the user configures rather than a guess.
+                // The two whole-screen toggles. Night mode is pshell's own
+                // nightlight (Services/Nightlight.qml) wherever hyprsunset is
+                // installed. A `nightMode` command on this widget still wins,
+                // as it did before there was a built-in one, so a config that
+                // drives gammastep or wlsunset keeps doing so; `false` hides
+                // the tile like `darkMode: false` does.
                 Row {
                     width: parent.width
                     spacing: Style.spacing.lg
-                    visible: root.cfg.nightMode !== undefined || root.cfg.darkMode !== false
+                    visible: hasNight || hasDark
 
-                    readonly property bool hasNight: root.cfg.nightMode !== undefined
-                    readonly property int cellWidth: hasNight ? (width - spacing) / 2 : width
+                    readonly property bool nightCommand: typeof root.cfg.nightMode === "string" && root.cfg.nightMode !== ""
+                    readonly property bool hasNight: root.cfg.nightMode !== false && (nightCommand || Nightlight.available)
+                    readonly property bool hasDark: root.cfg.darkMode !== false
+                    readonly property int cellWidth: hasNight && hasDark ? (width - spacing) / 2 : width
 
                     ControlTile {
                         width: parent.cellWidth
                         visible: parent.hasNight
                         iconName: Glyphs.nightMode
                         title: "Night Mode"
+                        // A command of the user's own has no state pshell can
+                        // read, so that tile stays dark, as it always has.
+                        subtitle: parent.nightCommand ? "" : (Nightlight.active ? Nightlight.temperature + "K" : "Off")
+                        active: !parent.nightCommand && Nightlight.active
                         hasDetail: false
-                        onToggled: root.run(String(root.cfg.nightMode))
+                        onToggled: {
+                            if (parent.nightCommand)
+                                root.run(String(root.cfg.nightMode));
+                            else
+                                Nightlight.toggle();
+                        }
                     }
 
                     ControlTile {
