@@ -31,6 +31,9 @@ import qs.Widgets.Keybinds as KeybindsWidget
 // And a sixth: qs.Services exports the Nightlight singleton that owns
 // hyprsunset and the schedule.
 import qs.Widgets.Nightlight as NightlightWidget
+// And a seventh: qs.Services exports the Updates singleton that watches
+// arch-update's state files and owns pshell.updates.
+import qs.Widgets.Updates as UpdatesWidget
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
 import qs.Commons
@@ -50,7 +53,7 @@ Row {
     //
     // Order does not matter for the lookup, but it mirrors the switch in
     // builtinLoader so the three lists stay checkable against each other.
-    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds", "nightlight"]
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds", "nightlight", "updates"]
 
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
@@ -180,6 +183,8 @@ Row {
                         return keybindsComponent;
                     case "nightlight":
                         return nightlightComponent;
+                    case "updates":
+                        return updatesComponent;
                     default:
                         return procComponent;
                     }
@@ -310,6 +315,10 @@ Row {
     Component {
         id: nightlightComponent
         NightlightWidget.Nightlight {}
+    }
+    Component {
+        id: updatesComponent
+        UpdatesWidget.Updates {}
     }
     Component {
         id: procComponent
