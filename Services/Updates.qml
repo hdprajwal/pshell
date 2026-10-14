@@ -21,10 +21,14 @@ import "Updates.js" as Model
 //
 // What the shell does run, it runs on request:
 //
-//   refresh  `<tool> --check`, the same command the timer runs, as a child
-//            of the shell. It sends arch-update's own "N updates available"
-//            notification when the list has changed since the last check,
-//            exactly as the timer's run does; pshell leaves that alone.
+//   refresh  starts arch-update.service, the unit the timer runs, so a
+//            refresh and the timer's own check are one check rather than
+//            two racing for the same files, and a reload of the shell does
+//            not cut it off half-way. `<tool> --check` directly where there
+//            is no such unit. Refused while the updater is running. The
+//            check sends arch-update's own "N updates available"
+//            notification when the list has changed, exactly as the
+//            timer's run does; pshell leaves that alone.
 //   open     the interactive `<tool>` in a terminal: news, confirmation,
 //            sudo, then the post-update chores. Detached, never a child:
 //            a reload of the shell's QML stops its children, and a pacman
@@ -52,7 +56,7 @@ Singleton {
     }
 
     // What summarize() made of the files: found, total, repo, aur, flatpak,
-    // entries.
+    // entries, consistent.
     property var summary: Model.summarize({})
     readonly property int count: summary.total
     // Epoch seconds of the last check, or 0.
@@ -62,9 +66,22 @@ Singleton {
     // are invisible to us until they write.
     readonly property bool checking: checker.running
 
-    // Installed terminals, from the probe, and the one the updater opens in.
+    // The last check pshell started could not reach the mirrors. Its empty
+    // files would read as "up to date", so the count stays at the check
+    // before it until the files change again -- see `settle`.
+    property bool fetchFailed: false
+    property var _heldKey: null
+
+    // The interactive updater holds /tmp/arch-update.lock while it runs.
+    // Known from a probe of that lock -- see `lockProbe` -- so a refresh can
+    // be refused with an answer rather than a check that would race it.
+    property bool updating: false
+
+    // Installed terminals, from the probe, and the one the updater opens in:
+    // { argv, name, note }, from pickTerminal.
     property var terminals: []
-    readonly property string terminal: Model.pickTerminal(Config.terminal, Quickshell.env("TERMINAL"), terminals)
+    readonly property var terminalChoice: Model.pickTerminal(Config.terminal, Quickshell.env("TERMINAL"), terminals)
+    readonly property string terminal: terminalChoice.name
 
     readonly property string missingError: "error: neither cachy-update nor arch-update is installed. On CachyOS: sudo pacman -S cachy-update; on Arch: sudo pacman -S arch-update"
 
@@ -79,8 +96,10 @@ Singleton {
     function refresh() {
         if (!root.available)
             return root._refused();
+        if (root.updating)
+            return "error: " + root.tool + " is updating the system; check again once it has finished";
         if (!checker.running) {
-            checker.command = [root.tool, "--check"];
+            checker.command = Model.refreshArgv(root.tool);
             checker.running = true;
         }
         return "";
@@ -90,15 +109,19 @@ Singleton {
         if (!root.available)
             return root._refused();
         if (root.terminal === "")
-            return "error: no terminal to run " + root.tool + " in. Set `terminal` in config.json, or install one of ghostty, kitty, alacritty, foot or wezterm";
+            return "error: no terminal to run " + root.tool + " in. Set `terminal` in config.json, or install one of ghostty, kitty, alacritty, foot or wezterm" + (root.terminalChoice.note !== "" ? " (" + root.terminalChoice.note + ")" : "");
 
         // The rule first, then the terminal, in one sh so they happen in that
         // order: a rule that lands after the window has mapped floats
         // nothing. `hyprctl eval` is Hyprland's Lua config; on anything else
         // it fails quietly and the window opens however the compositor likes.
         const rule = Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") ? Model.floatRule(root.appId, Config.updates.float) : "";
-        const argv = Model.terminalArgv(root.terminal, root.appId, "System update", [root.tool]);
+        const argv = Model.terminalArgv(root.terminalChoice.argv, root.appId, "System update", [root.tool]);
         Quickshell.execDetached(["sh", "-c", 'if [ -n "$1" ]; then hyprctl eval "$1" >/dev/null 2>&1; fi; shift; exec "$@"', "pshell-updates", rule].concat(argv));
+        // The updater takes its lock once it is up. Asked a moment later,
+        // since on the first run after boot there is no lock file yet for
+        // the watch below to see change.
+        lockLater.restart();
         return "";
     }
 
@@ -112,7 +135,9 @@ Singleton {
             summary: root.summary,
             checkedAt: root.checkedAt,
             now: Date.now() / 1000,
-            checking: root.checking
+            checking: root.checking,
+            updating: root.updating,
+            fetchFailed: root.fetchFailed
         });
     }
 
@@ -137,15 +162,27 @@ Singleton {
     //
     // The command is built here, each time, rather than bound: the terminal
     // named in config.json is one of the things looked for, and a binding
-    // might not have caught up with a change by the time it is run.
+    // might not have caught up with a change by the time it is run. Only
+    // the program is looked for, not the arguments after it.
+    //
+    // Asked while a probe is already out, it asks again once that one is
+    // back, so a config change made mid-probe is not lost.
+    property bool _probeAgain: false
+
     function _probe() {
-        if (prober.running)
+        if (prober.running) {
+            root._probeAgain = true;
             return;
-        prober.command = ["sh", "-c", 'for t in cachy-update arch-update; do if command -v "$t" >/dev/null 2>&1; then echo "$t"; break; fi; done; echo ---; shift; for t in "$@"; do if [ -n "$t" ] && command -v "$t" >/dev/null 2>&1; then echo "$t"; fi; done', "sh", "--"].concat(Model.TERMINALS, [Config.terminal, Quickshell.env("TERMINAL") || ""]);
+        }
+        const program = value => Model.splitTerminal(value)[0] || "";
+        prober.command = ["sh", "-c", 'for t in cachy-update arch-update; do if command -v "$t" >/dev/null 2>&1; then echo "$t"; break; fi; done; echo ---; shift; for t in "$@"; do if [ -n "$t" ] && command -v "$t" >/dev/null 2>&1; then echo "$t"; fi; done', "sh", "--"].concat(Model.TERMINALS, [program(Config.terminal), program(Quickshell.env("TERMINAL"))]);
         prober.running = true;
     }
 
-    Component.onCompleted: root._probe()
+    Component.onCompleted: {
+        root._probe();
+        lockProbe.running = true;
+    }
 
     // A terminal named in config.json after the probe ran has not been
     // looked for yet.
@@ -163,22 +200,101 @@ Singleton {
             root.tool = (halves[0] || "").trim();
             root.terminals = Model.parseLines(halves[1] || "");
             root.probed = true;
+            if (root._probeAgain) {
+                root._probeAgain = false;
+                root._probe();
+            }
         }
     }
 
     // ------------------------------------------------------------- check
 
+    // Model.refreshArgv: refuse if the updater is running, start the unit
+    // or run the check, and say whether it could reach the mirrors.
     Process {
         id: checker
 
+        stdout: StdioCollector {
+            id: checkerOut
+        }
+
         // Read once more when it has finished: the watch has very likely
         // seen it already, but a state directory that did not exist before
-        // this check has nothing being watched yet.
+        // this check has nothing being watched yet. `settle` waits for this
+        // too, so a check that could not fetch is never shown, not even
+        // for the moment before its verdict is in.
         onExited: code => {
-            if (code !== 0)
-                console.warn("pshell:", root.tool, "--check exited with", code);
+            const r = Model.parseRefresh(checkerOut.text);
+            if (r.busy) {
+                // Started after the last probe looked: the lock's owner
+                // turned up in between.
+                root.updating = true;
+                console.warn("pshell: not checking for updates while", root.tool, "is updating the system");
+            } else if (code !== 0) {
+                console.warn("pshell: the update check (" + r.via + ") exited with", code);
+            }
+            if (r.fetchFailed) {
+                console.warn("pshell: the update check could not reach the mirrors; keeping the count from the check before it");
+                root.fetchFailed = true;
+                root._heldKey = null;
+            } else if (!r.busy) {
+                root.fetchFailed = false;
+            }
             root._reloadAll();
         }
+    }
+
+    // ------------------------------------------------------------- lock
+
+    // Whether the updater holds its lock: Model.lockProbeArgv. Asked at
+    // start, when the lock file changes -- the updater's `exec {fd}>`
+    // truncates it as it takes the lock -- and every few seconds while it
+    // is held, since letting go of a lock changes nothing a watch can see.
+    Process {
+        id: lockProbe
+
+        command: Model.lockProbeArgv()
+        stdout: StdioCollector {
+            id: lockProbeOut
+        }
+        onExited: {
+            root.updating = lockProbeOut.text.indexOf("held") >= 0;
+            // The probe's flock creates the file if it was not there, so
+            // there is now something for the watch to follow.
+            lockFile.reload();
+        }
+    }
+
+    function _probeLock() {
+        if (!lockProbe.running)
+            lockProbe.running = true;
+    }
+
+    FileView {
+        id: lockFile
+
+        path: Model.LOCK
+        blockLoading: false
+        printErrors: false
+        watchChanges: true
+        onFileChanged: {
+            reload();
+            root._probeLock();
+        }
+    }
+
+    Timer {
+        interval: 5000
+        repeat: true
+        running: root.updating
+        onTriggered: root._probeLock()
+    }
+
+    Timer {
+        id: lockLater
+
+        interval: 3000
+        onTriggered: root._probeLock()
     }
 
     // ------------------------------------------------------------- watch
@@ -253,22 +369,42 @@ Singleton {
         timeFile.reload();
     }
 
-    // A check rewrites five files in a row, and the updater empties three
-    // one at a time, so the count waits for a quiet moment rather than
-    // stepping through every file on the way -- a bar that read 6, 3, 2, 0
-    // in half a second would look broken.
+    // Reads come in bursts -- a check rewrites five files, the updater
+    // two at a time -- so the count waits for a quiet moment rather than
+    // working through each. That alone does not make it right: a check
+    // empties a split file and leaves it empty for seconds, which no
+    // settling waits out. summarize() is what tells a finished state from
+    // a half-written one, by checking the split files against the combined
+    // one.
     Timer {
         id: settle
 
         interval: 300
         onTriggered: {
+            // A check of pshell's own is judged when it exits; see checker.
+            if (checker.running)
+                return;
             const value = file => file.present ? file.content : null;
-            root.summary = Model.summarize({
+            const files = {
                 packages: value(packagesFile),
                 aur: value(aurFile),
                 flatpak: value(flatpakFile),
                 combined: value(combinedFile)
-            });
+            };
+            // After a check that could not fetch, the files as it left them
+            // are not believed. The first look after it records them; the
+            // count moves again once they differ -- the next check, or the
+            // updater emptying one -- and the failure is then behind us.
+            if (root.fetchFailed) {
+                const key = JSON.stringify(files) + "\n" + timeFile.content;
+                if (root._heldKey === null || root._heldKey === key) {
+                    root._heldKey = key;
+                    return;
+                }
+                root.fetchFailed = false;
+                root._heldKey = null;
+            }
+            root.summary = Model.summarize(files, root.summary.entries);
             root.checkedAt = Model.parseCheckTime(timeFile.content);
         }
     }
@@ -297,10 +433,14 @@ Singleton {
             return err !== "" ? err : "checking for updates with " + root.tool;
         }
 
-        // Opens the interactive updater in a terminal.
+        // Opens the interactive updater in a terminal, and says which one,
+        // and why, when it is not the one asked for.
         function open(): string {
             const err = root.open();
-            return err !== "" ? err : "opened " + root.tool + " in " + root.terminal;
+            if (err !== "")
+                return err;
+            const note = root.terminalChoice.note;
+            return "opened " + root.tool + " in " + root.terminal + (note !== "" ? " (" + note + ")" : "");
         }
 
         function count(): int {

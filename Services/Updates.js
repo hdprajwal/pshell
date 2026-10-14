@@ -69,16 +69,39 @@ function parseEntry(line, source) {
 // What the state files add up to. `files` carries each file's text, or null
 // for a file that is not there:
 //   packages, aur, flatpak, combined
-// Answers { found, total, repo, aur, flatpak, entries }.
+// `previous` is optional: the entries of the summary before this one, used
+// only to say which source a line came from when the split files cannot.
+// Answers { found, total, repo, aur, flatpak, entries, consistent }.
 //
-// The three split files are read rather than the combined one because they
-// say where each update comes from, and because the updater empties each as
-// it finishes that part -- the count goes down as it works.
+// The split files say where each update comes from, but they are not safe
+// to read on their own. check.sh writes each with a plain `>` redirect --
+// `checkupdates > last_updates_check_packages` -- which empties the file the
+// moment it starts and leaves it empty for the seconds pacman spends syncing
+// its databases; `paru -Qua > ..._aur` does the same. Read in that window
+// they say "0 repo updates", and a bar that trusted them would drop from
+// 552 to 55 to 11 and back on every check.
 //
-// The combined file is the fallback for a state directory that has it and
-// none of the others, which is an arch-update older than the split: its
-// lines are counted as repo updates, which is what most of them will be.
-function summarize(files) {
+// The combined file is the one every writer keeps whole:
+//   check.sh          builds it aside and `mv`s it into place, after the
+//                     split files are final
+//   update.sh         rewrites it as `cat` of the three straight after it
+//                     empties each one
+//   list_packages.sh  empties all four together, then writes each source to
+//                     its split file and the combined one back to back
+// So the split files are used only while their lines, in order, are the
+// combined file's lines -- `consistent`. While they disagree, a writer is
+// part-way through, and the combined file is the last finished answer: its
+// lines are counted, each given the source the split files or `previous`
+// knew it under, and "repo" otherwise.
+//
+// No combined file at all is "never checked", whatever the split files say:
+// it is the state of the very first check, which touches the split files
+// before it writes anything, and the combined file arrives when it is done.
+//
+// A state directory with only the combined file is an arch-update older
+// than the split; its lines are counted as repo updates, which is what most
+// of them will be.
+function summarize(files, previous) {
     var f = files || {};
     var has = function (v) {
         return v !== undefined && v !== null;
@@ -89,20 +112,47 @@ function summarize(files) {
         repo: 0,
         aur: 0,
         flatpak: 0,
-        entries: []
+        entries: [],
+        consistent: true
     };
+    var add = function (line, source) {
+        result.entries.push(parseEntry(line, source));
+        result[source] += 1;
+    };
+    var sources = [["repo", f.packages], ["aur", f.aur], ["flatpak", f.flatpak]];
     var split = has(f.packages) || has(f.aur) || has(f.flatpak);
-    var sources = split ? [["repo", f.packages], ["aur", f.aur], ["flatpak", f.flatpak]] : [["repo", f.combined]];
+    if (!has(f.combined)) {
+        result.consistent = !split;
+        return result;
+    }
+    result.found = true;
+    var combined = parseLines(f.combined);
+    var splitLines = [];
     for (var i = 0; i < sources.length; i++) {
-        var source = sources[i][0];
-        var text = sources[i][1];
-        if (!has(text))
-            continue;
-        result.found = true;
-        var lines = parseLines(text);
+        var lines = parseLines(sources[i][1]);
         for (var j = 0; j < lines.length; j++)
-            result.entries.push(parseEntry(lines[j], source));
-        result[source] += lines.length;
+            splitLines.push([lines[j], sources[i][0]]);
+    }
+    var agree = split && splitLines.length === combined.length;
+    for (var k = 0; agree && k < combined.length; k++)
+        agree = splitLines[k][0] === combined[k];
+    if (agree) {
+        for (var a = 0; a < splitLines.length; a++)
+            add(splitLines[a][0], splitLines[a][1]);
+    } else {
+        result.consistent = !split;
+        // A line's source: the summary before this one first, since a check
+        // in progress is what makes the files disagree and the split files
+        // are then the half-written ones; then the split files, which is all
+        // there is on the shell's first read.
+        var known = {};
+        for (var b = 0; b < splitLines.length; b++)
+            known[splitLines[b][0]] = splitLines[b][1];
+        var prev = previous || [];
+        for (var c = 0; c < prev.length; c++)
+            known[prev[c].line] = prev[c].source;
+        for (var d = 0; d < combined.length; d++)
+            add(combined[d], known[combined[d]] || "repo");
     }
     result.total = result.repo + result.aur + result.flatpak;
     return result;
@@ -157,6 +207,9 @@ function formatAge(nowSec, thenSec) {
 //   checkedAt  - epoch seconds of the last check, or 0
 //   now        - epoch seconds now
 //   checking   - a check pshell started is still running
+//   updating   - the interactive updater is running
+//   fetchFailed - pshell's last check could not reach the mirrors, and the
+//                count is the one from before it
 function statusLine(state) {
     if (!state.available)
         return "unavailable: neither cachy-update nor arch-update is installed";
@@ -168,10 +221,16 @@ function statusLine(state) {
         parts.push("up to date");
     else
         parts.push(plural(s.total, "update", "updates") + " (" + breakdown(s) + ")");
-    if (s.found)
+    // Left out with no time to give: the time file is written last, so a
+    // first check part-way through has the others and not it yet.
+    if (s.found && state.checkedAt > 0)
         parts.push("checked " + formatAge(state.now, state.checkedAt));
+    if (state.fetchFailed)
+        parts.push("the last check could not reach the mirrors, so this is the one before it");
     if (state.checking)
         parts.push("checking now");
+    if (state.updating)
+        parts.push("updating now");
     parts.push("by " + state.available);
     return parts.join(", ");
 }
@@ -197,19 +256,50 @@ function baseName(path) {
     return p.substring(p.lastIndexOf("/") + 1);
 }
 
+// A `terminal` setting as an argv: the program, then any arguments, split on
+// whitespace -- "kitty -1" is ["kitty", "-1"]. Never handed to a shell, so
+// nothing in it is expanded or run, and there is no quoting either: a
+// program whose path has a space in it cannot be named here.
+function splitTerminal(value) {
+    var text = String(value === undefined || value === null ? "" : value).trim();
+    return text === "" ? [] : text.split(/\s+/);
+}
+
 // Which terminal to open the updater in. `configured` is config.json's
-// `terminal`, `env` is $TERMINAL, and `installed` the subset of the
-// candidates the probe found on PATH. A choice that is set but not
-// installed is passed over, so a stale $TERMINAL does not leave the click
-// doing nothing. "" when there is nothing to use.
+// `terminal`, `env` is $TERMINAL, and `installed` the program names the
+// probe found on PATH. Answers { argv, name, note }:
+//   argv  the terminal and the arguments it was given, [] for none
+//   name  its program, "" for none
+//   note  why the configured terminal, or $TERMINAL, was passed over, ""
+//         when it was not
+// A choice that is set but not installed is passed over, so a stale
+// $TERMINAL does not leave the click doing nothing; `note` is there so the
+// reply to `open` can say so rather than quietly using another.
 function pickTerminal(configured, env, installed) {
     var found = installed || [];
-    var wanted = [String(configured || "").trim(), String(env || "").trim()].concat(TERMINALS);
+    var wanted = [["`terminal` in config.json", splitTerminal(configured)], ["$TERMINAL", splitTerminal(env)]];
+    for (var t = 0; t < TERMINALS.length; t++)
+        wanted.push(["", [TERMINALS[t]]]);
+    var skipped = [];
     for (var i = 0; i < wanted.length; i++) {
-        if (wanted[i] !== "" && found.indexOf(wanted[i]) >= 0)
-            return wanted[i];
+        var argv = wanted[i][1];
+        if (argv.length === 0)
+            continue;
+        if (found.indexOf(argv[0]) >= 0) {
+            return {
+                argv: argv,
+                name: argv[0],
+                note: skipped.join("; ")
+            };
+        }
+        if (wanted[i][0] !== "")
+            skipped.push(wanted[i][0] + " names " + argv[0] + ", which is not installed");
     }
-    return "";
+    return {
+        argv: [],
+        name: "",
+        note: skipped.join("; ")
+    };
 }
 
 // The argv that opens `command` in `terminal`, with its window class set to
@@ -218,24 +308,108 @@ function pickTerminal(configured, env, installed) {
 // told not to hand the window to a running instance, which would take the
 // class with it and exit at once.
 //
+// `terminal` is a program, or an argv whose first word is the program and
+// the rest arguments of the user's own, which go straight after it.
+//
 // A terminal not in the table gets `-e`, which nearly all of them take.
 function terminalArgv(terminal, appId, title, command) {
-    var t = String(terminal);
+    var head = Array.isArray(terminal) ? terminal.slice() : [String(terminal)];
     var cmd = command || [];
-    switch (baseName(t)) {
+    switch (baseName(head[0])) {
     case "ghostty":
-        return [t, "--class=" + appId, "--title=" + title, "--gtk-single-instance=false", "-e"].concat(cmd);
+        return head.concat(["--class=" + appId, "--title=" + title, "--gtk-single-instance=false", "-e"], cmd);
     case "kitty":
-        return [t, "--class", appId, "--title", title].concat(cmd);
+        return head.concat(["--class", appId, "--title", title], cmd);
     case "alacritty":
-        return [t, "--class", appId, "--title", title, "-e"].concat(cmd);
+        return head.concat(["--class", appId, "--title", title, "-e"], cmd);
     case "foot":
-        return [t, "--app-id=" + appId, "--title=" + title].concat(cmd);
+        return head.concat(["--app-id=" + appId, "--title=" + title], cmd);
     case "wezterm":
-        return [t, "start", "--class", appId, "--"].concat(cmd);
+        return head.concat(["start", "--class", appId, "--"], cmd);
     default:
-        return [t, "-e"].concat(cmd);
+        return head.concat(["-e"], cmd);
     }
+}
+
+// --------------------------------------------------------------- refresh
+
+// The lock the interactive updater holds for as long as it runs
+// (full_upgrade.sh: `exec {fd}> /tmp/${name}.lock` then `flock -n`), and the
+// unit the timer starts. `name` is "arch-update" in the script itself, so
+// both are the same under cachy-update.
+var LOCK = "/tmp/arch-update.lock";
+var UNIT = "arch-update.service";
+
+// What a refresh runs, as sh with its inputs as arguments rather than
+// spliced into the text. In order:
+//
+//   1. Refuse while the updater holds its lock. A check started mid-update
+//      can write the list from before `pacman -Syu` after update.sh has
+//      emptied it, and it would stay wrong until the next day's check.
+//      flock's conflict code is set apart (-E 75) so a lock it cannot open
+//      at all is not mistaken for a running updater.
+//   2. Start the timer's own unit when it is there, rather than running the
+//      check as a child. It is Type=oneshot, so `start` returns when the
+//      check has finished, and it joins a check the timer already has
+//      running rather than racing it for the same files. Once started it
+//      belongs to systemd: a reload of the shell kills only this sh, and
+//      the check still finishes, cleans up its database copy and writes
+//      the time.
+//   3. Otherwise -- no systemd user manager, or no unit -- run
+//      `<tool> --check` directly, as before.
+//
+// A check whose `checkupdates` could not reach the mirrors still exits 0,
+// with empty files, which read as "up to date". checkupdates says
+// "Cannot fetch updates" on stderr (it is not translated), so look for that:
+// in the unit's journal, by this run's invocation id, or in the direct
+// check's own stderr.
+//
+// Prints one word per outcome, for parseRefresh: busy, systemd or direct,
+// then fetch-failed if it was. Exits with the check's own code.
+var REFRESH_SCRIPT = 'tool=$1 lock=$2 unit=$3\n'
+    + 'if command -v flock >/dev/null 2>&1; then\n'
+    + '    flock -n -E 75 "$lock" true 2>/dev/null\n'
+    + '    if [ $? -eq 75 ]; then echo busy; exit 0; fi\n'
+    + 'fi\n'
+    + 'if command -v systemctl >/dev/null 2>&1 && systemctl --user cat "$unit" >/dev/null 2>&1; then\n'
+    + '    echo systemd\n'
+    + '    systemctl --user start "$unit"\n'
+    + '    code=$?\n'
+    + '    id=$(systemctl --user show -p InvocationID --value "$unit" 2>/dev/null)\n'
+    + '    if [ -n "$id" ] && journalctl --user -o cat --no-pager "_SYSTEMD_INVOCATION_ID=$id" 2>/dev/null | grep -q "Cannot fetch updates"; then echo fetch-failed; fi\n'
+    + 'else\n'
+    + '    echo direct\n'
+    + '    err=$("$tool" --check 2>&1 >/dev/null)\n'
+    + '    code=$?\n'
+    + '    if printf "%s\\n" "$err" | grep -q "Cannot fetch updates"; then echo fetch-failed; fi\n'
+    + 'fi\n'
+    + 'exit $code\n';
+
+// `lock` and `unit` default to arch-update's; the tests point them elsewhere.
+function refreshArgv(tool, lock, unit) {
+    return ["sh", "-c", REFRESH_SCRIPT, "pshell-updates-refresh", String(tool), lock || LOCK, unit || UNIT];
+}
+
+// What the refresh script printed, as { busy, via, fetchFailed }. `via` is
+// "systemd", "direct", or "" when it did not get that far.
+function parseRefresh(text) {
+    var words = parseLines(text);
+    var via = "";
+    if (words.indexOf("systemd") >= 0)
+        via = "systemd";
+    else if (words.indexOf("direct") >= 0)
+        via = "direct";
+    return {
+        busy: words.indexOf("busy") >= 0,
+        via: via,
+        fetchFailed: words.indexOf("fetch-failed") >= 0
+    };
+}
+
+// The argv that asks whether the updater holds its lock: prints "held" if
+// it does. The same flock as the refresh script's first step.
+function lockProbeArgv(lock) {
+    return ["sh", "-c", 'flock -n -E 75 "$1" true 2>/dev/null; [ $? -ne 75 ] || echo held', "pshell-updates-lock", lock || LOCK];
 }
 
 // The Hyprland rule that floats the updater's window, as Lua for

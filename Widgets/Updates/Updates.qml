@@ -49,10 +49,14 @@ BarIconButton {
     tooltipText: {
         const s = root.summary;
         const lines = [(s.total === 1 ? "1 update: " : s.total + " updates: ") + Model.breakdown(s)];
-        if (Services.Updates.checking)
+        if (Services.Updates.updating)
+            lines.push("Updating now");
+        else if (Services.Updates.checking)
             lines.push("Checking now");
         else if (Services.Updates.checkedAt > 0)
             lines.push("Checked " + Model.formatAge(root.now, Services.Updates.checkedAt));
+        if (Services.Updates.fetchFailed)
+            lines.push("The last check could not reach the mirrors");
         lines.push("Click to update, right click to check again");
         return lines.join("\n");
     }
