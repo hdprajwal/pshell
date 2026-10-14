@@ -97,6 +97,26 @@ test("parseHistory survives garbage and caps what it reads", () => {
     assert.deepEqual(H.parseHistory(raw, 2).map(e => e.text), ["a", "b"]);
 });
 
+// The shell loads uncapped and trims itself, so a cap lowered while it was
+// down -- or set to zero -- still forgets the entries past it, and their
+// image files with them.
+test("parseHistory with no cap reads everything, so a smaller cap can be applied after", () => {
+    const dir = "/state/pshell/clipboard/images";
+    const raw = JSON.stringify([text("a"), image(`${dir}/1.png`), text("b"), image(`${dir}/2.png`)]);
+    const full = H.parseHistory(raw, Infinity);
+    assert.equal(full.length, 4);
+
+    assert.deepEqual(H.orphanedImages(full, full.slice(0, 1), dir), [`${dir}/1.png`, `${dir}/2.png`]);
+    assert.deepEqual(H.orphanedImages(full, full.slice(0, 0), dir), [`${dir}/1.png`, `${dir}/2.png`]);
+    assert.deepEqual(H.orphanedImages(full, full.slice(0, 3), dir), [`${dir}/2.png`]);
+});
+
+test("parseHistory with no cap still reads more than the default 500", () => {
+    const raw = JSON.stringify(Array.from({ length: 700 }, (_, i) => text(`t${i}`)));
+    assert.equal(H.parseHistory(raw, Infinity).length, 700);
+    assert.equal(H.parseHistory(raw).length, 500);
+});
+
 test("parseEntryJson reads one capture line and ignores noise", () => {
     assert.deepEqual(H.parseEntryJson('{"type":"text","text":"hi"}\n'), text("hi"));
     assert.equal(H.parseEntryJson(""), null);
