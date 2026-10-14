@@ -243,6 +243,11 @@ Singleton {
         // enough: the model itself only moves in fifteen-minute steps, so a
         // one-minute poll would fetch the same numbers fourteen times.
         readonly property int intervalMin: _num("intervalMin", 15, 5, 1440)
+
+        // Hours in the panel's hourly row, counting the current one. 0 hides
+        // the row. Capped at 24 because "the next day" is what the row is
+        // for, and the three days below it carry on from there.
+        readonly property int hourlyHours: Math.round(_num("hourlyHours", 12, 0, 24))
     }
 
     // The five session commands, under one `power` object -- grouped for the
