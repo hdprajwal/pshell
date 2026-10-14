@@ -469,6 +469,76 @@ test("the update list is output, tabs and all", () => {
     assert.equal(out.stdout, list + "\n");
 });
 
+// ----------------------------------------------------------- volume tone
+
+test("audio tone with an action passes the action through", () => {
+    const box = sandbox();
+    for (const action of ["on", "off", "toggle", "test", "status"])
+        run(box, ["audio", "tone", action]);
+
+    assert.deepEqual(calls(box), ["on", "off", "toggle", "test", "status"].map(a => ["-p", repo, "ipc", "call", "pshell.audio", "tone", a]));
+});
+
+// The method takes its action as an argument, so bare would be a call qs
+// refuses; it asks for the status instead.
+test("audio tone on its own asks for the status", () => {
+    const box = sandbox();
+    const out = run(box, ["audio", "tone"], { QS_STDOUT: "on, after 180ms, with pw-play, /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga" });
+
+    assert.equal(out.status, 0);
+    assert.match(out.stdout, /^on, after 180ms/);
+    assert.deepEqual(calls(box), [["-p", repo, "ipc", "call", "pshell.audio", "tone", "status"]]);
+});
+
+test("the rest of the audio target is untouched", () => {
+    const box = sandbox();
+    run(box, ["audio", "setVolume", "40"]);
+    run(box, ["audio", "status"]);
+
+    assert.deepEqual(calls(box), [
+        ["-p", repo, "ipc", "call", "pshell.audio", "setVolume", "40"],
+        ["-p", repo, "ipc", "call", "pshell.audio", "status"],
+    ]);
+});
+
+test("audio with no method is refused before qs is bothered", () => {
+    const box = sandbox();
+    const out = run(box, ["audio"]);
+
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /audio needs a method/);
+    assert.deepEqual(calls(box), []);
+});
+
+test("audio tone is documented", () => {
+    const box = sandbox();
+    const out = run(box, ["help"]);
+
+    assert.match(out.stdout, /^\s+audio tone \[on\|off\|toggle\|test\]/m);
+});
+
+// `pshell audio tone test` with nothing to play with has to fail, so a
+// script checking for a player can.
+test("an error: answer from audio fails the command", () => {
+    const box = sandbox();
+    const out = run(box, ["audio", "tone", "test"], {
+        QS_STDOUT: "error: no pw-play, paplay or canberra-gtk-play on PATH. pw-play comes with pipewire.",
+    });
+
+    assert.equal(out.status, 1);
+    assert.equal(out.stdout, "");
+    assert.match(out.stderr, /^pshell: no pw-play, paplay or canberra-gtk-play on PATH/);
+});
+
+test("the audio status line is output", () => {
+    const box = sandbox();
+    const line = 'volume 35% sink "Built-in Audio" mic 50% source "Built-in Audio"';
+    const out = run(box, ["audio", "status"], { QS_STDOUT: line });
+
+    assert.equal(out.status, 0);
+    assert.equal(out.stdout, line + "\n");
+});
+
 // ------------------------------------------------------- what it refuses
 
 test("a target with no method is refused before qs is bothered", () => {
