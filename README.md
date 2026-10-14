@@ -501,9 +501,8 @@ back undefined. New QML should do what Omarchy now does, and write
 `Color` keep working, because on those Qt versions pshell loads every widget
 from a copy under `~/.cache/pshell/widgets/` with `import QtQuick 6.11` in
 place of the bare import. Omarchy's shell makes the same change as it loads a
-plugin. Your own files are never edited, but it does mean that saving a
-widget does not reload it live; the change shows up the next time the
-shell starts or reloads.
+plugin. Your own files are never edited, and as before, an edit to a widget
+shows up the next time the shell starts or reloads.
 
 See [NOTICE.md](NOTICE.md) for what came from where.
 

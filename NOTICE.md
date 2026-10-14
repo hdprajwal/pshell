@@ -2,7 +2,8 @@
 
 ## Omarchy
 
-`Ui/`, `Commons/Border.qml` and `Commons/BorderGeometry.js` are taken from
+`Ui/`, except the three files of pshell's own named below, and
+`Commons/Border.qml` and `Commons/BorderGeometry.js` are taken from
 [Omarchy](https://github.com/basecamp/omarchy), copyright David Heinemeier
 Hansson, MIT licensed. The full licence text is in
 [`licenses/LICENSE.omarchy`](licenses/LICENSE.omarchy).
@@ -33,7 +34,9 @@ are additions; `text` still means the glyph and still goes through the same
 optically centred canvas, so an Omarchy widget behaves exactly as before.
 `Ui/BarIcon.qml` is pshell's own, not Omarchy's: it draws a recoloured icon
 from the icon theme, which Omarchy has no equivalent for because it uses
-glyphs throughout.
+glyphs throughout. So are `Ui/MaterialIcon.qml`, which draws a glyph from the
+Material Symbols font below, and `Ui/FormSection.qml`, the titled card the
+settings app groups its rows on.
 
 `Ui/KeyboardPanel.qml` and `Ui/PopupCard.qml` are modified. Both placed their
 card by measuring down from the top of the output — `barH + gap` for a top bar
