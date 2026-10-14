@@ -494,6 +494,17 @@ matugen palette instead of Omarchy's theme files, so a widget written for one
 shell is themed by the other. Omarchy names the readable colour `text` and
 pshell named it `foreground`; both resolve.
 
+On Qt 6.12 and later, `QtQuick` has a `Color` singleton of its own, and in a
+file with a bare `import QtQuick` it hides the palette: `Color.popups` comes
+back undefined. New QML should do what Omarchy now does, and write
+`Commons.Color` after `import qs.Commons as Commons`. Widgets that still say
+`Color` keep working, because on those Qt versions pshell loads every widget
+from a copy under `~/.cache/pshell/widgets/` with `import QtQuick 6.11` in
+place of the bare import. Omarchy's shell makes the same change as it loads a
+plugin. Your own files are never edited, but it does mean that saving a
+widget does not reload it live; the change shows up the next time the
+shell starts or reloads.
+
 See [NOTICE.md](NOTICE.md) for what came from where.
 
 ## Calendar
