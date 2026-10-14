@@ -27,9 +27,11 @@ var EPSILON = 0.002;
 // turning it up.
 var QUIET_MS = 1000;
 
-// How long the level has to hold still before the tone plays. A held key
-// repeats faster than this and a drag reports far faster, so either is one
-// tone at the end. The prototype this follows settled on 180.
+// How long the level has to hold still before the tone plays. A drag
+// reports far faster than this, so it is one tone at the end. A held key is
+// not: Hyprland waits 600 ms before it repeats, so the first step sounds on
+// its own and the repeats sound again where they stop. The prototype this
+// follows settled on 180.
 var DEFAULT_DELAY = 180;
 var MIN_DELAY = 50;
 var MAX_DELAY = 2000;
