@@ -206,6 +206,14 @@ function chooseSound(custom, readable) {
     return "";
 }
 
+// A path the player cannot take for an option. Every player here reads a
+// leading `-` as a flag, and canberra-gtk-play has no `--` to stop that, so
+// a relative path that starts with one is spelled from `./` instead.
+function safePath(file) {
+    var path = String(file || "");
+    return path.charAt(0) === "-" ? "./" + path : path;
+}
+
 // The command line that plays `file` once on the sink named `sink`.
 //
 // No volume flag on any of them. Each plays at its own unity, so the tone
@@ -222,6 +230,7 @@ function playerArgv(player, file, sink) {
     var target = String(sink || "");
     if (!file)
         return [];
+    file = safePath(file);
     if (player === "pw-play") {
         var argv = ["pw-play"];
         if (target !== "")
