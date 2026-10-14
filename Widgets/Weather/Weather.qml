@@ -34,6 +34,8 @@ Panel {
     readonly property int panelWidth: cfg.panelWidth || Style.space(300)
 
     readonly property string screenName: bar && bar.screen ? bar.screen.name : ""
+    // Empty for both the 0 setting and a cache from before the hourly data.
+    readonly property bool showsHourly: Services.Weather.hourly.length > 0
     readonly property bool hostsPanel: Services.Weather.panelOpen && Services.Weather.panelScreen === root.screenName
 
     function open() {
@@ -273,7 +275,10 @@ Panel {
                 Column {
                     id: hourlySection
 
-                    readonly property int columns: Math.min(6, Math.max(1, Services.Weather.hourly.length))
+                    // Six to a row where there is room, fewer in a narrow
+                    // panel: a cell under 48 px runs "12 AM" into "1 AM"
+                    // and a three-digit °F into the next one.
+                    readonly property int columns: Math.max(1, Math.min(6, Services.Weather.hourly.length, Math.floor(column.width / Style.space(48))))
                     // The chance-of-rain line is there for every slot or for
                     // none, so a single wet hour does not leave the row's
                     // temperatures at two different heights.
@@ -281,7 +286,7 @@ Panel {
 
                     width: parent.width
                     spacing: Style.spacing.lg
-                    visible: Services.Weather.hourly.length > 0
+                    visible: root.showsHourly
 
                     PanelSectionHeader {
                         text: "Next hours"
@@ -306,6 +311,7 @@ Panel {
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.name
+                                    elide: Text.ElideRight
                                     color: Commons.Color.popups.text
                                     opacity: 0.75
                                     font.family: Style.font.family
@@ -324,6 +330,7 @@ Panel {
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     text: modelData.temp
+                                    elide: Text.ElideRight
                                     color: Commons.Color.popups.text
                                     font.family: Style.font.family
                                     font.pixelSize: Style.font.bodySmall
@@ -338,6 +345,7 @@ Panel {
                                     // keeps the line's height beside a wet
                                     // one.
                                     text: modelData.wet !== "" ? modelData.wet : " "
+                                    elide: Text.ElideRight
                                     color: Commons.Color.accent
                                     font.family: Style.font.family
                                     font.pixelSize: Style.font.caption
@@ -347,8 +355,11 @@ Panel {
                     }
                 }
 
+                // The section's own condition, not `hourlySection.visible`:
+                // that reads false whenever the panel is hidden, and the
+                // Column would size the panel on whether it was showing.
                 PanelSeparator {
-                    visible: hourlySection.visible
+                    visible: root.showsHourly
                     foreground: Commons.Color.popups.text
                 }
 
