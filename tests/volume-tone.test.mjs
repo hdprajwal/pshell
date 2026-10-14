@@ -207,18 +207,30 @@ test("pw-play is aimed at the sink by name, with no gain of its own", () => {
 
 test("paplay is aimed at the sink too, and canberra-gtk-play cannot be", () => {
   assert.deepEqual(T.playerArgv("paplay", SOUND, "alsa_output.speakers"),
-    ["paplay", "--device=alsa_output.speakers", "--client-name=pshell", "--stream-name=Volume tone", SOUND]);
+    ["paplay", "--device=alsa_output.speakers", "--client-name=pshell", "--stream-name=Volume tone", "--property=node.name=pshell.volume-tone", SOUND]);
   assert.deepEqual(T.playerArgv("canberra-gtk-play", SOUND, "alsa_output.speakers"),
     ["canberra-gtk-play", "-f", SOUND, "-d", "Volume tone"]);
 });
 
 test("without a sink name the player falls back to the default output", () => {
   assert.ok(!T.playerArgv("pw-play", SOUND, "").includes("--target"));
-  assert.deepEqual(T.playerArgv("paplay", SOUND, ""), ["paplay", "--client-name=pshell", "--stream-name=Volume tone", SOUND]);
+  assert.deepEqual(T.playerArgv("paplay", SOUND, ""), ["paplay", "--client-name=pshell", "--stream-name=Volume tone", "--property=node.name=pshell.volume-tone", SOUND]);
 });
 
 test("no player or no file is no command", () => {
   assert.deepEqual(T.playerArgv("", SOUND, "x"), []);
   assert.deepEqual(T.playerArgv("mpv", SOUND, "x"), []);
   assert.deepEqual(T.playerArgv("pw-play", "", "x"), []);
+});
+
+// What each player's stream looks like to Pipewire, seen live: pw-play and
+// paplay carry the name they are given, canberra-gtk-play its own name.
+test("isToneStream hides the tone from every player, and nothing else", () => {
+  for (const player of ["pw-play", "paplay", "canberra-gtk-play"])
+    assert.equal(T.isToneStream("pshell.volume-tone", player, false), true, player);
+  assert.equal(T.isToneStream("canberra-gtk-play", "canberra-gtk-play", true), true);
+  assert.equal(T.isToneStream("canberra-gtk-play", "canberra-gtk-play", false), false, "someone else's sound between tones");
+  assert.equal(T.isToneStream("canberra-gtk-play", "pw-play", true), false, "pshell is not playing with canberra");
+  assert.equal(T.isToneStream("pshell", "paplay", true), false, "a paplay stream without the property is not assumed");
+  assert.equal(T.isToneStream("Firefox", "canberra-gtk-play", true), false);
 });
