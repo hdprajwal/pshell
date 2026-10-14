@@ -557,6 +557,10 @@ function hourlyKey(reading, nowMs) {
 // the condition is last because it is the one column with spaces in it.
 function hourlyLines(reading, nowMs, count) {
     var strip = hourlyStrip(reading, nowMs, count, false);
+    // Never an empty success. With no reading yet, or a cache too old to
+    // have an hour left in it, the CLI would print nothing and exit 0.
+    if (strip.length === 0)
+        return "error: no hourly forecast yet";
     var lines = [];
     for (var i = 0; i < strip.length; i++)
         lines.push([strip[i].hour, strip[i].temp, strip[i].precipitation, strip[i].label].join("  "));
