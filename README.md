@@ -367,7 +367,7 @@ single run.
 | `network` | Wi-Fi signal or wired. Left click opens the panel to scan, connect and disconnect, right click toggles the radio. Right click a network in the list to forget it. `showName` puts the SSID in the bar, `maxNetworks` caps the list. |
 | `bluetooth` | Adapter state and connected devices, with battery level where the device reports it. Left click opens the panel to pair, connect and disconnect, right click toggles the radio. `showCount`, `maxDevices`. |
 | `aiUsage` | How much of your coding agents' allowances is gone. The bar wears the tightest window across every provider; clicking it opens a tab per provider, with that provider's windows, seven days of tokens and a model breakdown. `barSource`, `warnThreshold`, `refreshIntervalSec`, `defaultTab`, `hideWhenIdle`. Hides itself where `pshell-agents` is not installed. |
-| `weather` | The condition and the temperature where you are. Click it for feels-like, humidity, wind and three days of high and low. `showLabel` puts the condition in the bar too. `panelWidth` sizes the panel. Everything else is configured under `weather` rather than on the widget, since one shell fetches once however many bars are on it. |
+| `weather` | The condition and the temperature where you are. Click it for feels-like, humidity, wind, the next hours and three days of high and low. `showLabel` puts the condition in the bar too. `panelWidth` sizes the panel. Everything else is configured under `weather` rather than on the widget, since one shell fetches once however many bars are on it. |
 | `controlCenter` | Everything in one panel: session header, volume, brightness and keyboard backlight sliders, and tiles for Wi-Fi, Bluetooth, audio output, microphone, night mode and dark mode. Right click mutes, scroll changes volume. |
 | `power` | Lock, suspend, log out, restart, power off. The three that end something ask first and are drawn in the urgent colour. `panelWidth` sizes the panel. The commands themselves are configured under `power` rather than on the widget, and every one of them answers on IPC with no widget in the bar. |
 | `keybinds` | Your Hyprland keybinds, read from `hyprctl binds -j` when the panel opens, grouped by modifier with a filter field. Says how many binds carry no description and what to do about it. `panelWidth`, `listHeight`. The panel is drawn here; `pshell.keybinds` is owned by a service, so the command answers on any bar. |
@@ -1201,9 +1201,9 @@ Everything answers on one IPC target, widget or no widget:
 Five pages: **Wallpaper** — the thumbnail grid documented above —
 **Theme** — scheme, prefer, mode and the live palette — **Notifications** —
 toast lifetimes, stack size, position, history depth and per-app muting —
-**Weather** — place, exact coordinates, units, refresh interval and the
-current reading with a Refresh now beside it — and **About**, the facts
-neofetch prints plus where pshell keeps its files.
+**Weather** — place, exact coordinates, units, refresh interval, how many
+hours the panel shows and the current reading with a Refresh now beside it
+— and **About**, the facts neofetch prints plus where pshell keeps its files.
 `pshell settings open theme` lands on a named page directly.
 
 **It writes `config.json`.** Until this existed, nothing in the shell ever
@@ -1406,7 +1406,8 @@ widget to a section and put its settings under a `weather` block:
   "weather": {
     "location": "Bengaluru",
     "units": "metric",
-    "intervalMin": 15
+    "intervalMin": 15,
+    "hourlyHours": 12
   }
 }
 ```
@@ -1422,6 +1423,7 @@ like.
 | `latitude` / `longitude` | Exact coordinates. **These beat `location`.** |
 | `units` | `metric` or `imperial`. Default `metric`. |
 | `intervalMin` | Minutes between refreshes. Default 15, floored at 5. |
+| `hourlyHours` | Hours in the panel's hourly row, counting the current one. Default 12, at most 24; `0` hides the row. |
 
 Coordinates win because a coordinate is unambiguous and a name is not. There
 is more than one Springfield and the geocoder hands back the biggest; if it has
@@ -1447,6 +1449,26 @@ A reading older than two refresh intervals goes dim in the bar and grows a
 reading is kept on disk, so a shell started with the network down shows
 the last thing it knew rather than a blank — with its age on it, which is the
 half that matters.
+
+### The next hours
+
+The panel shows the hours ahead in rows of six: the time, an icon that turns
+to the moon after the location's own sunset, the temperature, and the chance
+of rain when it is 20% or more. They come in the same request as everything
+else, so the row costs nothing extra, and it moves on at the top of each hour
+without waiting for a fetch.
+
+It starts at the hour it is now *where the forecast is for*, not where your
+machine is: a laptop in New York showing Tokyo starts at Tokyo's hour. The
+times are 12-hour if your `clock` widget's `format` (or else the `calendar`'s
+`timeFormat`) has an AM/PM marker in it, and 24-hour otherwise.
+
+One thing to know around a clock change. Open-Meteo writes every hour of a
+reply with the offset that was in force when it answered, so in the day
+before the clocks go forward or back, the hours past the change are labelled
+one hour off — 02:00 appears on the night it does not exist. Which hour is
+"now" is never off, because that is worked out from the instant and not the
+label, and the next fetch after the change labels everything right.
 
 ### What it sends, and to whom
 
@@ -1476,10 +1498,21 @@ one it says so rather than pretending.
 ```
 pshell weather refresh                fetch now
 pshell weather current                one line: temperature, condition, place, age
+pshell weather hourly                 the next 24 hours, one line each
 pshell weather toggle                 open or close the panel
 pshell weather setLocation Mysuru     re-resolve and refetch
 pshell weather setCoordinates 12.97 77.59   pin the exact spot
 pshell weather clearCoordinates       back to deciding by name
+```
+
+`hourly` prints a full day whatever `hourlyHours` says, since that setting is
+about room in the panel. Each line is the hour as `HH:MM`, the temperature,
+the chance of rain and the condition, two spaces apart, with the condition
+last because it is the one with spaces in it:
+
+```
+21:00  24°C  40%  Light rain
+22:00  23°C  10%  Overcast
 ```
 
 `setCoordinates` takes both halves in one call: a latitude on its own is not a
