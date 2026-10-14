@@ -50,6 +50,7 @@ pshell run                     start the shell
 pshell launcher                open the application launcher
 pshell clipboard               open the clipboard history
 pshell nightlight              warm the screen, or stop (needs hyprsunset)
+pshell updates                 pending package updates (needs cachy-update or arch-update)
 pshell bar toggle              hide or show the bar (also show, hide)
 pshell settings toggle         any IPC target, by name
 pshell ipc show                straight through to qs ipc
@@ -337,7 +338,7 @@ This is the shape Omarchy's own shell uses, which is not a coincidence either.
 
 ## Widgets
 
-Eighteen are built in. These hold something a polled command cannot: a live
+Nineteen are built in. These hold something a polled command cannot: a live
 connection to a Hyprland socket, DBus or UPower, or state that has to outlive a
 single run.
 
@@ -351,6 +352,7 @@ single run.
 | `privacy` | A red dot while something is using the microphone or the camera. Click it to see what. Hidden when nothing is. `showCamera`, `interval`. |
 | `idleInhibitor` | Keeps the screen awake while it is on. Off after every restart. |
 | `nightlight` | Warms the screen through hyprsunset. Click to turn it on or off. Off after every restart unless a schedule, or a hyprsunset already warming the screen, says otherwise. The temperature and schedule are configured under `nightlight` rather than on the widget. Hides itself where `hyprsunset` is not installed. See [Nightlight](#nightlight). |
+| `updates` | How many package updates are pending, from cachy-update or arch-update, and only while there are some. Click to run the updater in a terminal, right click to check again now. The tooltip splits the count into repo, AUR and Flatpak. Hides itself where neither tool is installed. See [System updates](#system-updates). |
 | `tailscale` | Tailnet state and the machines on it. Left click opens the panel to connect, disconnect and pick an exit node. `interval`, `showName`, `maxNodes`. |
 | `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconScale`, `iconSize` and `spacing` tune the layout. |
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
@@ -645,8 +647,99 @@ pshell nightlight status              one line, e.g.
 what you meant by 400.
 
 When the shell cannot do what was asked, the IPC call answers with a line
-starting `error: `. `pshell` prints that to stderr and exits 1 for any
-target, so `pshell nightlight on && ...` stops there.
+starting `error: `. `pshell` prints that to stderr and exits 1, so
+`pshell nightlight on && ...` stops there. Only the targets that promise to
+answer that way get this -- the nightlight and `updates` -- since for the
+rest a line starting `error: ` can be ordinary output.
+
+## System updates
+
+How many package updates are waiting, and a click to install them. It is
+built on the update tool your distribution already has rather than on a
+checker of its own: [cachy-update](https://github.com/CachyOS/cachy-update)
+on CachyOS, or [arch-update](https://github.com/Antiz96/arch-update), which
+cachy-update is a fork of, on Arch. One of them has to be installed:
+
+```sh
+sudo pacman -S cachy-update   # CachyOS
+sudo pacman -S arch-update    # Arch
+```
+
+Both come with a systemd user timer that checks for updates a couple of
+minutes after you log in and once a day after that. Turn it on if it is not
+already:
+
+```sh
+systemctl --user enable --now arch-update.timer
+```
+
+```json
+{
+  "right": [ { "type": "updates" } ]
+}
+```
+
+pshell does no checking of its own. The timer's check writes what it found
+to `~/.local/state/arch-update/` (`$XDG_STATE_HOME` if you set it), and the
+shell watches those files, so the count changes the moment a check finishes
+and the bar adds no network traffic or pacman load. Repo, AUR and Flatpak
+updates are counted separately and added up; the tooltip shows the split.
+Until the first check has run there is nothing to watch, and the shell looks
+for the files once a minute until they appear.
+
+The widget is hidden while nothing is pending, and where neither tool is
+installed. Right click, or `pshell updates refresh`, runs `cachy-update
+--check` -- the same check the timer runs -- straight away. Like the
+timer's, it sends cachy-update's own "N updates available" notification when
+the list has changed since the last check.
+
+Click it, or `pshell updates open`, to run the updater itself in a terminal:
+it shows the Arch news, lists what will change, asks before it does anything,
+and then deals with orphans, the package cache and services that need a
+restart. It is not a child of the shell, so reloading or restarting the bar
+does not interrupt it. It rewrites the state files as it goes, so the count
+falls as it works and the widget goes away when it is done.
+
+```json
+{
+  "terminal": "kitty",
+  "updates": { "float": true }
+}
+```
+
+`terminal` is a program name or a path, with no arguments. Leave it out and
+pshell uses `$TERMINAL`, then the first of ghostty, kitty, alacritty, foot
+and wezterm it finds. Those five get the window class `pshell.updates` and
+the title "System update"; any other terminal is run as `<terminal> -e
+cachy-update`.
+
+`updates.float`, on by default, floats the terminal in the middle of the
+screen at 60% by 70%. On Hyprland with a Lua config, pshell adds a window
+rule named `pshell-updates` for the class `pshell.updates` just before it
+opens the window. Turn it off to leave the window to your own rules; the
+next click switches pshell's rule off. On a hyprlang config, or another
+compositor, nothing is added and the window opens wherever your compositor
+puts new windows.
+
+### Commands
+
+```
+pshell updates                 the status: same as `pshell updates status`
+pshell updates status          one line, e.g.
+                               4 updates (3 repo, 1 AUR), checked 2 hours ago, by cachy-update
+pshell updates count           the number pending
+pshell updates list            one per line: repo, aur or flatpak, a tab, and the update
+pshell updates refresh         check now; answers at once, `status` says when it is done
+pshell updates open            run the updater in a terminal
+pshell updates isAvailable     whether cachy-update or arch-update is installed
+```
+
+Bare `pshell updates` only reports. Starting an update means a sudo prompt
+in a terminal, and that should be asked for by name.
+
+`open` and `refresh` fail with exit 1, and say what to install, where
+neither tool is installed. Install one while the shell is running and the
+next try after the first refusal works; no restart.
 
 ## Tailscale
 
