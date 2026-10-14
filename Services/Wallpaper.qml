@@ -23,6 +23,27 @@ Singleton {
     // Absolute paths of the images in Config.wallpaperDir, sorted.
     property var entries: []
 
+    // Image path -> a small cached copy of it, from
+    // Services/wallpaper-thumbs.sh: 640x360 for the settings grid, 1280x720
+    // for the carousel's cards. Nothing reads the originals for a preview
+    // any more -- decoding a directory of 4K PNGs on Qt's one image thread
+    // took the grid most of twenty seconds, every time the tab was opened.
+    //
+    // A path missing here has no thumbnail yet, or cannot have one (not an
+    // image, or neither libvips nor ImageMagick installed). Entries survive
+    // a rescan until the new run replaces them: a stale thumbnail for a
+    // second is fine, a grid going blank on every rescan is not.
+    property var thumbs: ({})
+    property var previews: ({})
+
+    function thumb(path) {
+        return root.thumbs[path] || "";
+    }
+
+    function preview(path) {
+        return root.previews[path] || "";
+    }
+
     // One write, and that is the whole mechanism -- deliberately. Theme.qml
     // already watches wallpaperPath and re-runs matugen, which recolours the
     // bar and re-renders every template. Calling into Theme from here would
@@ -127,8 +148,101 @@ Singleton {
                         found.push(line);
                 }
                 root.entries = found;
+                root._thumbnail();
             }
         }
+    }
+
+    // ------------------------------------------------------------ thumbnails
+
+    readonly property string _thumbScript: Quickshell.shellDir + "/Services/wallpaper-thumbs.sh"
+
+    // Lines read but not yet published, per tier.
+    property var _pendingThumbs: ({})
+    property var _pendingPreviews: ({})
+    property bool _stopping: false
+
+    // One run per tier, the grid's first and the carousel's after it, never
+    // both at once. Each already puts a worker on every core, so running
+    // them together would not finish sooner -- it would only halve the speed
+    // of the grid, which is the one somebody is usually looking at. A warm
+    // cache makes each run a fraction of a second anyway.
+    //
+    // A rescan mid-run starts over with the new list. _stopping keeps the
+    // killed grid run's exit from starting the carousel tier on the old one.
+    function _thumbnail() {
+        root._stopping = true;
+        previewRun.running = false;
+        gridRun.running = false;
+        root._stopping = false;
+        if (root.entries.length === 0)
+            return;
+        gridRun.command = ["bash", root._thumbScript, "640", "360"].concat(root.entries);
+        gridRun.running = true;
+    }
+
+    function _read(line, pending) {
+        const tab = line.indexOf("\t");
+        if (tab <= 0)
+            return;
+        pending[line.slice(0, tab)] = line.slice(tab + 1);
+        if (!publish.running)
+            publish.start();
+    }
+
+    // Lines arrive one per image, and on a warm cache all forty-odd inside a
+    // few milliseconds. Publishing each by reassigning the map would make
+    // every grid delegate re-evaluate its binding once per line; this lets
+    // them through in a few batches instead. start(), not restart(): a
+    // steady trickle on a cold cache must still show up as it goes, not
+    // wait for the last line.
+    function _publish() {
+        if (Object.keys(root._pendingThumbs).length > 0) {
+            root.thumbs = Object.assign({}, root.thumbs, root._pendingThumbs);
+            root._pendingThumbs = {};
+        }
+        if (Object.keys(root._pendingPreviews).length > 0) {
+            root.previews = Object.assign({}, root.previews, root._pendingPreviews);
+            root._pendingPreviews = {};
+        }
+    }
+
+    Timer {
+        id: publish
+
+        interval: 100
+        onTriggered: root._publish()
+    }
+
+    Process {
+        id: gridRun
+
+        stdout: SplitParser {
+            onRead: line => root._read(line, root._pendingThumbs)
+        }
+        // The script's own complaints only -- it silences the tools'
+        // per-file noise -- so anything here is worth a line in the log.
+        stderr: SplitParser {
+            onRead: line => console.warn("pshell:", line)
+        }
+        onExited: code => {
+            root._publish();
+            // A non-zero exit is "no tool to make thumbnails with", which
+            // the carousel tier would only say again.
+            if (code !== 0 || root._stopping || gridRun.running)
+                return;
+            previewRun.command = ["bash", root._thumbScript, "1280", "720"].concat(root.entries);
+            previewRun.running = true;
+        }
+    }
+
+    Process {
+        id: previewRun
+
+        stdout: SplitParser {
+            onRead: line => root._read(line, root._pendingPreviews)
+        }
+        onExited: root._publish()
     }
 
     IpcHandler {

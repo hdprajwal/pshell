@@ -177,6 +177,13 @@ new picture instead of flashing through a process swap.
 With no `wallpaper` set, or a path that does not resolve to an image, the
 background is a flat `bg`-coloured surface rather than a hole.
 
+The settings grid and the carousel show small copies of the images, not the
+originals, cached under `~/.cache/pshell/wallpaper-thumbs`. They are made with
+`vipsthumbnail` (libvips) if it is installed, or ImageMagick's `magick` if
+not, once per image and again only when the image changes. With neither
+installed there are no thumbnails: the grid shows empty plates, and the
+carousel decodes the full images, which is slow on a big directory.
+
 The settings app's Wallpaper page shows `wallpaperDir` as a grid of
 thumbnails; click one to set it. The same moves are scriptable through the
 `pshell.wallpaper` IPC target:

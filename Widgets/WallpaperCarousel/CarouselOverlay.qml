@@ -225,21 +225,27 @@ PanelWindow {
                     radius: Style.cornerRadius
                 }
 
+                // The cached 1280x720 copy from Wallpaper.previews, sized for
+                // the card: the grid's 640x360 thumbs would be visibly soft
+                // stretched over a third of the screen, and 1280x720 covers
+                // it crisply up to a wide monitor. Made once, in parallel, by
+                // Services/wallpaper-thumbs.sh, so an arrow press loads a
+                // small JPEG instead of decoding a whole 4K original.
+                //
+                // The original is the fallback, only until the preview tier
+                // has caught up -- the cards are too big to leave as plates.
+                // sourceSize then still keeps that decode to a ninth of 4K;
+                // fixed rather than bound to cardWidth so a resolution change
+                // or fractional scale does not re-decode the whole row. On a
+                // cached preview it is the image's own size and costs nothing.
                 Image {
+                    readonly property string cached: Wallpaper.preview(card.modelData)
+
                     anchors.fill: parent
-                    source: "file://" + card.modelData
+                    source: "file://" + (cached !== "" ? cached : card.modelData)
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     cache: true
-
-                    // The carousel's answer to decode cost, sized for its
-                    // job: the grid's 480x270 thumbs would be visibly soft
-                    // stretched over a third of the screen, and native size
-                    // means decoding whole 4K photographs to flip past them.
-                    // 1280x720 covers the card crisply up to a wide monitor
-                    // at a ninth of a 4K decode. Fixed rather than bound to
-                    // cardWidth so a resolution change or fractional scale
-                    // does not re-decode the whole row.
                     sourceSize.width: 1280
                     sourceSize.height: 720
                 }
