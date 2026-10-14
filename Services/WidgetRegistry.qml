@@ -24,6 +24,12 @@ Singleton {
     // This file imports no qs.Commons, so the only `Color` it can see is
     // QtQuick's. Asking for it rather than for a Qt version means an older Qt,
     // where `import QtQuick 6.11` might not exist, loads widgets as before.
+    // It only holds while nothing else here is called Color: a Services/
+    // Color.qml, or a qs.Commons import in this file, would turn it on under
+    // every Qt, and every widget would then fail to load with "version 6.11
+    // is not installed". tests/qt612-color.test.mjs checks both. The 6.11
+    // itself assumes QtQuick 6.x; under Qt 7 it is no longer a version that
+    // exists, and the pin needs revisiting.
     readonly property bool pinQtQuick: typeof Color !== "undefined"
 
     // id -> { id, dir, entry, manifest, defaultSection, defaults, allowMultiple }

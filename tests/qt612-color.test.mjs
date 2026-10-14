@@ -14,6 +14,8 @@ const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 // names the palette `Commons.Color`, through `import qs.Commons as Commons`,
 // the way Omarchy's does. These guard that rule.
 
+// QML, and the JavaScript it imports: a .js file without `.pragma library`
+// runs in its importer's scope, so it sees the same `Color`.
 function qmlFiles(dir, out = []) {
     for (const name of readdirSync(dir, { withFileTypes: true })) {
         if (name.name === ".git" || name.name === "node_modules")
@@ -21,25 +23,53 @@ function qmlFiles(dir, out = []) {
         const p = join(dir, name.name);
         if (name.isDirectory())
             qmlFiles(p, out);
-        else if (name.name.endsWith(".qml"))
+        else if (name.name.endsWith(".qml") || name.name.endsWith(".js"))
             out.push(p);
     }
     return out;
 }
 
-// Comments may name the singleton; only code is checked. A `//` after a
-// colon is a URL inside a string, not a comment.
+// Comments may name the singleton, and so may strings; only code is
+// checked. A line that starts inside a block comment is all comment.
 function codeOf(line) {
     const t = line.trimStart();
-    if (t.startsWith("//") || t.startsWith("*") || t.startsWith("/*"))
+    if (t.startsWith("*") || t.startsWith("/*"))
         return "";
-    const m = /(?<!:)\/\//.exec(line);
-    return m ? line.slice(0, m.index) : line;
+    let out = "";
+    let quote = "";
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (quote) {
+            if (c === "\\")
+                i++;
+            else if (c === quote) {
+                quote = "";
+                out += c;
+            }
+            continue;
+        }
+        if (c === "/" && line[i + 1] === "/")
+            break;
+        if (c === "/" && line[i + 1] === "*") {
+            const end = line.indexOf("*/", i + 2);
+            if (end < 0)
+                break;
+            i = end + 1;
+            out += " ";
+            continue;
+        }
+        if (c === '"' || c === "'" || c === "`")
+            quote = c;
+        out += c;
+    }
+    return out;
 }
 
-// A bare `Color` read as the palette: `Color.x`, or the object itself, as in
-// `target: Color`. `typeof Color` is not a read of the palette.
-const BARE = /(?<![\w.$"'])Color\b(?=\s*[.)\]},;]|\s*$)/;
+// Any read of a bare `Color`: `Color.x`, `Color["x"]`, `target: Color`,
+// `Color || y`, `Color ? a : b`. Not `Commons.Color` or `x.Color`, not a
+// property or key named Color (`Color: ...`, `Color {`), and not
+// `typeof Color`, which is how WidgetRegistry asks whether Qt has one.
+const BARE = /(?<![\w.$])(?<!\btypeof\s+)Color\b(?!\s*[:{])/;
 
 function bareColorLines(src) {
     const hits = [];
@@ -59,6 +89,18 @@ test("the detector finds what Qt 6.12 breaks, and nothing else", () => {
     assert.deepEqual(bareColorLines("// coloured from Color.menu.*"), []);
     assert.deepEqual(bareColorLines('x: 1 // see Color.menu'), []);
     assert.deepEqual(bareColorLines('readonly property bool pinQtQuick: typeof Color !== "undefined"'), []);
+    assert.deepEqual(bareColorLines('const c = Color["popups"];'), [1]);
+    assert.deepEqual(bareColorLines("const c = Color || fallback;"), [1]);
+    assert.deepEqual(bareColorLines("x: Color ? 1 : 2"), [1]);
+    assert.deepEqual(bareColorLines("if (Color === null) return;"), [1]);
+    assert.deepEqual(bareColorLines("return Color;"), [1]);
+    assert.deepEqual(bareColorLines('text: "Color and Style"'), []);
+    assert.deepEqual(bareColorLines("text: qsTr('Pick a Color') // Color.x"), []);
+    assert.deepEqual(bareColorLines('source: "https://x/Color.svg"; y: 1'), []);
+    assert.deepEqual(bareColorLines("x: 1 /* Color.menu */ + 2"), []);
+    assert.deepEqual(bareColorLines(" * reads Color.menu.*"), []);
+    assert.deepEqual(bareColorLines("const theme = { Color: 1 };"), []);
+    assert.deepEqual(bareColorLines("x: someColor + ColorPicker.y"), []);
 });
 
 test("no pshell QML reads the palette as a bare Color", () => {
@@ -69,6 +111,17 @@ test("no pshell QML reads the palette as a bare Color", () => {
             offenders.push(`${relative(repo, file)}:${hits.join(",")}`);
     }
     assert.deepEqual(offenders, [], "write Commons.Color, with `import qs.Commons as Commons`, so Qt 6.12's QtQuick.Color cannot shadow it");
+});
+
+// WidgetRegistry decides whether to pin by asking whether `Color` exists in
+// its own scope, which is true only of Qt 6.12's QtQuick.Color as long as
+// nothing else there is called Color. Were it true on an older Qt, every
+// widget would load as `import QtQuick 6.11` and fail to.
+test("WidgetRegistry's probe can only see QtQuick's Color", () => {
+    assert.equal(existsSync(join(repo, "Services", "Color.qml")), false, "Services/Color.qml would shadow the probe in WidgetRegistry.qml");
+    const src = readFileSync(join(repo, "Services", "WidgetRegistry.qml"), "utf8");
+    assert.match(src, /typeof Color !== "undefined"/);
+    assert.doesNotMatch(src, /^\s*import\s+qs\.Commons\s*;?\s*$/m, "an unqualified qs.Commons import would make the probe see the palette");
 });
 
 test("every file that says Commons.Color imports qs.Commons as Commons", () => {
