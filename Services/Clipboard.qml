@@ -32,21 +32,23 @@ Singleton {
     // --------------------------------------------------------------- state
 
     // Newest first, capped at `limit`. Plain records, written to
-    // clipboard.json as they are.
+    // history.json as they are.
     property var history: []
 
     readonly property int limit: Config.clipboard.historySize
     readonly property bool recording: limit > 0
 
-    // ~/.local/state/pshell, beside notifications.json, for the reason
-    // Notifications.qml gives: history is state the shell owns, not config.
+    // ~/.local/state/pshell/clipboard, under the directory notifications.json
+    // is in, for the reason Notifications.qml gives: history is state the
+    // shell owns, not config. A directory of its own because it is the one
+    // thing there that must be private -- clipboard.sh init makes it 0700.
     readonly property string stateDir: {
         const xdg = Quickshell.env("XDG_STATE_HOME");
         const base = xdg && xdg !== "" ? xdg : Quickshell.env("HOME") + "/.local/state";
-        return base + "/pshell";
+        return base + "/pshell/clipboard";
     }
-    readonly property string historyPath: stateDir + "/clipboard.json"
-    readonly property string imageDir: stateDir + "/clipboard-images"
+    readonly property string historyPath: stateDir + "/history.json"
+    readonly property string imageDir: stateDir + "/images"
     readonly property string script: Quickshell.shellDir + "/Services/clipboard.sh"
 
     // ------------------------------------------------------------ history
@@ -62,11 +64,23 @@ Singleton {
         root._replace(History.addEntry(root.history, entry, root.limit));
     }
 
+    // Forgetting the newest entry, or all of them, also takes that copy off
+    // the clipboard. It is almost certainly still there, and the snapshot
+    // every watcher start takes -- each config reload, each restart -- would
+    // otherwise record it again: delete a password, save a QML file, and it
+    // is back in the history file.
     function remove(index) {
-        root._replace(History.removeEntryAt(root.history, index));
+        const next = History.removeEntryAt(root.history, index);
+        if (next.length === root.history.length)
+            return;
+        if (index === 0)
+            Quickshell.execDetached([root.script, "clear"]);
+        root._replace(next);
     }
 
     function clear() {
+        if (root.history.length > 0)
+            Quickshell.execDetached([root.script, "clear"]);
         root._replace([]);
     }
 
@@ -183,6 +197,9 @@ Singleton {
 
     // -------------------------------------------------------- persistence
 
+    // The directory exists, 0700, and nothing in it is readable by anyone
+    // else. Nothing is read or written there before.
+    property bool _prepared: false
     property bool _loaded: false
 
     // The guard Notifications.qml carries, for the same reason: a write
@@ -196,18 +213,30 @@ Singleton {
     }
 
     function _onLoaded(raw) {
+        if (!root._prepared)
+            return;
         root.history = History.parseHistory(raw, root.limit);
         root._loaded = true;
     }
 
-    // FileView does not create parent directories; capture makes the image
-    // directory itself, but nothing else makes this one.
-    Component.onCompleted: Quickshell.execDetached(["mkdir", "-p", root.stateDir])
+    // FileView does not create parent directories, and the history's has to
+    // be private before anything lands in it, so this runs to completion
+    // before the file is even named.
+    Process {
+        id: prepare
+
+        running: true
+        command: [root.script, "init", root.stateDir]
+        environment: ({
+                PSHELL_CLIPBOARD_IMAGES: root.imageDir
+            })
+        onExited: root._prepared = true
+    }
 
     FileView {
         id: historyFile
 
-        path: root.historyPath
+        path: root._prepared ? root.historyPath : ""
         // Not watched, for the reason notifications.json is not: the shell
         // is the only writer. Watching it would also reload over a copy that
         // arrived between a write and its change signal.

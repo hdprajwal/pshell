@@ -862,10 +862,17 @@ What it does not record: anything a password manager marks as secret.
 KeePassXC and friends say so on the clipboard, and those copies never reach
 the history file.
 
-The history is `~/.local/state/pshell/clipboard.json`, newest first, and
-images are kept beside it in `clipboard-images/`, stored once each under
-their sha256. Copying something already in the history moves it to the top
-instead of adding it twice. Forgetting an entry deletes its image file.
+The history is `~/.local/state/pshell/clipboard/history.json`, newest first,
+and images are kept beside it in `images/`, stored once each under their
+sha256. The `clipboard` directory is made `0700` and its files `0600`, so on
+a home other users can read, they still cannot read your copies. Copying
+something already in the history moves it to the top instead of adding it
+twice. Forgetting an entry deletes its image file.
+
+Forgetting the newest entry, or clearing the lot, also empties the clipboard
+itself. The copy is still sitting there otherwise, and the shell records
+whatever is on the clipboard each time it starts or reloads — a password you
+just deleted would come straight back.
 
 ```jsonc
 "clipboard": {
