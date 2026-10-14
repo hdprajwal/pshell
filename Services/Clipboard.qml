@@ -521,13 +521,11 @@ Singleton {
         // One line per entry, pinned first and then newest first, numbered
         // with the index copy, remove, pin and unpin take -- so
         // `pshell clipboard history 20 | fzf` can pick one and hand its
-        // number back. The order is the panel's, row for row.
+        // number back. The order is the panel's, row for row. A pinned
+        // line's preview starts `[pin] `, and the limit counts only the
+        // rest: every pin, then the twenty newest copies.
         function history(limit: int): string {
-            const take = limit > 0 ? Math.min(limit, root.history.length) : root.history.length;
-            const out = [];
-            for (var i = 0; i < take; i++)
-                out.push(i + "\t" + History.previewText(History.cappedEntry(root.history[i])));
-            return out.join("\n");
+            return History.historyLines(root.history, limit);
         }
 
         // Back onto the clipboard without typing anything: from a script
@@ -556,7 +554,7 @@ Singleton {
         function pinned(): string {
             const out = [];
             for (var i = 0; i < root.pinnedCount; i++)
-                out.push(i + "\t" + History.previewText(History.cappedEntry(root.history[i])));
+                out.push(History.historyLine(root.history[i], i));
             return out.join("\n");
         }
     }

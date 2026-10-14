@@ -57,8 +57,10 @@ PanelWindow {
     // landing while the question is up can move it.
     property string forgetKey: ""
 
-    // At most fifty rows, as Omarchy draws: a history is searched, not
-    // scrolled through, and fifty is more than a screen's worth.
+    // Every pin and at most fifty other rows, as Omarchy draws fifty: a
+    // history is searched, not scrolled through, and fifty is more than a
+    // screen's worth. Pins do not count, or enough of them would hide every
+    // recent copy.
     readonly property var rows: Clipboard.visible ? History.displayRows(Clipboard.history, overlay.filter, 50, overlay.formatTime) : []
     readonly property var current: overlay.rows.length > 0 ? overlay.rows[Math.min(overlay.selected, overlay.rows.length - 1)] : null
 
