@@ -161,6 +161,11 @@ Singleton {
     // canberra-gtk-play stream only then.
     readonly property bool playing: tone.busy
 
+    // Why the last tone did not play, while it is still true: set when the
+    // player could not be started, cleared when one starts. For `test`,
+    // which answers before the player has had the chance to fail.
+    property string _failure: ""
+
     function _startNext() {
         if (tone.next.length === 0)
             return;
@@ -181,6 +186,18 @@ Singleton {
         property bool stopping: false
         property var next: []
 
+        onStarted: root._failure = ""
+
+        // A player that cannot be started -- pw-play removed by an upgrade
+        // since the probe -- never exits. Quickshell drops the process and
+        // reports only that it is not running, so without this `busy` would
+        // stay set and every tone after it would wait for an exit that is
+        // never coming. A normal exit has cleared `busy` by now.
+        onRunningChanged: {
+            if (!tone.running && tone.busy)
+                root._failedToStart();
+        }
+
         onExited: code => {
             deadline.stop();
             tone.busy = false;
@@ -199,9 +216,26 @@ Singleton {
 
         interval: 3000
         onTriggered: {
+            if (!tone.running && tone.busy) {
+                root._failedToStart();
+                return;
+            }
             tone.stopping = true;
             tone.running = false;
         }
+    }
+
+    // Clears the way for the next tone, and looks for the players again:
+    // the one chosen is gone, and another may be there to take its place.
+    function _failedToStart() {
+        deadline.stop();
+        const player = String(tone.command[0]);
+        tone.busy = false;
+        tone.stopping = false;
+        root._failure = player + " could not be started";
+        root._warn(player + " could not be started for the volume tone; looking for a player again.");
+        root._probe();
+        root._startNext();
     }
 
     // Which players are on PATH and which sounds can be read, through sh so
@@ -272,9 +306,14 @@ Singleton {
         if (root._key === "")
             return "error: there is no output to play on";
         const sink = String(Audio.sink.name || "");
+        const failed = root._failure;
         const err = root._play(sink);
         if (err !== "")
             return err;
+        // Starting is asynchronous, so a player that cannot start has not
+        // said so yet. The last attempt's failure is the honest answer.
+        if (failed !== "")
+            return "error: " + failed + " last time; tried again, run test once more to hear whether it worked";
         return "played on " + Audio.sinkName + " at " + Math.round(Audio.volume * 100) + "%" + (Audio.muted ? ", which is muted" : "");
     }
 
