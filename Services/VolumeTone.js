@@ -52,8 +52,11 @@ var PLAYERS = ["pw-play", "paplay", "canberra-gtk-play"];
 var DEFAULT_SOUND = "/usr/share/sounds/freedesktop/stereo/audio-volume-change.oga";
 
 // The stream's name, so the control centre's list of what is playing can
-// leave it out rather than flash a row for every tone.
+// leave it out rather than flash a row for every tone. pw-play and paplay
+// take it as a property; canberra-gtk-play cannot be told one, and names
+// its node after itself -- see isToneStream.
 var NODE_NAME = "pshell.volume-tone";
+var CANBERRA_NODE = "canberra-gtk-play";
 
 // --------------------------------------------------------------- config
 
@@ -229,10 +232,23 @@ function playerArgv(player, file, sink) {
         var pa = ["paplay"];
         if (target !== "")
             pa.push("--device=" + target);
-        pa.push("--client-name=pshell", "--stream-name=Volume tone", file);
+        pa.push("--client-name=pshell", "--stream-name=Volume tone", "--property=node.name=" + NODE_NAME, file);
         return pa;
     }
     if (player === "canberra-gtk-play")
         return ["canberra-gtk-play", "-f", file, "-d", "Volume tone"];
     return [];
+}
+
+// Whether a Pipewire stream is the tone. pw-play and paplay carry
+// NODE_NAME. canberra-gtk-play names its node after itself and puts the
+// file in media.name, but Quickshell only has a node's properties once
+// something binds it -- the row the list would draw -- so the name is all
+// there is to go on. A canberra-gtk-play stream is taken for the tone only
+// while pshell is playing one with it, so someone else's sound at any other
+// moment stays listed.
+function isToneStream(nodeName, tonePlayer, tonePlaying) {
+    if (nodeName === NODE_NAME)
+        return true;
+    return !!tonePlaying && tonePlayer === CANBERRA_NODE && nodeName === CANBERRA_NODE;
 }
