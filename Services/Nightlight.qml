@@ -32,7 +32,9 @@ import "Nightlight.js" as Model
 // surprise. A schedule is the way to have it come back on its own. A reload
 // of the shell's QML counts as a start: Quickshell stops the old
 // generation's processes, hyprsunset with them, and nothing carries the
-// state across for the new one to start it again.
+// state across for the new one to start it again. The one exception is a
+// hyprsunset somebody else started that is still warming the screen: that
+// is read at start (see `seeder`) so the shell does not say off over it.
 Singleton {
     id: root
 
@@ -78,8 +80,12 @@ Singleton {
                 return "";
             return root.probed ? root.missingError : "error: still looking for hyprsunset, try again in a moment";
         }
-        if (root.active === want)
-            return "";
+        // Never cut short, even when `active` already agrees. pshell's idea
+        // of the state can be wrong -- an external hyprsunset left warm by
+        // something else, or one that went away unnoticed -- and the cost of
+        // asking again is one hyprctl. Off in particular has to mean the
+        // screen is back to normal, not that pshell thought it already was.
+        root._userTouched = true;
         root.active = want;
         root._apply();
         return "";
@@ -159,9 +165,10 @@ Singleton {
         property string mode: ""
 
         onExited: code => {
-            if (applier.mode === "set" && code !== 0 && root.active && !child.running)
+            const next = Model.afterApply(applier.mode, code, root.active, child.running);
+            if (next === "start")
                 root._startChild();
-            else if (applier.mode === "release" && !root.active)
+            else if (next === "stop")
                 root._stopChild();
 
             if (root._dirty) {
@@ -182,6 +189,7 @@ Singleton {
         child.command = ["setpriv", "--pdeathsig", "TERM", "hyprsunset", "-t", String(root.temperature)];
         child.stopping = false;
         child.checked = false;
+        child.checks = 0;
         child.running = true;
     }
 
@@ -196,8 +204,10 @@ Singleton {
         // Set when pshell asked it to go, so its exit is not mistaken for
         // a crash.
         property bool stopping: false
-        // Whether this hyprsunset has been read back once since it started.
+        // Whether this hyprsunset has been read back once since it started,
+        // and how many times that has been tried.
         property bool checked: false
+        property int checks: 0
         property real startedAt: 0
 
         onStarted: {
@@ -209,16 +219,24 @@ Singleton {
         // refused by Hyprland, never started for want of setpriv -- is not
         // something another try a second later would fix, so the nightlight
         // says it is off, which is now true, and the shell says why once.
+        //
+        // One it was asked to stop can still have been wanted back: `running`
+        // stays true until the process has actually gone, so an off and an
+        // on inside that moment send the temperature to a hyprsunset that is
+        // already on its way out, and see no need to start another. Sent
+        // again now it has gone, which finds nothing and starts a fresh one.
         onExited: code => {
             settle.stop();
-            if (child.stopping) {
-                child.stopping = false;
+            const next = Model.afterChildExit(child.stopping, root.active);
+            child.stopping = false;
+            if (next === "reapply") {
+                root._apply();
                 return;
             }
-            if (!root.active)
+            if (next !== "lost")
                 return;
             if (Date.now() - child.startedAt < 2000)
-                console.warn("pshell: hyprsunset exited with", code, "as soon as it started, so the nightlight is off. It needs Hyprland, and setpriv from util-linux.");
+                console.warn("pshell: hyprsunset exited with", code, "as soon as it started, so the nightlight is off. It needs Hyprland and setpriv from util-linux, or another hyprsunset is already running (one still starting, or on a socket hyprctl cannot see).");
             else
                 console.warn("pshell: hyprsunset exited with", code, "so the nightlight is off.");
             root.reported = null;
@@ -227,7 +245,8 @@ Singleton {
     }
 
     // A hyprsunset that has just started cannot be asked anything until its
-    // socket is up, so the first read-back waits a moment.
+    // socket is up, so the first read-back waits a moment -- and tries again,
+    // a few times, if the socket was not up yet after all.
     Timer {
         id: settle
 
@@ -250,8 +269,18 @@ Singleton {
         onExited: code => {
             root.reported = code === 0 ? Model.parseTemperature(readerOut.text) : null;
             if (child.running && !child.checked) {
+                // Only a read that worked counts as the check: one that ran
+                // before the socket was up says nothing about what the
+                // child is doing, and a temperature changed in that moment
+                // would otherwise never be sent again.
+                if (root.reported === null) {
+                    child.checks += 1;
+                    if (child.checks < 5)
+                        settle.restart();
+                    return;
+                }
                 child.checked = true;
-                if (root.active && root.reported !== null && root.reported !== root.temperature)
+                if (root.active && root.reported !== root.temperature)
                     root._apply();
             }
         }
@@ -275,6 +304,43 @@ Singleton {
         onExited: code => {
             root.available = code === 0;
             root.probed = true;
+            if (root.available) {
+                root._userTouched = false;
+                seeder.running = true;
+            } else {
+                root._followSchedule(true);
+            }
+        }
+    }
+
+    // What a hyprsunset already running says it is doing, read once it is
+    // known to be installed. pshell's own children die with the shell, so
+    // anything that answers here is somebody else's -- or one a previous
+    // pshell asked to warm the screen, which keeps doing so across a
+    // restart. Without this the shell would start up saying off over an
+    // orange screen, and the first click would turn it "on".
+    //
+    // Both questions in one sh, so the answer is one exit to wait for. The
+    // schedule waits for it too: its first say should be about the screen
+    // as it is.
+    property bool _userTouched: false
+
+    Process {
+        id: seeder
+
+        command: ["sh", "-c", "hyprctl hyprsunset identity get 2>/dev/null; echo; hyprctl hyprsunset temperature 2>/dev/null"]
+        stdout: StdioCollector {
+            id: seederOut
+        }
+        onExited: {
+            // A click or a script that got in first knows better than this.
+            if (!root._userTouched) {
+                const lines = seederOut.text.split("\n");
+                const identity = lines[0] || "";
+                const temperature = lines.slice(1).join("\n");
+                root.active = Model.seededActive(identity, temperature);
+                root.reported = root.active ? Model.parseTemperature(temperature) : null;
+            }
             root._followSchedule(true);
         }
     }

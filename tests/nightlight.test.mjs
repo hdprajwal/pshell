@@ -149,3 +149,65 @@ test("statusLine mentions a schedule only when there is one", () => {
   assert.equal(N.statusLine({ ...base, start: "20:00", end: "07:00" }), "off, schedule 20:00-07:00");
   assert.equal(N.statusLine({ ...base, start: "20:00", end: "nope" }), "off");
 });
+
+// ------------------------------------------------------ state transitions
+
+test("seededActive: a running hyprsunset below 6000K with identity off is on", () => {
+  assert.equal(N.seededActive("false", "4000"), true);
+  assert.equal(N.seededActive("false\n", "\n3500\n"), true);
+});
+
+test("seededActive: identity on, 6000K or above, or nothing answering is off", () => {
+  assert.equal(N.seededActive("true", "4000"), false);
+  assert.equal(N.seededActive("false", "6000"), false);
+  assert.equal(N.seededActive("false", "6500"), false);
+  assert.equal(N.seededActive("", ""), false);
+  assert.equal(N.seededActive("Couldn't connect to /run/user/1000/hypr/x/.hyprsunset.sock. (3)", ""), false);
+  assert.equal(N.seededActive(undefined, null), false);
+});
+
+test("afterApply: a failed set with nothing of ours running starts one", () => {
+  assert.equal(N.afterApply("set", 1, true, false), "start");
+});
+
+test("afterApply: a failed set while our child is still up starts no second one", () => {
+  assert.equal(N.afterApply("set", 1, true, true), "none");
+});
+
+test("afterApply: a set that worked, or one no longer wanted, starts nothing", () => {
+  assert.equal(N.afterApply("set", 0, true, false), "none");
+  assert.equal(N.afterApply("set", 1, false, false), "none");
+});
+
+test("afterApply: a release stops the child only if still off", () => {
+  assert.equal(N.afterApply("release", 0, false, true), "stop");
+  assert.equal(N.afterApply("release", 0, true, true), "none");
+});
+
+test("afterApply: an identity sent to someone else's hyprsunset stops nothing", () => {
+  assert.equal(N.afterApply("identity", 0, false, false), "none");
+});
+
+// The review's off-then-on race: the release has stopped the child, an on
+// arrives while it is still exiting, its `temperature` goes to the dying
+// process (and either "works" or fails with the child still counted as
+// running), and nothing is started. The child's own exit has to send it
+// again.
+test("off then on while our hyprsunset is still exiting ends with it started again", () => {
+  // The on's set, sent while the dying child still counts as running.
+  assert.equal(N.afterApply("set", 0, true, true), "none");
+  assert.equal(N.afterApply("set", 1, true, true), "none");
+  // Then the child goes: it was asked to, but the nightlight is wanted on.
+  assert.equal(N.afterChildExit(true, true), "reapply");
+  // And the reapplied set finds nothing, so a new child starts.
+  assert.equal(N.afterApply("set", 1, true, false), "start");
+});
+
+test("afterChildExit: a child asked to go while off is simply gone", () => {
+  assert.equal(N.afterChildExit(true, false), "none");
+});
+
+test("afterChildExit: a child that went on its own while wanted is lost", () => {
+  assert.equal(N.afterChildExit(false, true), "lost");
+  assert.equal(N.afterChildExit(false, false), "none");
+});

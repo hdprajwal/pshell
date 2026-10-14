@@ -350,7 +350,7 @@ single run.
 | `microphone` | Mute state for the default input. Left click mutes, scroll changes the level, right click runs `onRightClick`. `showVolume` puts the percentage in the bar. |
 | `privacy` | A red dot while something is using the microphone or the camera. Click it to see what. Hidden when nothing is. `showCamera`, `interval`. |
 | `idleInhibitor` | Keeps the screen awake while it is on. Off after every restart. |
-| `nightlight` | Warms the screen through hyprsunset. Click to turn it on or off. Off after every restart unless a schedule says otherwise. The temperature and schedule are configured under `nightlight` rather than on the widget. Hides itself where `hyprsunset` is not installed. See [Nightlight](#nightlight). |
+| `nightlight` | Warms the screen through hyprsunset. Click to turn it on or off. Off after every restart unless a schedule, or a hyprsunset already warming the screen, says otherwise. The temperature and schedule are configured under `nightlight` rather than on the widget. Hides itself where `hyprsunset` is not installed. See [Nightlight](#nightlight). |
 | `tailscale` | Tailnet state and the machines on it. Left click opens the panel to connect, disconnect and pick an exit node. `interval`, `showName`, `maxNodes`. |
 | `tray` | System tray. Left click activates, middle click is the secondary action, scroll passes through, right click opens the menu. `hide` takes a comma-separated list of ids to leave out, `iconScale`, `iconSize` and `spacing` tune the layout. |
 | `battery` | Charge and time remaining, plus a power profile picker. Left click opens the panel, right click toggles the percentage label. `lowThreshold` sets when it turns red, default 20. |
@@ -606,7 +606,9 @@ Whether it is on is not saved. It is off after every restart, and after a
 reload of the shell's QML, for the idle inhibitor's reason: a screen that
 comes up orange because of something you pressed last week is a bad surprise.
 A schedule is how to have it come back on its own: at start the shell turns
-the nightlight on if the schedule says it is night.
+the nightlight on if the schedule says it is night. The exception is a
+hyprsunset started outside pshell that is still warming the screen when the
+shell starts: pshell asks it, and shows the nightlight as on.
 
 ### Who runs hyprsunset
 
