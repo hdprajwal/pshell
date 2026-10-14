@@ -157,6 +157,10 @@ Singleton {
         return "";
     }
 
+    // Whether a tone is playing, or about to: the control centre hides a
+    // canberra-gtk-play stream only then.
+    readonly property bool playing: tone.busy
+
     function _startNext() {
         if (tone.next.length === 0)
             return;
