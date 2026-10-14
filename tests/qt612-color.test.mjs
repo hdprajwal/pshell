@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, symlinkSync, lstatSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, symlinkSync, lstatSync, readlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -94,8 +94,9 @@ import qs.Commons
 Item { Rectangle { color: Color.popups.background } }
 `;
 
-function sandbox() {
+function sandbox(t) {
     const root = mkdtempSync(join(tmpdir(), "pshell-widgets-"));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
     const home = join(root, "home");
     const cache = join(root, "cache");
     const widgets = join(home, ".config", "pshell", "widgets");
@@ -124,8 +125,8 @@ function run(box, ...args) {
     return { status: r.status, stderr: r.stderr, blocks };
 }
 
-test("with no version, widgets load from where they live and nothing is copied", () => {
-    const box = sandbox();
+test("with no version, widgets load from where they live and nothing is copied", t => {
+    const box = sandbox(t);
     addWidget(join(box.widgets, "w"), "a.w", { "BarWidget.qml": WIDGET });
 
     const r = run(box);
@@ -137,8 +138,8 @@ test("with no version, widgets load from where they live and nothing is copied",
     assert.equal(existsSync(join(box.cache, "pshell")), false);
 });
 
-test("with a version, a pinned copy is loaded and the widget is left as it was", () => {
-    const box = sandbox();
+test("with a version, a pinned copy is loaded and the widget is left as it was", t => {
+    const box = sandbox(t);
     const src = join(box.widgets, "w");
     const files = {
         "BarWidget.qml": WIDGET,
@@ -165,8 +166,8 @@ test("with a version, a pinned copy is loaded and the widget is left as it was",
         assert.equal(readFileSync(join(src, name), "utf8"), body, `${name} was modified in place`);
 });
 
-test("a widget symlinked in, or holding a symlinked file, is copied rather than edited through the link", () => {
-    const box = sandbox();
+test("a widget symlinked in, or holding a symlinked file, is copied rather than edited through the link", t => {
+    const box = sandbox(t);
     const checkout = join(box.root, "checkout");
     addWidget(checkout, "linked.w", { "BarWidget.qml": WIDGET });
     symlinkSync(checkout, join(box.widgets, "linked"));
@@ -187,8 +188,8 @@ test("a widget symlinked in, or holding a symlinked file, is copied rather than 
     assert.equal(readFileSync(shared, "utf8"), WIDGET);
 });
 
-test("a widget removed since the last start leaves no copy behind", () => {
-    const box = sandbox();
+test("a widget removed since the last start leaves no copy behind", t => {
+    const box = sandbox(t);
     addWidget(join(box.widgets, "gone"), "gone.w", { "BarWidget.qml": WIDGET });
     run(box, "6.11");
     const stage = join(box.cache, "pshell", "widgets");
@@ -201,8 +202,8 @@ test("a widget removed since the last start leaves no copy behind", () => {
     assert.deepEqual(readdirSync(stage), ["kept"]);
 });
 
-test("anything but a dotted version is refused before the cache is touched", () => {
-    const box = sandbox();
+test("anything but a dotted version is refused before the cache is touched", t => {
+    const box = sandbox(t);
     addWidget(join(box.widgets, "w"), "a.w", { "BarWidget.qml": WIDGET });
     for (const bad of ["6.11/e", "x", ".6", "6.", "6.11 ; rm"]) {
         const r = run(box, bad);
@@ -210,4 +211,102 @@ test("anything but a dotted version is refused before the cache is touched", () 
         assert.equal(r.blocks.length, 0, bad);
     }
     assert.equal(existsSync(join(box.cache, "pshell")), false);
+});
+
+test("a bare import with a trailing comment is pinned too, and the comment kept", t => {
+    const box = sandbox(t);
+    addWidget(join(box.widgets, "w"), "a.w", {
+        "BarWidget.qml": "import QtQuick // for Item\nimport QtQuick.Layouts\nItem {}\n",
+        "Block.qml": "import QtQuick; /* why */\r\nItem {}\r\n",
+        "Versioned.qml": "import QtQuick 2.15 // old\nItem {}\n"
+    });
+
+    const r = run(box, "6.11");
+    assert.equal(r.status, 0, r.stderr);
+    const copy = join(box.cache, "pshell", "widgets", "w");
+    assert.equal(readFileSync(join(copy, "BarWidget.qml"), "utf8"), "import QtQuick 6.11 // for Item\nimport QtQuick.Layouts\nItem {}\n");
+    assert.equal(readFileSync(join(copy, "Block.qml"), "utf8"), "import QtQuick 6.11 /* why */\r\nItem {}\r\n");
+    assert.equal(readFileSync(join(copy, "Versioned.qml"), "utf8"), "import QtQuick 2.15 // old\nItem {}\n");
+});
+
+test("links are copied as links: a cycle, a dangling one and one out of the widget cost nothing", t => {
+    const box = sandbox(t);
+    const src = join(box.widgets, "w");
+    addWidget(src, "a.w", {
+        "BarWidget.qml": WIDGET,
+        "assets/icon.svg": "<svg/>",
+        "inner/Real.qml": WIDGET,
+        ".git/HEAD": "ref: refs/heads/main\n",
+        "node_modules/x/index.js": "module.exports = 1;\n"
+    });
+    const outside = join(box.root, "outside");
+    mkdirSync(outside);
+    writeFileSync(join(outside, "big.bin"), "x".repeat(1 << 16));
+    writeFileSync(join(outside, "Shared.qml"), WIDGET);
+
+    symlinkSync("..", join(src, "up"));
+    symlinkSync("missing.svg", join(src, "assets", "gone.svg"));
+    symlinkSync(outside, join(src, "ext"));
+    symlinkSync(relative(join(src, "assets"), join(outside, "big.bin")), join(src, "assets", "big.bin"));
+    symlinkSync("inner/Real.qml", join(src, "Inner.qml"));
+    symlinkSync(relative(src, join(outside, "Shared.qml")), join(src, "Shared.qml"));
+    symlinkSync("inner", join(src, "alias"));
+
+    const r = run(box, "6.11");
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stderr, "");
+    const copy = join(box.cache, "pshell", "widgets", "w");
+    assert.equal(r.blocks[0].load, copy);
+
+    // Not followed: the cycle, the directory outside, and the dangling link
+    // all arrive as links, the last two still pointing where they did.
+    assert.ok(lstatSync(join(copy, "up")).isSymbolicLink());
+    assert.equal(readlinkSync(join(copy, "up")), box.widgets);
+    assert.equal(readlinkSync(join(copy, "ext")), outside);
+    assert.equal(readlinkSync(join(copy, "assets", "big.bin")), join(outside, "big.bin"));
+    assert.equal(readFileSync(join(copy, "assets", "big.bin"), "utf8").length, 1 << 16);
+    assert.equal(readlinkSync(join(copy, "assets", "gone.svg")), "missing.svg");
+    assert.equal(readlinkSync(join(copy, "alias")), "inner");
+
+    // QML behind a link is copied in and pinned.
+    for (const name of ["Inner.qml", "Shared.qml", "inner/Real.qml", "alias/Real.qml"]) {
+        assert.equal(lstatSync(join(copy, name)).isSymbolicLink(), false, name);
+        assert.match(readFileSync(join(copy, name), "utf8"), /^import QtQuick 6\.11$/m, name);
+    }
+
+    assert.equal(existsSync(join(copy, ".git")), false);
+    assert.equal(existsSync(join(copy, "node_modules")), false);
+    assert.equal(readFileSync(join(outside, "Shared.qml"), "utf8"), WIDGET);
+    assert.equal(readFileSync(join(src, "inner", "Real.qml"), "utf8"), WIDGET);
+});
+
+test("a file that cannot be read is skipped with a warning, and the rest is still pinned", t => {
+    if (process.getuid && process.getuid() === 0)
+        return t.skip("root reads everything");
+    const box = sandbox(t);
+    const src = join(box.widgets, "w");
+    addWidget(src, "a.w", { "BarWidget.qml": WIDGET, "secret.txt": "x" });
+    spawnSync("chmod", ["000", join(src, "secret.txt")]);
+    t.after(() => spawnSync("chmod", ["644", join(src, "secret.txt")]));
+
+    const r = run(box, "6.11");
+    assert.equal(r.status, 0);
+    assert.match(r.stderr, /secret\.txt/);
+    const copy = join(box.cache, "pshell", "widgets", "w");
+    assert.equal(r.blocks[0].load, copy);
+    assert.match(readFileSync(join(copy, "BarWidget.qml"), "utf8"), /^import QtQuick 6\.11$/m);
+});
+
+test("the stage is swapped in whole, and a dead scan's leftovers are cleared", t => {
+    const box = sandbox(t);
+    addWidget(join(box.widgets, "w"), "a.w", { "BarWidget.qml": WIDGET });
+    const parent = join(box.cache, "pshell");
+    // A pid that cannot be running: above the kernel's pid_max ceiling.
+    mkdirSync(join(parent, "widgets.new.99999999"), { recursive: true });
+    mkdirSync(join(parent, "widgets.new." + process.pid));
+
+    assert.equal(run(box, "6.11").status, 0);
+    assert.equal(run(box, "6.11").status, 0);
+    assert.deepEqual(readdirSync(parent).sort(), ["widgets", "widgets.new." + process.pid]);
+    assert.deepEqual(readdirSync(join(parent, "widgets")), ["w"]);
 });

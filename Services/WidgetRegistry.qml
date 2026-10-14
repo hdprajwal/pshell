@@ -144,5 +144,15 @@ Singleton {
                 root.scanned();
             }
         }
+
+        // widgets.sh warns here when it cannot stage a widget, or a file in
+        // one, and loads it unpinned or without that file.
+        stderr: StdioCollector {
+            onStreamFinished: {
+                const message = String(text || "").trim();
+                if (message !== "")
+                    console.warn("pshell:", message);
+            }
+        }
     }
 }
