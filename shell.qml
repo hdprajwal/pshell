@@ -145,6 +145,16 @@ ShellRoot {
     // that the command is always answered and the answer is a sentence.
     readonly property var keybinds: Keybinds
 
+    // And the clipboard history, for a reason none of the others have: it
+    // is not only a door but a recorder. The wl-paste watchers live in the
+    // singleton, so until something touched it no copy was being kept, and
+    // the first `pshell clipboard` of a session would open on an empty
+    // history and only start recording from then.
+    //
+    // Costs two idle wl-paste processes. The panel itself is behind a
+    // LazyLoader that stays inactive until something opens it.
+    readonly property var clipboard: Clipboard
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per

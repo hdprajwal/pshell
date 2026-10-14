@@ -286,6 +286,27 @@ Singleton {
         readonly property var labels: raw.labels && typeof raw.labels === "object" ? raw.labels : ({})
     }
 
+    // The clipboard history's one knob, under one `clipboard` object --
+    // grouped for the reason `lock` gives above, and with the same shape, so
+    // a hand-typed string where the number belongs falls back to the default
+    // rather than to a cap of NaN.
+    readonly property QtObject clipboard: QtObject {
+        readonly property var raw: root.data.clipboard && typeof root.data.clipboard === "object" ? root.data.clipboard : ({})
+
+        function _num(key, fallback, lo, hi) {
+            const v = Number(raw[key]);
+            if (raw[key] === undefined || raw[key] === null || raw[key] === "" || !isFinite(v))
+                return fallback;
+            return Math.min(hi, Math.max(lo, Math.floor(v)));
+        }
+
+        // How many copies history remembers, newest first. Omarchy's 500 is
+        // the default. Zero is "off": no watchers run, nothing is recorded,
+        // and whatever history was kept is forgotten -- the same thing
+        // lowering it does to the copies past the new cap.
+        readonly property int historySize: _num("historySize", 500, 0, 5000)
+    }
+
     // Three separate distances, which used to be one:
     //   gap     - between two widgets in a section
     //   padding - between the bar's own edge and the first or last widget
