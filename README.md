@@ -904,8 +904,10 @@ prototype for an [Omarchy request](https://github.com/omacom/omarchy/discussions
 
 It is on by default. It answers every change to the default output's volume,
 whoever made it: the volume keys through swayosd, the control centre's slider
-or scroll, `pshell audio`, pavucontrol, an app. A drag or a held key is one
-tone at the end, at the level you landed on. It stays silent:
+or scroll, `pshell audio`, pavucontrol, an app. A drag is one tone at the end,
+at the level you landed on. A held key sounds after its first step and again
+where it stops, because the key waits longer before it repeats than the tone
+waits; a `delay` above about 650 ms merges the two. It stays silent:
 
 - at start, when an output first appears, and when the default switches to
   another device -- a change made within a second of a switch is silent too,
