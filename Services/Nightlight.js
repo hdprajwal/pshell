@@ -120,3 +120,53 @@ function statusLine(state) {
         parts.push("schedule " + String(state.start).trim() + "-" + String(state.end).trim());
     return parts.join(", ");
 }
+
+// ------------------------------------------------- who does what, and when
+//
+// The decisions Services/Nightlight.qml makes when one of its processes
+// exits, pulled out so the awkward orderings -- off and on again while a
+// hyprsunset is still dying -- can be tested here rather than by clicking.
+
+// Whether a hyprsunset found already running when the shell starts is
+// warming the screen. `identity get` answers "true" or "false"; the
+// temperature has to be a real number below MAX_TEMPERATURE as well, since
+// hyprsunset's own default of 6000K with identity off is a screen nobody
+// would call warm. Anything else -- including hyprctl's "Couldn't connect"
+// when nothing is running -- is off.
+function seededActive(identityText, temperatureText) {
+    var identity = String(identityText === undefined || identityText === null ? "" : identityText).trim();
+    if (identity !== "false")
+        return false;
+    var kelvin = parseTemperature(temperatureText);
+    return kelvin !== null && kelvin < MAX_TEMPERATURE;
+}
+
+// What to do when a `hyprctl hyprsunset ...` sent by the service exits.
+//   mode         - "set" (temperature N), "release" (identity, with our own
+//                  child to stop after) or "identity" (identity, nothing of
+//                  ours running)
+//   code         - hyprctl's exit code
+//   active       - whether pshell wants the screen warm *now*, which may
+//                  have changed while hyprctl ran
+//   childRunning - whether our own hyprsunset is still running
+// Answers "start" (spawn our own hyprsunset), "stop" (stop it) or "none".
+function afterApply(mode, code, active, childRunning) {
+    if (mode === "set" && code !== 0 && active && !childRunning)
+        return "start";
+    if (mode === "release" && !active)
+        return "stop";
+    return "none";
+}
+
+// What to do when our own hyprsunset exits.
+//   stopping - pshell asked it to go
+//   active   - whether pshell wants the screen warm now
+// Answers "reapply" (it was asked to go, but the nightlight was turned back
+// on while it was going: whatever was sent to it went with it, so send it
+// again), "lost" (it went on its own while wanted: the nightlight is off)
+// or "none".
+function afterChildExit(stopping, active) {
+    if (stopping)
+        return active ? "reapply" : "none";
+    return active ? "lost" : "none";
+}
