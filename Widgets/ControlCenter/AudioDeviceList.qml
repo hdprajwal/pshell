@@ -5,6 +5,7 @@ import qs.Services
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
+import "../../Services/VolumeTone.js" as ToneModel
 
 // Output or input device picker. `input` switches which list is shown.
 //
@@ -39,8 +40,8 @@ Column {
 
     // Application streams, so you can see what is actually making noise.
     // Not pshell's own volume tone, which would flash a row after every
-    // change made with this list open.
-    readonly property var streams: Pipewire.nodes.values.filter(n => n.isStream && n.isSink === !root.input && n.audio && n.name !== "pshell.volume-tone")
+    // change made with this list open, whichever player plays it.
+    readonly property var streams: Pipewire.nodes.values.filter(n => n.isStream && n.isSink === !root.input && n.audio && !ToneModel.isToneStream(n.name, VolumeTone.player, VolumeTone.playing))
 
     spacing: 8
 
