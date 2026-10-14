@@ -13,7 +13,22 @@ Singleton {
 
     readonly property string widgetsDir: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/pshell/widgets"
 
+    // Qt 6.12's QtQuick exports a `Color` singleton, and in a file importing
+    // QtQuick without a version it shadows qs.Commons' palette, so a widget
+    // written for Omarchy reads `Color.popups` as undefined. pshell's own QML
+    // says `Commons.Color`; a widget on disk is someone else's to edit. So,
+    // like Omarchy's shell, load widgets with their bare `import QtQuick`
+    // pinned to 6.11, the last version without the singleton. The pin goes
+    // into a copy under ~/.cache/pshell/widgets, never the widget's own files.
+    //
+    // This file imports no qs.Commons, so the only `Color` it can see is
+    // QtQuick's. Asking for it rather than for a Qt version means an older Qt,
+    // where `import QtQuick 6.11` might not exist, loads widgets as before.
+    readonly property bool pinQtQuick: typeof Color !== "undefined"
+
     // id -> { id, dir, entry, manifest, defaultSection, defaults, allowMultiple }
+    // `dir` is where the widget lives; `entry` is the file to load, inside
+    // the pinned copy when pinQtQuick is set.
     property var widgets: ({})
     property var errors: []
 
@@ -56,7 +71,7 @@ Singleton {
 
     Process {
         id: scanner
-        command: ["sh", "-c", 'dir="$HOME/.config/pshell/widgets"; [ -d "$dir" ] || exit 0; for f in "$dir"/*/manifest.json; do [ -f "$f" ] || continue; echo "===PSHELL==="; dirname "$f"; cat "$f"; done']
+        command: ["sh", Quickshell.shellDir + "/Services/widgets.sh", root.pinQtQuick ? "6.11" : ""]
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -69,11 +84,15 @@ Singleton {
                     if (block === "")
                         continue;
 
+                    // The widget's directory, the one to load it from, then
+                    // the manifest; see Services/widgets.sh.
                     const cut = block.indexOf("\n");
-                    if (cut < 0)
+                    const cut2 = cut < 0 ? -1 : block.indexOf("\n", cut + 1);
+                    if (cut2 < 0)
                         continue;
                     const dir = block.substring(0, cut).trim();
-                    const raw = block.substring(cut + 1);
+                    const loadDir = block.substring(cut + 1, cut2).trim();
+                    const raw = block.substring(cut2 + 1);
 
                     var manifest;
                     try {
@@ -105,7 +124,7 @@ Singleton {
                     found[id] = {
                         id: id,
                         dir: dir,
-                        entry: "file://" + dir + "/" + entryFile,
+                        entry: "file://" + loadDir + "/" + entryFile,
                         manifest: manifest,
                         defaultSection: bw.defaultSection || "center",
                         defaults: bw.defaults || {},
