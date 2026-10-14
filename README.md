@@ -1057,10 +1057,19 @@ children, and the kernel takes them down with it however it exits.
 
 Type to filter. Arrows, Page Up/Down and Home/End move. **Enter** pastes the
 entry into the window you came from, **Shift+Enter** copies it without
-pasting, **Delete** forgets it, **Shift+Delete** forgets everything after
-asking, and **Escape** clears the filter, then closes. Images show as
-thumbnails with a larger preview of the selected one, and files copied from a
-file manager show by name.
+pasting, **Ctrl+P** pins or unpins it, **Delete** forgets it,
+**Shift+Delete** forgets everything but the pins after asking, and **Escape**
+clears the filter, then closes. Images show as thumbnails with a larger
+preview of the selected one, and files copied from a file manager show by
+name.
+
+Pinned entries stay until you forget them. They are listed first, with a pin
+beside them, and searched like the rest. The cap never counts them, so no
+amount of copying pushes one out, and copying a pinned entry again leaves it
+pinned and where it was instead of adding it twice. Images can be pinned too,
+and their file stays as long as the pin does. Delete on a pinned entry asks
+before forgetting it; unpinning puts it back at the top of the rolling
+history, where it ages out like any other copy.
 
 Pasting puts the entry back on the clipboard and sends Shift+Insert, which
 every app reads as paste. It sets the primary selection too, because kitty,
@@ -1082,22 +1091,24 @@ and images are kept beside it in `images/`, stored once each under their
 sha256. The `clipboard` directory is made `0700` and its files `0600`, so on
 a home other users can read, they still cannot read your copies. Copying
 something already in the history moves it to the top instead of adding it
-twice. Forgetting an entry deletes its image file.
+twice. Forgetting an entry deletes its image file. A pinned entry is saved
+with `"pinned": true`; a history from before pins existed loads as it is.
 
-Forgetting the newest entry, or clearing the lot, also empties the clipboard
-itself. The copy is still sitting there otherwise, and the shell records
+Forgetting the newest copy, pinned or not, or clearing the lot, also empties
+the clipboard itself. The copy is still sitting there otherwise, and the shell records
 whatever is on the clipboard each time it starts or reloads — a password you
 just deleted would come straight back.
 
 ```jsonc
 "clipboard": {
-  "historySize": 500     // how many copies to keep; 0 turns recording off
+  "historySize": 500     // how many unpinned copies to keep; 0 turns recording off
 }
 ```
 
 Lowering `historySize` forgets the oldest copies past the new cap straight
 away, or at the next start if the shell was not running. Zero stops the
-watchers and forgets everything.
+watchers and forgets every copy that is not pinned. Pins stay, because each
+was kept on purpose; `pshell clipboard clearAll` forgets them too.
 
 You need `wl-clipboard` and `wtype`, plus `perl` (it decodes the UTF-16 some
 apps copy) and `setpriv` from util-linux, which most installs already have.
@@ -1105,11 +1116,20 @@ apps copy) and `setpriv` from util-linux, which most installs already have.
 Every part of it answers over IPC, panel or no panel:
 
     pshell clipboard toggle          # also open / close
-    pshell clipboard count           # how many copies are kept
-    pshell clipboard history 20      # the newest twenty, numbered, one per line
+    pshell clipboard count           # how many copies are kept, pins included
+    pshell clipboard history 20      # the first twenty, numbered, one per line
     pshell clipboard copy 3          # put number 3 back on the clipboard
-    pshell clipboard remove 3        # forget number 3
-    pshell clipboard clear           # forget everything, without asking
+    pshell clipboard remove 3        # forget number 3, pinned or not
+    pshell clipboard pin 3           # pin number 3
+    pshell clipboard unpin 0         # unpin number 0
+    pshell clipboard pinned          # just the pinned ones, same numbers
+    pshell clipboard clear           # forget everything but the pins, without asking
+    pshell clipboard clearAll        # forget the pins too
+
+`history` lists the pinned entries first and then the rest, newest first, in
+the panel's order, and every command takes the numbers it prints. `pinned`
+prints the first lines of it, so its numbers are the same. Pinning, unpinning
+and forgetting move entries, so list again before using a number twice.
 
 `copy` only copies. From a script there is no telling which window would get
 a pasted keystroke, so pasting is the panel's job.
