@@ -38,7 +38,9 @@ Column {
     }
 
     // Application streams, so you can see what is actually making noise.
-    readonly property var streams: Pipewire.nodes.values.filter(n => n.isStream && n.isSink === !root.input && n.audio)
+    // Not pshell's own volume tone, which would flash a row after every
+    // change made with this list open.
+    readonly property var streams: Pipewire.nodes.values.filter(n => n.isStream && n.isSink === !root.input && n.audio && n.name !== "pshell.volume-tone")
 
     spacing: 8
 
