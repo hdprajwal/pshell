@@ -1351,6 +1351,9 @@ Everything lives under `lock` in `config.json`, and every key is optional:
     "dateFormat": "dddd, d MMMM",
     "showAvatar": true,
     "showStatus": true,
+    "showMedia": true,
+    "showPower": true,
+    "notifications": "count",
     "placeholder": "Enter Password",
     "pamService": "login"
   }
@@ -1365,7 +1368,10 @@ Everything lives under `lock` in `config.json`, and every key is optional:
 | `dim` | scrim over the image, 0 to 1 | `0.45` |
 | `showClock` | the time and date | `true` |
 | `showAvatar` | your picture and name | `true` |
-| `showStatus` | battery, network, layout | `true` |
+| `showStatus` | the status card: layout, media, weather, radios, battery | `true` |
+| `showMedia` | what is playing, with previous, play/pause and next | `true` |
+| `showPower` | suspend, restart and power off, bottom-left | `true` |
+| `notifications` | `count`, `apps` (sender names, never text) or `off` | `count` |
 | `pamService` | which `/etc/pam.d` stack to run | `login` |
 
 The wallpaper defaults to the bar's own, which is the file matugen already

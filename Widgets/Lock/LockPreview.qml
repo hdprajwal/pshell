@@ -36,12 +36,15 @@ FloatingWindow {
         preview: true
         authState: Lock.authState
         message: Lock.message
+        notice: Lock.notice
         attempts: Lock.attempts
         keyboardLayout: Lock.keyboardLayout
         capsLock: Lock.capsLock
 
         onSubmitted: password => Lock.submit(password)
         onEdited: Lock.clearMessage()
+        onPowerRequested: id => Lock.power(id)
+        onLayoutClicked: Lock.cycleLayout()
     }
 
     // The real lock has no such key, on purpose. This one does, because the

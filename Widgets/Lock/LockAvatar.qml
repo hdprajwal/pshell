@@ -3,6 +3,7 @@ import QtQuick.Effects
 import qs.Commons
 import qs.Commons as Commons
 import qs.Services
+import qs.Ui
 
 // The user's picture, drawn round.
 //
@@ -50,13 +51,31 @@ Item {
         visible: face.status === Image.Ready
     }
 
+    // No picture, or one that failed to load: DMS's fallback, a person on
+    // the same filled card the field beside it uses. Leaving the slot empty
+    // would pull the field off centre by however wide a face would have been.
+    Rectangle {
+        anchors.fill: parent
+        radius: width / 2
+        visible: face.status !== Image.Ready
+        color: Commons.Color.lock.background
+
+        MaterialIcon {
+            anchors.centerIn: parent
+            name: Glyphs.person
+            filled: true
+            size: root.diameter * 0.55
+            color: Commons.Color.lock.placeholder
+        }
+    }
+
     // A hairline ring, so a dark photograph does not dissolve into a dark
-    // wallpaper and leave the name below it floating.
+    // wallpaper.
     Rectangle {
         anchors.fill: parent
         radius: width / 2
         color: "transparent"
         border.width: Style.spacing.hairline
-        border.color: Commons.Color.lock.border
+        border.color: Util.alpha(Commons.Color.lock.text, 0.35)
     }
 }

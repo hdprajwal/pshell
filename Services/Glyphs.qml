@@ -274,6 +274,24 @@ Singleton {
     // and a row that tracked the sky would look like a broken reading.
     readonly property string weather: "partly_cloudy_day"
 
+    // --------------------------------------------------------- lockscreen
+    //
+    // DMS's lock symbols, so the arrangement borrowed from it reads the same.
+    // The transport keys are Material's media set rather than `previous` and
+    // `next` above, which are the wallpaper pager's chevrons: a chevron says
+    // "another page", a bar-and-triangle says "another track".
+    readonly property string play: "play_arrow"
+    readonly property string pause: "pause"
+    readonly property string skipPrevious: "skip_previous"
+    readonly property string skipNext: "skip_next"
+    readonly property string music: "music_note"
+    // The password field's reveal toggle and its submit key.
+    readonly property string reveal: "visibility"
+    readonly property string conceal: "visibility_off"
+    readonly property string submit: "keyboard_return"
+    // Where a face would be, for an account without one.
+    readonly property string person: "person"
+
     // The system monitor's pills, DMS's picks: a chip for the CPU, a board
     // for memory, so the two do not wear the same symbol.
     readonly property string cpu: "memory"

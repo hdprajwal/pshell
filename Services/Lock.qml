@@ -49,8 +49,21 @@ Singleton {
     property string message: ""
     property int attempts: 0
 
-    property bool capsLock: false
+    // Caps Lock from the shared LED reader where the keyboard has a light,
+    // which follows the key within a third of a second, and from Hyprland's
+    // own answer below where it has none. The bar's indicator and this
+    // warning then agree whenever they can both see the key.
+    readonly property bool capsLock: CapsLock.available ? CapsLock.on : root._hyprCapsLock
+    property bool _hyprCapsLock: false
+
+    // The active layout's short code, and empty with only one layout
+    // configured -- DMS's rule. A layout you cannot switch away from cannot
+    // be the reason a password failed, so naming it is noise.
     property string keyboardLayout: ""
+
+    // A message that is not a failure: what the preview says when a power
+    // button is pressed. Cleared by typing, like a failure's.
+    property string notice: ""
 
     // Held only between submit and PAM asking for it, and cleared the
     // instant it is handed over.
@@ -132,10 +145,33 @@ Singleton {
     // Called on every keystroke. The failure colour and text stay until the
     // user starts typing over them, then go together.
     function clearMessage() {
+        root.notice = "";
         if (root.authState === "failed") {
             root.authState = "idle";
             root.message = "";
         }
+    }
+
+    // The lockscreen's power buttons land here rather than on PowerMenu
+    // directly, for the reason submit() stubs PAM: the preview draws the same
+    // buttons, and a preview that could really power the machine off is a
+    // preview nobody can safely click around in. Confirmation has already
+    // happened on screen by the time this is called.
+    function power(id) {
+        if (root.previewing) {
+            const action = PowerMenu.actionFor(id);
+            root.notice = "Preview - " + (action ? action.label : id) + " is not run";
+            return;
+        }
+        PowerMenu.invoke(id, "");
+    }
+
+    // DMS cycles the layout from its status row, and so does this: with two
+    // layouts configured, the wrong one is the likeliest reason a password
+    // that is right keeps failing. The poll picks the new code up within a
+    // second.
+    function cycleLayout() {
+        Quickshell.execDetached(["hyprctl", "switchxkblayout", "current", "next"]);
     }
 
     function _reset() {
@@ -145,6 +181,7 @@ Singleton {
 
         root.authState = "idle";
         root.message = "";
+        root.notice = "";
         root.attempts = 0;
         root._pending = "";
     }
@@ -316,7 +353,7 @@ Singleton {
 
                 const list = parsed && parsed.keyboards ? parsed.keyboards : [];
                 let caps = false;
-                let layout = "";
+                let keyboard = null;
 
                 for (var i = 0; i < list.length; i++) {
                     // Any keyboard, because the one being typed on is not
@@ -324,12 +361,17 @@ Singleton {
                     // external keyboard on a laptop is the common case.
                     if (list[i].capsLock)
                         caps = true;
-                    if (layout === "" || list[i].main)
-                        layout = String(list[i].layout || "");
+                    if (keyboard === null || list[i].main)
+                        keyboard = list[i];
                 }
 
-                root.capsLock = caps;
-                root.keyboardLayout = layout;
+                root._hyprCapsLock = caps;
+
+                // `layout` is the configured list, "us,de"; the index says
+                // which of them is live.
+                const layouts = keyboard ? String(keyboard.layout || "").split(",").filter(l => l !== "") : [];
+                const active = keyboard ? Number(keyboard.active_layout_index) || 0 : 0;
+                root.keyboardLayout = layouts.length > 1 ? String(layouts[Math.min(active, layouts.length - 1)]).toUpperCase() : "";
             }
         }
     }

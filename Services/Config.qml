@@ -124,6 +124,18 @@ Singleton {
         readonly property bool showAvatar: _bool("showAvatar", true)
         readonly property bool showStatus: _bool("showStatus", true)
         readonly property string placeholder: _str("placeholder", "Enter Password")
+
+        // What the status row and the corners carry beyond the essentials.
+        // On by default because DMS has them on, and switchable because
+        // each one hands something to whoever is at the keyboard: transport
+        // keys for your music, the names of the apps that wrote to you, and
+        // a power button that works without a password.
+        readonly property bool showMedia: _bool("showMedia", true)
+        readonly property bool showPower: _bool("showPower", true)
+        // "count" is DMS's default pill, "apps" names the senders, "off"
+        // draws nothing. Never the text of a notification: a lockscreen
+        // that reads your messages out to the room is not locked.
+        readonly property string notifications: ["count", "apps", "off"].indexOf(raw.notifications) >= 0 ? raw.notifications : "count"
     }
 
     // Everything the notification server reads, under one `notifications`

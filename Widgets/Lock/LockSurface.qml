@@ -25,12 +25,15 @@ WlSessionLockSurface {
 
         authState: Lock.authState
         message: Lock.message
+        notice: Lock.notice
         attempts: Lock.attempts
         keyboardLayout: Lock.keyboardLayout
         capsLock: Lock.capsLock
 
         onSubmitted: password => Lock.submit(password)
         onEdited: Lock.clearMessage()
+        onPowerRequested: id => Lock.power(id)
+        onLayoutClicked: Lock.cycleLayout()
 
         // The compositor hands keyboard focus to the lock surface, but not
         // to any particular item inside it. Without this the first thing
