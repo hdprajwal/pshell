@@ -273,4 +273,13 @@ Singleton {
     // name with the code-1 cut: the sidebar row is a fixed label for a page,
     // and a row that tracked the sky would look like a broken reading.
     readonly property string weather: "partly_cloudy_day"
+
+    // The system monitor's pills, DMS's picks: a chip for the CPU, a board
+    // for memory, so the two do not wear the same symbol.
+    readonly property string cpu: "memory"
+    readonly property string ram: "developer_board"
+    readonly property string temperature: "device_thermostat"
+    readonly property string disk: "storage"
+    readonly property string netSpeed: "network_check"
+    readonly property string sysmon: "monitor_heart"
 }

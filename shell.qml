@@ -182,6 +182,14 @@ ShellRoot {
     // Costs one `command -v` sh at start. A player runs only for the tone.
     readonly property var volumeTone: VolumeTone
 
+    // And the system monitor, for the updates' reason: `pshell sysmon
+    // status` is something a script may ask on a bar that does not show it.
+    //
+    // Costs one read of /proc/stat and /proc/net/dev, one sensor lookup and
+    // one df at start. The poller runs only while a widget is on screen, the
+    // panel is open, or a script asked in the last minute.
+    readonly property var systemMonitor: SystemMonitor
+
     // And caps lock, for the updates' reason: `pshell capslock status` is
     // something a script may ask on a bar without the indicator, and the
     // lockscreen reads the same state for its warning.

@@ -34,6 +34,9 @@ import qs.Widgets.Nightlight as NightlightWidget
 // And a seventh: qs.Services exports the Updates singleton that watches
 // arch-update's state files and owns pshell.updates.
 import qs.Widgets.Updates as UpdatesWidget
+// And an eighth: qs.Services exports the SystemMonitor singleton that polls
+// /proc and owns pshell.sysmon.
+import qs.Widgets.SystemMonitor as SystemMonitorWidget
 import qs.Widgets.CapsLockIndicator
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
@@ -54,7 +57,7 @@ Row {
     //
     // Order does not matter for the lookup, but it mirrors the switch in
     // builtinLoader so the three lists stay checkable against each other.
-    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds", "nightlight", "updates", "capsLock"]
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds", "nightlight", "updates", "systemMonitor", "capsLock"]
 
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
@@ -186,6 +189,8 @@ Row {
                         return nightlightComponent;
                     case "updates":
                         return updatesComponent;
+                    case "systemMonitor":
+                        return systemMonitorComponent;
                     case "capsLock":
                         return capsLockComponent;
                     default:
@@ -322,6 +327,10 @@ Row {
     Component {
         id: updatesComponent
         UpdatesWidget.Updates {}
+    }
+    Component {
+        id: systemMonitorComponent
+        SystemMonitorWidget.SystemMonitor {}
     }
     Component {
         id: capsLockComponent
