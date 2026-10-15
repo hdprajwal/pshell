@@ -215,6 +215,10 @@ Singleton {
     // and not `download`, which reads as a file on its way to ~/Downloads.
     readonly property string updates: "system_update_alt"
 
+    // The caps lock indicator's bar icon, DMS's: an up arrow over a bar, the
+    // key's own legend on most keyboards.
+    readonly property string capsLock: "shift_lock"
+
     // The notification bell's three states: at rest, ringing (something
     // unread), and struck out for do-not-disturb. Named here rather than at
     // the call sites because the bar widget, the settings sidebar and the

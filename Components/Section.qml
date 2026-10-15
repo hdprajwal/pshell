@@ -34,6 +34,7 @@ import qs.Widgets.Nightlight as NightlightWidget
 // And a seventh: qs.Services exports the Updates singleton that watches
 // arch-update's state files and owns pshell.updates.
 import qs.Widgets.Updates as UpdatesWidget
+import qs.Widgets.CapsLockIndicator
 import qs.Widgets.Tray
 import qs.Widgets.Workspaces
 import qs.Commons
@@ -53,7 +54,7 @@ Row {
     //
     // Order does not matter for the lookup, but it mirrors the switch in
     // builtinLoader so the three lists stay checkable against each other.
-    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds", "nightlight", "updates"]
+    readonly property var builtinTypes: ["clock", "calendar", "aiUsage", "activeWindow", "microphone", "privacy", "idleInhibitor", "tailscale", "workspaces", "tray", "battery", "network", "bluetooth", "controlCenter", "settings", "notifications", "weather", "power", "keybinds", "nightlight", "updates", "capsLock"]
 
     readonly property bool vertical: Config.position === "left" || Config.position === "right"
 
@@ -185,6 +186,8 @@ Row {
                         return nightlightComponent;
                     case "updates":
                         return updatesComponent;
+                    case "capsLock":
+                        return capsLockComponent;
                     default:
                         return procComponent;
                     }
@@ -319,6 +322,10 @@ Row {
     Component {
         id: updatesComponent
         UpdatesWidget.Updates {}
+    }
+    Component {
+        id: capsLockComponent
+        CapsLockIndicator {}
     }
     Component {
         id: procComponent

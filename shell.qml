@@ -182,6 +182,14 @@ ShellRoot {
     // Costs one `command -v` sh at start. A player runs only for the tone.
     readonly property var volumeTone: VolumeTone
 
+    // And caps lock, for the updates' reason: `pshell capslock status` is
+    // something a script may ask on a bar without the indicator, and the
+    // lockscreen reads the same state for its warning.
+    //
+    // Costs one `sh` a minute to find the keyboard LEDs, and a read of each
+    // LED's brightness file every 300ms -- in process, no command started.
+    readonly property var capsLock: CapsLock
+
     // The desktop background. A sibling of the bar's Variants, not inside
     // it: the widget carries its own Variants over the screens, and nesting
     // it under the bar's would make one background window per screen per
