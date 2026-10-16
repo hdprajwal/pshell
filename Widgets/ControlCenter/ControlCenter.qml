@@ -140,14 +140,12 @@ Panel {
         }
     }
 
-    Process {
-        id: runner
-    }
-
+    // Detached rather than one shared Process: restarting a shared one to run
+    // the next command SIGTERMs the last, so toggling dark mode would kill
+    // the pavucontrol the audio settings row just opened, and anything
+    // launched from here would also die when the bar reloads.
     function run(command) {
-        runner.command = ["sh", "-c", command];
-        runner.running = false;
-        runner.running = true;
+        Quickshell.execDetached(["sh", "-c", String(command)]);
     }
 
     Process {
