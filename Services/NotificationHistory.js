@@ -28,6 +28,60 @@ function append(history, record, cap) {
     return out.slice(0, limit);
 }
 
+// What makes two records the same notification: the arrival stamp plus the
+// server id and the text. id alone restarts from 1 with every session, and
+// time alone collides when a burst lands inside one millisecond; together
+// they only match a record against a copy of itself.
+function recordKey(record) {
+    return [Number(record.time) || 0, String(record.id === undefined ? "" : record.id), appKey(record), String(record.summary || "")].join("\u0001");
+}
+
+// The file's history joined with records it has not caught up on: ones that
+// arrived before it finished loading, and ones a reload carried over from
+// the previous generation before they were written. `extra` wins a
+// duplicate, because it is the newer copy -- a record's closeReason is
+// filled in after it was first saved. The result is newest first by
+// arrival and capped, a NEW array for the reason append gives, and keeps
+// the record objects themselves: a live notification's closed handler finds
+// its record in history by identity.
+function merge(history, extra, cap) {
+    var limit = Number(cap);
+    if (!isFinite(limit) || limit < 0)
+        limit = 0;
+    var byKey = {};
+    var out = [];
+    var add = function (list, replace) {
+        var source = Array.isArray(list) ? list : [];
+        for (var i = 0; i < source.length; i++) {
+            var record = source[i];
+            if (!record || typeof record !== "object")
+                continue;
+            var key = recordKey(record);
+            if (byKey.hasOwnProperty(key)) {
+                if (replace)
+                    out[byKey[key]] = record;
+                continue;
+            }
+            byKey[key] = out.length;
+            out.push(record);
+        }
+    };
+    add(history, false);
+    add(extra, true);
+    // Ties broken by position rather than trusting the engine's sort to be
+    // stable, so records stamped the same millisecond keep the order they
+    // were already in.
+    var order = out.map(function (record, index) {
+        return { record: record, index: index, time: Number(record.time) || 0 };
+    });
+    order.sort(function (a, b) {
+        return b.time - a.time || a.index - b.index;
+    });
+    return order.slice(0, limit).map(function (entry) {
+        return entry.record;
+    });
+}
+
 // The key two apps are the same under. desktopEntry is the honest identity
 // -- appName is whatever the app felt like sending and can be localised --
 // but plenty of senders (notify-send included) leave desktopEntry empty, and
