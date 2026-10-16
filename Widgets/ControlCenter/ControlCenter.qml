@@ -602,8 +602,17 @@ Panel {
                     visible: root.detail === "wifi"
                     spacing: Style.spacing.md
 
+                    // The password prompt is its own KeyboardPanel and takes
+                    // its screen and placement from these two. Without the
+                    // bar it never claims the popout slot, so this panel
+                    // stays open underneath it; without an anchor it has no
+                    // screen and draws in the top-left corner. The bar button
+                    // is the anchor because it lives on this panel's monitor,
+                    // which is the same choice the Network widget makes.
                     NetworkList {
                         id: netList
+                        bar: root.bar
+                        anchorItem: button
                         rowWidth: wifiPane.width
                     }
                 }
