@@ -61,35 +61,46 @@ Singleton {
             waitForEnd: true
         }
 
-        onExited: code => {
-            const job = root._queue.shift();
-            root._busy = false;
-
-            const out = String(workerOut.text || "");
-            const err = String(workerErr.text || "").trim();
-
-            // nmcli's own words, kept verbatim and logged rather than
-            // stored: there is no error banner left to read a lastError
-            // property, and a lookup that fails silently is exactly how
-            // "nothing happens when I click edit" gets hard to explain.
-            if (code !== 0)
-                console.warn("pshell.nm:", JSON.stringify(job ? job.argv : []), "failed:", err !== "" ? err : "nmcli exited " + code);
-
-            // A callback that throws must not take the queue with it: the
-            // throw would abort this handler before _pump() and leave the
-            // next command sitting in the queue until something unrelated
-            // pushed another one. It is still a bug at the call site, so it
-            // is reported rather than swallowed; the queue just keeps moving.
-            if (job && job.cb) {
-                try {
-                    job.cb(code, out, err);
-                } catch (e) {
-                    console.warn("pshell.nm: callback for", JSON.stringify(job.argv), "threw:", e);
-                }
-            }
-
-            root._pump();
+        // An nmcli that cannot be started -- not installed, or removed by an
+        // upgrade -- never exits. Quickshell drops the process and reports
+        // only that it is not running, so without this `_busy` would stay
+        // set and every command queued after it would wait for an exit that
+        // is never coming. The job is failed the way a non-zero exit fails
+        // it, and the queue moves on. A normal exit has cleared `_busy` by
+        // now, and one that started the next job has `running` back to true.
+        onRunningChanged: {
+            if (!worker.running && root._busy)
+                root._finish(-1, "", "nmcli could not be started; is NetworkManager installed?");
         }
+
+        onExited: code => root._finish(code, String(workerOut.text || ""), String(workerErr.text || "").trim())
+    }
+
+    function _finish(code, out, err) {
+        const job = root._queue.shift();
+        root._busy = false;
+
+        // nmcli's own words, kept verbatim and logged rather than
+        // stored: there is no error banner left to read a lastError
+        // property, and a lookup that fails silently is exactly how
+        // "nothing happens when I click edit" gets hard to explain.
+        if (code !== 0)
+            console.warn("pshell.nm:", JSON.stringify(job ? job.argv : []), "failed:", err !== "" ? err : "nmcli exited " + code);
+
+        // A callback that throws must not take the queue with it: the
+        // throw would abort this handler before _pump() and leave the
+        // next command sitting in the queue until something unrelated
+        // pushed another one. It is still a bug at the call site, so it
+        // is reported rather than swallowed; the queue just keeps moving.
+        if (job && job.cb) {
+            try {
+                job.cb(code, out, err);
+            } catch (e) {
+                console.warn("pshell.nm: callback for", JSON.stringify(job.argv), "threw:", e);
+            }
+        }
+
+        root._pump();
     }
 
     // ----------------------------------------------------------- editor

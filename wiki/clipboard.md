@@ -85,7 +85,7 @@ When the newest copy is forgotten, the clipboard itself is emptied too. Otherwis
 
 ## What it needs
 
-`wl-clipboard` and `wtype`, plus `perl` (to decode the UTF-16 some apps copy) and `setpriv` from util-linux. Most systems already have the last two.
+`wl-clipboard` and `wtype`, plus `perl` (to decode the UTF-16 some apps copy). Most systems already have `perl`. With `setpriv` from util-linux, the watchers also stop when the shell is killed; without it, history still works.
 
 ## Commands
 

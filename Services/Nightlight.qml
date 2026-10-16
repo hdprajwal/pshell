@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "Nightlight.js" as Model
+import "Proc.js" as Proc
 
 // The nightlight: a warmer screen, by way of Hyprland's hyprsunset.
 //
@@ -186,7 +187,14 @@ Singleton {
         // moment later: a hyprsunset still starting up applies its own
         // default when it is ready, over anything sent before then, and
         // `-t` makes that default the one we wanted.
-        child.command = ["setpriv", "--pdeathsig", "TERM", "hyprsunset", "-t", String(root.temperature)];
+        //
+        // Through Proc.supervised rather than setpriv directly: a missing
+        // setpriv meant a Process that never started, and Quickshell never
+        // reports an exit for one of those, so `active` stayed true with no
+        // hyprsunset behind it and the warning below never printed. The sh
+        // layer always starts, and a hyprsunset that cannot be run exits 127
+        // through it like any other early exit.
+        child.command = Proc.supervised(["hyprsunset", "-t", String(root.temperature)]);
         child.stopping = false;
         child.checked = false;
         child.checks = 0;
@@ -216,7 +224,7 @@ Singleton {
         }
 
         // Not respawned. hyprsunset going away on its own -- killed by hand,
-        // refused by Hyprland, never started for want of setpriv -- is not
+        // refused by Hyprland, missing since the check -- is not
         // something another try a second later would fix, so the nightlight
         // says it is off, which is now true, and the shell says why once.
         //
@@ -236,7 +244,7 @@ Singleton {
             if (next !== "lost")
                 return;
             if (Date.now() - child.startedAt < 2000)
-                console.warn("pshell: hyprsunset exited with", code, "as soon as it started, so the nightlight is off. It needs Hyprland and setpriv from util-linux, or another hyprsunset is already running (one still starting, or on a socket hyprctl cannot see).");
+                console.warn("pshell: hyprsunset exited with", code, "as soon as it started, so the nightlight is off. It needs Hyprland and hyprsunset on PATH, or another hyprsunset is already running (one still starting, or on a socket hyprctl cannot see).");
             else
                 console.warn("pshell: hyprsunset exited with", code, "so the nightlight is off.");
             root.reported = null;

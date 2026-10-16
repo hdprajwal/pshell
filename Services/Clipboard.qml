@@ -6,6 +6,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs.Widgets.Clipboard as ClipboardLayer
 import "ClipboardHistory.js" as History
+import "Proc.js" as Proc
 
 // pshell's clipboard history: the watchers that record copies, the history
 // file, the panel's wanted-open state, and pshell.clipboard.
@@ -412,10 +413,17 @@ Singleton {
     // `--type text` lets wl-paste pick the best text type on offer;
     // image/png is the one every screenshot tool and browser offers. Other
     // image types are still caught by the snapshot at start.
+    //
+    // Through Proc.supervised rather than setpriv directly: a Process whose
+    // binary is missing never starts, and Quickshell never reports an exit
+    // for it, so a system without util-linux had watchers that silently were
+    // not there -- no restart, and no warning from _watcherExited either.
+    // The sh layer always starts; without setpriv wl-paste runs without the
+    // death signal, and without wl-paste it exits 127, which the fast-exit cap below sees.
     Process {
         id: textWatcher
 
-        command: ["setpriv", "--pdeathsig", "TERM", "wl-paste", "--type", "text", "--watch", root.script, "capture", "text"]
+        command: Proc.supervised(["wl-paste", "--type", "text", "--watch", root.script, "capture", "text"])
         environment: ({
                 PSHELL_CLIPBOARD_IMAGES: root.imageDir
             })
@@ -431,7 +439,7 @@ Singleton {
     Process {
         id: imageWatcher
 
-        command: ["setpriv", "--pdeathsig", "TERM", "wl-paste", "--type", "image/png", "--watch", root.script, "capture", "image/png"]
+        command: Proc.supervised(["wl-paste", "--type", "image/png", "--watch", root.script, "capture", "image/png"])
         environment: ({
                 PSHELL_CLIPBOARD_IMAGES: root.imageDir
             })
@@ -449,10 +457,10 @@ Singleton {
     // there, so nothing looks wrong until somebody misses a copy. Omarchy
     // learned that one; bring it back after a second instead.
     //
-    // But one that dies the moment it starts -- no wl-paste or setpriv
-    // installed, no Wayland display -- would be respawned every second
-    // forever. Five of those in a row and the shell says why once and stops
-    // trying, until the cap changes or the shell reloads.
+    // But one that dies the moment it starts -- no wl-paste installed, no
+    // Wayland display -- would be respawned every second forever. Five of
+    // those in a row and the shell says why once and stops trying, until the
+    // cap changes or the shell reloads.
     property int _fastExits: 0
     readonly property int _maxFastExits: 5
 
@@ -464,7 +472,7 @@ Singleton {
         else
             root._fastExits = 0;
         if (root._fastExits >= root._maxFastExits) {
-            console.warn("pshell clipboard: the wl-paste watchers keep exiting as soon as they start; is wl-clipboard (and setpriv, from util-linux) installed? Not recording copies until the shell reloads.");
+            console.warn("pshell clipboard: the wl-paste watchers keep exiting as soon as they start; is wl-clipboard installed? Not recording copies until the shell reloads.");
             return;
         }
         restart.restart();
