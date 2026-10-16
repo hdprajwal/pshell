@@ -9,6 +9,7 @@ import qs.Services as Services
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
+import "../../Services/NotificationMarkup.js" as Markup
 
 // One notification in the toast stack. The view half only: whether this
 // toast is up, and for how long, is Services/Notifications.qml's call --
@@ -199,7 +200,10 @@ Item {
                         Text {
                             width: parent.width
                             visible: text !== ""
-                            text: toast.notification ? toast.notification.body : ""
+                            // Sanitised first: StyledText would otherwise
+                            // fetch any <img src> a sender embeds --
+                            // NotificationMarkup.js has the why.
+                            text: toast.notification ? Markup.sanitize(toast.notification.body) : ""
                             color: Commons.Color.muted
                             // StyledText is the markup the server
                             // advertises: bold, italic, underline and
@@ -212,7 +216,12 @@ Item {
                             font.family: Style.font.family
                             font.pixelSize: Style.font.bodySmall
                             linkColor: Commons.Color.accent
-                            onLinkActivated: link => Qt.openUrlExternally(link)
+                            // Sanitize already drops other schemes; checked
+                            // again here because this is the line that acts.
+                            onLinkActivated: link => {
+                                if (Markup.isSafeLink(link))
+                                    Qt.openUrlExternally(link);
+                            }
                         }
                     }
                 }
