@@ -13,6 +13,8 @@ The shell does not read any agent's files itself. A small helper program, `pshel
 
 It writes one JSON file per provider into `~/.local/state/pshell/agents/usage/`. pshell reads those files, watches them for changes, and runs the helper on a timer.
 
+Opening the panel refreshes only the limits (`pshell-agents --limits-only`), and not again within a minute of the last run. The full rescan of session logs stays on the timer. If a limits check fails because the network is not up yet, pshell tries again after 30 seconds, backing off to every 5 minutes.
+
 Without `pshell-agents` on your `PATH`, the widget hides itself instead of showing an error.
 
 ## Install the helper
@@ -55,7 +57,7 @@ To read opencode's database it runs `sqlite3`. That database is the only record 
 
 | Setting | What it does | Default |
 |---|---|---|
-| `refreshIntervalSec` | Seconds between runs of the helper | `900` (15 minutes) |
+| `refreshIntervalSec` | Seconds between full runs of the helper | `900` (15 minutes) |
 | `barSource` | What the bar shows. See below. | `max` |
 | `warnThreshold` | Percent at which the number turns red | `85` |
 | `defaultTab` | A provider id to open the panel on | the provider closest to its limit |
