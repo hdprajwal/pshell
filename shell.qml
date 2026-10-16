@@ -404,6 +404,8 @@ ShellRoot {
                     Text {
                         id: tooltipLabel
                         anchors.centerIn: parent
+                        // Tray apps supply their own tooltip titles.
+                        textFormat: Text.PlainText
                         text: tooltip.text
                         color: Commons.Color.foreground
                         font.family: Style.font.family

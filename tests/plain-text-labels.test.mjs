@@ -17,6 +17,7 @@ const sites = [
     ["Ui/BarIconButton.qml", "text: root.label"],
     ["Ui/Button.qml", "text: root.text"],
     ["Ui/PanelToolTip.qml", "text: root.text"],
+    ["shell.qml", "text: tooltip.text"],
     ["Ui/PanelHero.qml", "text: root.meta.toUpperCase()"],
     ["Ui/SearchableDropdown.qml", "text: root.currentLabel()"],
     ["Ui/SearchableDropdown.qml", "text: root.optionLabel(modelData)"],
@@ -34,6 +35,7 @@ const sites = [
     ["Widgets/Notifications/Toast.qml", "text: toast.notification ? toast.notification.summary"],
     ["Widgets/Notifications/NotificationRow.qml", "text: row.record ? row.record.appName"],
     ["Widgets/Notifications/NotificationRow.qml", "text: row.record ? row.record.summary"],
+    ["Widgets/Notifications/Notifications.qml", "text: group.modelData.appName"],
     // The title binding is a block; the width line is the same item's.
     ["Widgets/Lock/LockMedia.qml", "width: Math.min(implicitWidth, root.maxTitleWidth)"],
     ["Widgets/Lock/LockNotifications.qml", "text: chip.modelData.appName"],
