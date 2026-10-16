@@ -181,6 +181,7 @@ Singleton {
         if (!n.transient) {
             root.history = History.append(root.history, record, Config.notifications.historyDepth);
             root._unread += 1;
+            root._markUnsaved(record);
             saveTimer.restart();
         }
 
@@ -189,8 +190,10 @@ Singleton {
         // the reference stays good however often the array is reassigned.
         n.closed.connect(reason => {
             record.closeReason = reason;
-            if (root.history.indexOf(record) >= 0)
+            if (root.history.indexOf(record) >= 0) {
+                root._markUnsaved(record);
                 saveTimer.restart();
+            }
             root._releasePopup(n.id);
         });
 
@@ -342,7 +345,10 @@ Singleton {
     function clearHistory() {
         dismissAll();
         root.history = [];
-        saveTimer.restart();
+        root._unsaved = [];
+        // Now, not in half a second: a reload inside that window would
+        // otherwise bring back everything that was just cleared.
+        root._save();
     }
 
     // Per-group clear: one app's records out of history, and its live
@@ -357,7 +363,8 @@ Singleton {
                 n.dismiss();
         }
         root.history = root.history.filter(r => History.appKey(r) !== key);
-        saveTimer.restart();
+        root._unsaved = root._unsaved.filter(r => History.appKey(r) !== key);
+        root._save();
     }
 
     // -------------------------------------------------------------- panel
@@ -427,14 +434,90 @@ Singleton {
         id: saveTimer
         interval: 500
         repeat: false
-        onTriggered: {
-            // The guard Prefs.qml carries, for the same reason: a write
-            // before the load finished would truncate the history it was
-            // about to read.
-            if (!root._loaded)
-                return;
-            historyFile.setText(JSON.stringify(root.history, null, 2));
+        onTriggered: root._save()
+    }
+
+    // The guard Prefs.qml carries, for the same reason: a write before the
+    // load finished would truncate the history it was about to read. What
+    // arrived in the meantime is not lost -- it waits in _unsaved and the
+    // load merges it in.
+    function _save() {
+        saveTimer.stop();
+        if (!root._loaded)
+            return;
+        historyFile.setText(JSON.stringify(root.history, null, 2));
+        root._unsaved = [];
+        root._syncCarry();
+    }
+
+    // Records changed since the last write: new arrivals, and older ones
+    // whose closeReason just got filled in. Clipboard.qml's pattern, for
+    // its reason: a config reload tears this generation down without
+    // running a single destruction handler, so the pending write cannot be
+    // flushed on the way out. Instead these ride across the reload in
+    // `carry` and the next generation merges them into what it loads. The
+    // same list covers notifications that arrive before this generation's
+    // own load finishes, which the load would otherwise replace wholesale.
+    property var _unsaved: []
+
+    function _markUnsaved(record) {
+        if (root._unsaved.indexOf(record) < 0)
+            root._unsaved = root._unsaved.concat([record]);
+        root._syncCarry();
+    }
+
+    // Nothing is written into carry until the previous generation's records
+    // have been read out of it -- a notification landing first would
+    // overwrite them.
+    property bool _carryRead: false
+
+    function _syncCarry() {
+        if (root._carryRead)
+            carry.pending = root._unsaved.length > 0 ? JSON.stringify(root._unsaved) : "";
+    }
+
+    PersistentProperties {
+        id: carry
+
+        reloadableId: "pshellNotificationsUnsaved"
+        property string pending: ""
+
+        onLoaded: {
+            let carried = [];
+            try {
+                const parsed = JSON.parse(carry.pending || "[]");
+                if (Array.isArray(parsed))
+                    carried = parsed;
+            } catch (e) {
+                console.warn("pshell: bad carried notifications —", e);
+            }
+            // Ahead of anything this generation already has, so a record
+            // closed here after arriving there keeps the newer copy.
+            root._unsaved = carried.concat(root._unsaved);
+            root._carryRead = true;
+            root._syncCarry();
+            // Loaded first, then carry: the history load is waiting on
+            // nothing, so fold these in the way it would have.
+            if (root._loaded && carried.length > 0) {
+                root.history = History.merge(root.history, carried, Config.notifications.historyDepth);
+                root._save();
+            }
         }
+    }
+
+    function _onLoaded(raw) {
+        let loaded = [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed))
+                loaded = parsed;
+        } catch (e) {
+            console.warn("pshell: bad notifications.json —", e);
+        }
+        root.history = History.merge(loaded, root._unsaved, Config.notifications.historyDepth);
+        root._loaded = true;
+        if (root._unsaved.length > 0)
+            root._save();
     }
 
     FileView {
@@ -448,18 +531,9 @@ Singleton {
         atomicWrites: true
         printErrors: false
 
-        onLoaded: {
-            try {
-                const parsed = JSON.parse(text());
-                if (Array.isArray(parsed))
-                    root.history = parsed.slice(0, Config.notifications.historyDepth);
-            } catch (e) {
-                console.warn("pshell: bad notifications.json —", e);
-            }
-            root._loaded = true;
-        }
+        onLoaded: root._onLoaded(text())
         // No history yet is the normal first run, not an error.
-        onLoadFailed: root._loaded = true
+        onLoadFailed: root._onLoaded("[]")
     }
 
     // ---------------------------------------------------------------- ipc

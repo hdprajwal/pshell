@@ -53,6 +53,70 @@ test("append treats a missing history as empty", () => {
   assert.equal(out.length, 1);
 });
 
+// ------------------------------------------------------------------- merge
+
+test("merge keeps notifications that arrived before the file loaded", () => {
+  const file = [rec({ id: 2, time: 200, summary: "b" }), rec({ id: 1, time: 100, summary: "a" })];
+  const early = [rec({ id: 3, time: 300, summary: "c" })];
+  const out = H.merge(file, early, 10);
+  assert.deepEqual(out.map(r => r.summary), ["c", "b", "a"]);
+});
+
+test("merge orders newest first by arrival, wherever each record came from", () => {
+  const file = [rec({ id: 9, time: 500, summary: "file-new" }), rec({ id: 8, time: 100, summary: "file-old" })];
+  const carried = [rec({ id: 4, time: 300, summary: "carried" })];
+  assert.deepEqual(H.merge(file, carried, 10).map(r => r.summary), ["file-new", "carried", "file-old"]);
+});
+
+test("merge drops a duplicate and keeps the newer copy from extra", () => {
+  const saved = rec({ id: 1, time: 100, closeReason: 0 });
+  const closed = rec({ id: 1, time: 100, closeReason: 2 });
+  const out = H.merge([saved], [closed], 10);
+  assert.equal(out.length, 1);
+  assert.equal(out[0], closed);
+});
+
+test("merge dedupes within extra itself, last copy winning", () => {
+  const a = rec({ id: 1, time: 100, closeReason: 0 });
+  const b = rec({ id: 1, time: 100, closeReason: 1 });
+  const out = H.merge([], [a, b], 10);
+  assert.equal(out.length, 1);
+  assert.equal(out[0], b);
+});
+
+test("merge does not treat a reused id from another session as a duplicate", () => {
+  const out = H.merge([rec({ id: 1, time: 100 })], [rec({ id: 1, time: 900 })], 10);
+  assert.equal(out.length, 2);
+});
+
+test("merge respects the history cap, dropping the oldest", () => {
+  const file = [rec({ id: 2, time: 200, summary: "b" }), rec({ id: 1, time: 100, summary: "a" })];
+  const early = [rec({ id: 3, time: 300, summary: "c" })];
+  assert.deepEqual(H.merge(file, early, 2).map(r => r.summary), ["c", "b"]);
+  assert.deepEqual(H.merge(file, early, 0), []);
+});
+
+test("merge keeps same-millisecond records in their existing order", () => {
+  const out = H.merge([], [rec({ id: 2, time: 100, summary: "x" }), rec({ id: 1, time: 100, summary: "y" })], 10);
+  assert.deepEqual(out.map(r => r.summary), ["x", "y"]);
+});
+
+test("merge returns the record objects themselves and leaves its inputs alone", () => {
+  const live = rec({ id: 5, time: 500 });
+  const file = [rec({ id: 1, time: 100 })];
+  const extra = [live];
+  const out = H.merge(file, extra, 10);
+  assert.equal(out[0], live);
+  assert.equal(file.length, 1);
+  assert.equal(extra.length, 1);
+});
+
+test("merge skips junk entries and missing lists", () => {
+  assert.deepEqual(H.merge(null, undefined, 10), []);
+  const out = H.merge([null, 3, rec({ time: 1 })], ["x"], 10);
+  assert.equal(out.length, 1);
+});
+
 // -------------------------------------------------------------- groupByApp
 
 test("groupByApp groups by desktopEntry and falls back to appName", () => {
