@@ -4,6 +4,7 @@ import QtCore
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "ConfigPath.js" as ConfigPath
 
 // Small bag of things pshell remembers between runs, kept apart from
 // config.json so hand-edited config is never rewritten by the shell.
@@ -13,6 +14,16 @@ Singleton {
     property var data: ({})
     property bool _loaded: false
     property bool _writing: false
+
+    // state.json is on disk but unusable -- it does not parse, is not a JSON
+    // object, or could not be read. Writes rewrite the whole file from
+    // `data`, which in that state is `{}` or stale, so they are refused until
+    // the file parses again rather than wiping it. Same guard as Config.qml's.
+    property bool _unreadable: false
+
+    function _writable() {
+        return root._loaded && !root._unreadable;
+    }
 
     // Whether state.json has been read yet. Public because a reader that
     // caches something here has to tell "nothing was ever stored" apart from
@@ -42,6 +53,8 @@ Singleton {
     }
 
     function togglePin(name, input) {
+        if (!root._writable())
+            return;
         const key = input ? "pinnedSources" : "pinnedSinks";
         const list = (data[key] || []).slice();
         const at = list.indexOf(String(name));
@@ -63,6 +76,8 @@ Singleton {
     readonly property int settingsHeight: data.settingsHeight || 0
 
     function setSettingsTab(tabId) {
+        if (!root._writable())
+            return;
         const next = Object.assign({}, root.data);
         next.settingsTab = String(tabId);
         root.data = next;
@@ -70,7 +85,7 @@ Singleton {
     }
 
     function setSettingsSize(w, h) {
-        if (w <= 0 || h <= 0)
+        if (w <= 0 || h <= 0 || !root._writable())
             return;
         const next = Object.assign({}, root.data);
         next.settingsWidth = Math.round(w);
@@ -92,6 +107,8 @@ Singleton {
     readonly property var weather: data.weather && typeof data.weather === "object" ? data.weather : ({})
 
     function setWeather(next) {
+        if (!root._writable())
+            return;
         const out = Object.assign({}, root.data);
         out.weather = next;
         root.data = out;
@@ -99,7 +116,7 @@ Singleton {
     }
 
     function _save() {
-        if (!_loaded)
+        if (!root._writable())
             return;
         root._writing = true;
         file.setText(JSON.stringify(root.data, null, 2));
@@ -134,15 +151,29 @@ Singleton {
             console.warn("pshell: could not write state.json —", error);
         }
 
+        // A bad file leaves `data` alone, so pins and the weather location
+        // already in memory keep working for the rest of the session.
         onLoaded: {
-            try {
-                root.data = JSON.parse(text());
-            } catch (e) {
-                root.data = ({});
+            const parsed = ConfigPath.parseObject(text());
+            if (parsed === null) {
+                if (!root._unreadable)
+                    console.warn("pshell: state.json is not a valid JSON object — not saving to it until it is fixed");
+                root._unreadable = true;
+            } else {
+                root.data = parsed;
+                root._unreadable = false;
             }
             root._loaded = true;
         }
-        // No state file yet is the normal first run, not an error.
-        onLoadFailed: root._loaded = true
+
+        // No state file yet is the normal first run, not an error. Any other
+        // failure means a file is there that could not be read.
+        onLoadFailed: error => {
+            const missing = error === FileViewError.FileNotFound;
+            if (!missing && !root._unreadable)
+                console.warn("pshell: could not read state.json —", FileViewError.toString(error), "— not saving to it");
+            root._unreadable = !missing;
+            root._loaded = true;
+        }
     }
 }
