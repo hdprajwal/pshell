@@ -120,6 +120,7 @@ PopupCard {
                     anchors.left: parent.left
                     anchors.leftMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
+                    textFormat: Text.PlainText
                     text: "‹  " + (stack.count > 0 ? stack.get(stack.count - 1).label : "")
                     color: Commons.Color.menu.text
                     opacity: 0.7
@@ -220,6 +221,9 @@ PopupCard {
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
+                            // Menu labels come from whatever app owns the tray item; shown
+                            // as typed so markup in one can't render or fetch an <img>.
+                            textFormat: Text.PlainText
                             text: row.modelData ? (row.modelData.text || "") : ""
                             color: hover.containsMouse && row.usable ? Commons.Color.menu.selectedText : Commons.Color.menu.text
                             opacity: row.usable ? 1 : 0.45

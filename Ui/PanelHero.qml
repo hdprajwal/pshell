@@ -89,6 +89,8 @@ Item {
     Text {
       id: metaText
       width: parent.width
+      // Meta can be an account name from a remote service.
+      textFormat: Text.PlainText
       text: root.meta.toUpperCase()
       visible: text !== ""
       color: root.dim

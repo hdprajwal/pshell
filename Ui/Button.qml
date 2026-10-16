@@ -179,6 +179,9 @@ BorderSurface {
 
     Text {
       visible: root.text !== ""
+      // Labels can be another program's string (a notification's action
+      // names), so they are shown as typed rather than rendered as markup.
+      textFormat: Text.PlainText
       text: root.text
       color: root.selected ? root._selectedColor : root.foreground
       font.family: root.fontFamily

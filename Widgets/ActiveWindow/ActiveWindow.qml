@@ -85,6 +85,7 @@ BarWidget {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.showAppName && root.appName !== ""
+            textFormat: Text.PlainText
             text: root.appName
             color: Commons.Color.foreground
             font.family: Style.font.family
@@ -107,6 +108,9 @@ BarWidget {
             // ceiling or one window pushes every other widget off the bar.
             width: Math.min(implicitWidth, root.maxWidth)
             elide: Text.ElideRight
+            // Any page can set its tab's title, so markup in it is shown as
+            // typed rather than rendered -- AutoText would fetch an <img src>.
+            textFormat: Text.PlainText
             text: root.title
             color: Commons.Color.foreground
             opacity: 0.75

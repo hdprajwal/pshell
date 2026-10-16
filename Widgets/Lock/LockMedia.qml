@@ -52,6 +52,9 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         width: Math.min(implicitWidth, root.maxTitleWidth)
+        // A browser tab supplies the track title; shown as typed so
+        // markup in it can't render on the lock screen.
+        textFormat: Text.PlainText
         text: {
             if (!root.active || !root.player.trackTitle)
                 return "";

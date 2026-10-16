@@ -172,6 +172,9 @@ Column {
                         spacing: 1
 
                         Text {
+                            // A Bluetooth headset names itself, and that name becomes the
+                            // sink's description: shown as typed, never as markup.
+                            textFormat: Text.PlainText
                             text: devRow.modelData.description || devRow.modelData.nickname || devRow.modelData.name
                             color: Commons.Color.foreground
                             font.family: Style.font.family
@@ -272,6 +275,7 @@ Column {
                 Text {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
+                    textFormat: Text.PlainText
                     text: parent.modelData.description || parent.modelData.name
                     color: Commons.Color.foreground
                     opacity: 0.8

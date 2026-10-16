@@ -742,6 +742,9 @@ Panel {
 
                 Text {
                     width: parent.width
+                    // Tile titles include the sink and source names, which a
+                    // Bluetooth device picks itself.
+                    textFormat: Text.PlainText
                     text: tile.title
                     color: tile.ink
                     font.family: Style.font.family
@@ -752,6 +755,7 @@ Panel {
                 Text {
                     width: parent.width
                     visible: tile.subtitle !== ""
+                    textFormat: Text.PlainText
                     text: tile.subtitle
                     color: tile.solid ? Util.alpha(tile.ink, 0.7) : Commons.Color.muted
                     font.family: Style.font.family

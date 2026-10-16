@@ -37,6 +37,9 @@ ToolTip {
   }
 
   contentItem: Text {
+    // Tray items supply their own tooltips; plain text keeps markup
+    // in them from rendering or fetching an <img>.
+    textFormat: Text.PlainText
     text: root.text
     color: root.panelForeground
     font.family: root.fontFamily
