@@ -96,6 +96,22 @@ test("non-ASCII text survives the round trip", () => {
     assert.deepEqual(lines(out), [{ type: "text", text: "naïve — 日本語 😀" }]);
 });
 
+// Text whose characters all fit in Latin-1 is the case perl gets wrong when
+// it prints without encoding: one raw byte per character, not UTF-8. The
+// test above has wide characters too, which hide it.
+test("Latin-1-only text comes out as UTF-8", () => {
+    const box = sandbox();
+    const utf8 = run(box, ["capture", "text"], { input: "naïve café £5" });
+    const utf16 = run(box, ["capture", "text"], {
+        input: Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("naïve café £5", "utf16le")]),
+    });
+
+    for (const out of [utf8, utf16]) {
+        assert.ok(out.stdout.includes(Buffer.from("café")), "output is not UTF-8");
+        assert.deepEqual(lines(out), [{ type: "text", text: "naïve café £5" }]);
+    }
+});
+
 test("UTF-16 with a byte-order mark is decoded", () => {
     const box = sandbox();
     const input = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("wine text", "utf16le")]);

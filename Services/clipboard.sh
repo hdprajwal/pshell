@@ -150,7 +150,11 @@ emit_text() {
         # A guess that decodes to control characters was a wrong guess.
         $text = undef if $guessed && defined($text) && $text =~ /[\x00-\x08\x0E-\x1A\x1C-\x1F]/;
         $text = decode("UTF-8", $raw) unless defined $text;
-        print JSON::PP->new->canonical->encode({ type => "text", text => $text }), "\n";
+        # ->utf8 encodes the decoded characters back to UTF-8 bytes. Without
+        # it perl prints the internal string as is: text with any character
+        # past U+00FF happens to come out as UTF-8, but text that is only
+        # Latin-1 ("café", "£5") comes out as one raw byte per character.
+        print JSON::PP->new->utf8->canonical->encode({ type => "text", text => $text }), "\n";
     ' <"$tmp"
 }
 
