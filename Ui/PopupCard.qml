@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Commons
 import qs.Commons as Commons
+import "../Services/PopoutKey.js" as PopoutKey
 
 // The panel a bar widget opens beside itself.
 //
@@ -43,14 +44,14 @@ PanelWindow {
 
     default property alias contentItem: contentHolder.children
 
-    readonly property var coordinatorKey: owner || root
+    readonly property var coordinatorKey: PopoutKey.coordinatorKey(owner, root)
     readonly property var anchorWindow: anchorItem ? anchorItem.QsWindow.window : null
     readonly property var popupScreen: anchorWindow ? anchorWindow.screen : null
     readonly property bool containsMouse: cardHover.hovered
     readonly property string barPos: bar ? bar.position : "top"
 
     function close() {
-        if (owner && "close" in owner)
+        if (PopoutKey.canClose(owner))
             owner.close();
         else
             root.open = false;
@@ -197,6 +198,50 @@ PanelWindow {
         enabled: root.open && root.triggerMode === "click"
         acceptedButtons: Qt.AllButtons
         onClicked: root.close()
+    }
+
+    // The surface only spans the anchor's screen, and the compositor
+    // hit-tests pointer input per output, so the dismiss area above never
+    // sees a click on another monitor. Give every other output a transparent
+    // twin that only catches that click, as KeyboardPanel does. They exist
+    // only while the card is logically open, matching the dismiss area.
+    //
+    // Same layer and exclusion as the card itself, for the same reasons: Top
+    // so other shells' dialogs keep their clicks, and stopping at the bar so
+    // a click on that screen's bar icon still swaps panels.
+    Variants {
+        model: root.open && root.triggerMode === "click" ? Quickshell.screens : []
+
+        delegate: Component {
+            PanelWindow {
+                required property var modelData
+
+                screen: modelData
+                // Compare by output name: the anchor screen must be known
+                // before any twin maps, or a twin would cover the card's own
+                // output.
+                visible: root.open && !!root.screen && modelData.name !== root.screen.name
+                color: "transparent"
+                exclusionMode: ExclusionMode.Normal
+
+                WlrLayershell.namespace: "pshell:popup-card-dismiss"
+                WlrLayershell.layer: WlrLayer.Top
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+                anchors {
+                    top: true
+                    bottom: true
+                    left: true
+                    right: true
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.AllButtons
+                    onPressed: root.close()
+                }
+            }
+        }
     }
 
     // --- card ---------------------------------------------------------------

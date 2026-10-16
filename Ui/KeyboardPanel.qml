@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Commons
 import qs.Commons as Commons
+import "../Services/PopoutKey.js" as PopoutKey
 
 // Layer-shell popup attached to a bar widget icon, designed for
 // click-driven AND keyboard-driven panels (e.g. SUPER+CTRL+W summon).
@@ -66,12 +67,12 @@ PanelWindow {
 
   default property alias contentItem: contentHolder.children
 
-  readonly property var coordinatorKey: owner || root
+  readonly property var coordinatorKey: PopoutKey.coordinatorKey(owner, root)
   readonly property var anchorWindow: anchorItem ? anchorItem.QsWindow.window : null
   readonly property string barPos: bar ? bar.position : "top"
 
   function close() {
-    if (owner && "close" in owner) owner.close()
+    if (PopoutKey.canClose(owner)) owner.close()
     else root.open = false
   }
 
