@@ -137,6 +137,27 @@ func claudeScanCachePaths(projectsPath string) (string, string, error) {
 	return filepath.Join(root, name+".json"), filepath.Join(root, name+".lock"), nil
 }
 
+// statsEnvelope is how every Claude usage cache is stored: the stats plus the
+// local date they were scanned on. Stats is nil when a source was checked and
+// had nothing to report.
+type statsEnvelope struct {
+	ScanDate string `json:"scanDate"`
+	Stats    *Stats `json:"stats"`
+}
+
+// readTodaysCachedStats is readFreshJSON plus the date check codex.go makes.
+// The today* fields only mean "today" on the day they were scanned, so a
+// cache written at 23:55 and read at 00:05 is a miss however young its mtime
+// is; otherwise yesterday's tokens show up as today's until it expires. A
+// cache from before the date was recorded has no ScanDate and misses too.
+func readTodaysCachedStats(cacheFile string, maxAge time.Duration, today string) (*Stats, bool) {
+	var cached statsEnvelope
+	if !readFreshJSON(cacheFile, maxAge, &cached) || cached.ScanDate != today {
+		return nil, false
+	}
+	return cached.Stats, true
+}
+
 func cachedClaudeScan(projectsPath string, maxAge time.Duration, now time.Time) Stats {
 	cacheFile, lockFile, err := claudeScanCachePaths(projectsPath)
 	if err != nil {
@@ -144,19 +165,21 @@ func cachedClaudeScan(projectsPath string, maxAge time.Duration, now time.Time) 
 		return scanClaudeProjects(projectsPath, now)
 	}
 
-	var cached Stats
-	if readFreshJSON(cacheFile, maxAge, &cached) {
-		return cached
+	// The transcript scan always produces stats, so a hit without any is a
+	// damaged file rather than an empty answer.
+	today := dateString(now)
+	if cached, ok := readTodaysCachedStats(cacheFile, maxAge, today); ok && cached != nil {
+		return *cached
 	}
 
 	var stats Stats
 	withLock(lockFile, func() {
-		if readFreshJSON(cacheFile, maxAge, &cached) {
-			stats = cached
+		if cached, ok := readTodaysCachedStats(cacheFile, maxAge, today); ok && cached != nil {
+			stats = *cached
 			return
 		}
 		stats = scanClaudeProjects(projectsPath, now)
-		if err := writeJSONAtomic(cacheFile, stats, 0o644); err != nil {
+		if err := writeJSONAtomic(cacheFile, statsEnvelope{ScanDate: today, Stats: &stats}, 0o644); err != nil {
 			warnf("claude: could not write usage cache (%v)", err)
 		}
 	})
@@ -299,10 +322,6 @@ func claudeTodayFromHistory(claudeDir string, now time.Time) (int, int) {
 // Claude Code transcript. Their session format carries the provider, model
 // and token usage on every assistant message.
 
-type statsEnvelope struct {
-	Stats *Stats `json:"stats"`
-}
-
 func piSessionRoots() []string {
 	return []string{
 		filepath.Join(homeDir(), ".pi", "agent", "sessions"),
@@ -318,15 +337,15 @@ func scanClaudePiUsage(maxAge time.Duration, now time.Time) *Stats {
 	}
 	cacheFile := filepath.Join(root, "claude-pi-sessions.json")
 
-	var cached statsEnvelope
-	if readFreshJSON(cacheFile, maxAge, &cached) {
-		return cached.Stats
+	today := dateString(now)
+	if cached, ok := readTodaysCachedStats(cacheFile, maxAge, today); ok {
+		return cached
 	}
 
 	stats := scanClaudePiSessions(now)
 	// Written even when nothing was found: "checked recently, nothing there"
 	// is an answer worth caching too.
-	if err := writeJSONAtomic(cacheFile, statsEnvelope{Stats: stats}, 0o644); err != nil {
+	if err := writeJSONAtomic(cacheFile, statsEnvelope{ScanDate: today, Stats: stats}, 0o644); err != nil {
 		warnf("claude: could not write pi usage cache (%v)", err)
 	}
 	return stats
@@ -410,13 +429,13 @@ func scanClaudeOpencodeUsage(maxAge time.Duration, now time.Time) *Stats {
 	// The same freshness contract as the transcript scan: --limits-only
 	// promises to reuse recent local stats, and a large opencode history
 	// walked on every panel open would break that promise.
-	var cached statsEnvelope
-	if readFreshJSON(cacheFile, maxAge, &cached) {
-		return cached.Stats
+	today := dateString(now)
+	if cached, ok := readTodaysCachedStats(cacheFile, maxAge, today); ok {
+		return cached
 	}
 
 	stats := scanClaudeOpencode(now)
-	if err := writeJSONAtomic(cacheFile, statsEnvelope{Stats: stats}, 0o644); err != nil {
+	if err := writeJSONAtomic(cacheFile, statsEnvelope{ScanDate: today, Stats: stats}, 0o644); err != nil {
 		warnf("claude: could not write opencode usage cache (%v)", err)
 	}
 	return stats
