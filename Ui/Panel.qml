@@ -1,12 +1,21 @@
 import QtQuick
-import Quickshell.Io
 import qs.Commons
 import qs.Commons as Commons
+// Qualified: qs.Services has names of its own (Notifications, Weather...)
+// and this file only needs the IPC router.
+import qs.Services as Services
 
 // Base item for plugin popup widgets. Many first-party plugins expose a bar
 // button plus a popup from one QML entry point; this base owns the shared
 // IPC-backed open/close lifecycle while implementations own button behavior,
 // keyboard navigation, and content.
+//
+// The IPC handler itself is not here. Every monitor's bar builds its own copy
+// of a panel, and a handler per copy meant one target registered once per
+// screen with Quickshell keeping the first -- so `pshell network toggle`
+// opened on whichever bar loaded first, not the focused one. Each panel
+// registers with Services/PanelIpc.qml instead, which holds one handler per
+// target and routes the call to the copy on the focused monitor.
 Item {
   id: root
 
@@ -46,15 +55,16 @@ Item {
     id: panelController
   }
 
-  IpcHandler {
-    enabled: root.manageIpc && root.ipcTarget !== ""
-    target: root.ipcTarget
+  // The target as registered, kept so destruction unregisters the same name
+  // even if ipcTarget were rebound in between.
+  property string _registeredTarget: ""
 
-    function open(): void { root.open() }
-    function close(): void { root.close() }
-    function show(): void { root.open() }
-    function hide(): void { root.close() }
-    function toggle(): void { root.toggle() }
+  Component.onCompleted: {
+    if (manageIpc && ipcTarget !== "") {
+      _registeredTarget = ipcTarget
+      Services.PanelIpc.register(_registeredTarget, root)
+    }
   }
+  Component.onDestruction: if (_registeredTarget !== "") Services.PanelIpc.unregister(_registeredTarget, root)
 
 }

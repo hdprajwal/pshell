@@ -89,9 +89,9 @@ function targetOf(body) {
 // target -> Map of method -> the file it came from, for failure messages.
 //
 // Most handlers name their target as a string. The one exception is
-// Ui/Panel.qml, which holds a single handler for every panel widget, with the
-// target set per widget through `ipcTarget`; its methods apply to each of
-// those. Any other handler whose target this test cannot read is a failure,
+// Services/PanelIpc.qml, which builds one handler per panel widget's target
+// (set per widget through `ipcTarget`) from a single declaration bound to
+// `modelData`; its methods apply to each of those. Any other handler whose target this test cannot read is a failure,
 // so a new pattern is noticed rather than skipped.
 function collect() {
     const files = ["Services", "Widgets", "Ui", "Commons", "Components"]
@@ -114,8 +114,8 @@ function collect() {
             if (target && target.name) {
                 for (const method of methodsOf(body))
                     add(target.name, method, file);
-            } else if (target && target.expression === "root.ipcTarget") {
-                assert.equal(panelMethods, null, `${relative(repo, file)}: a second handler on root.ipcTarget`);
+            } else if (target && target.expression === "modelData" && relative(repo, file) === join("Services", "PanelIpc.qml")) {
+                assert.equal(panelMethods, null, `${relative(repo, file)}: a second panel router handler`);
                 panelMethods = methodsOf(body);
             } else {
                 assert.fail(`${relative(repo, file)}: IpcHandler with a target this test cannot read`);
@@ -125,7 +125,7 @@ function collect() {
             panelTargets.push({ target: m[1], file });
     }
 
-    assert.ok(panelMethods, "expected Ui/Panel.qml's handler on root.ipcTarget");
+    assert.ok(panelMethods, "expected Services/PanelIpc.qml's handler on modelData");
     for (const { target, file } of panelTargets) {
         for (const method of panelMethods)
             add(target, method, file);
