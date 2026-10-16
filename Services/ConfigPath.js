@@ -128,3 +128,29 @@ function setWidgetSetting(data, widgetId, key, value) {
     root[found.section] = list;
     return root;
 }
+
+// Reading config.json (and state.json, which has the same shape problem) back
+// in. Returns the parsed object, or null when the text is not one.
+//
+// null means "do not trust this, and do not write over it". Both files are
+// rewritten whole from the in-memory copy, so whatever the reader keeps after
+// a bad parse is what the next write puts on disk -- and after a typo in a
+// hand edit that copy is `{}` at startup, or stale mid-session, either of
+// which would replace the user's file with a single key.
+//
+// Valid JSON is not enough. `null`, `42`, `"x"` and `[]` all parse, and every
+// writer in the shell treats the result as a keyed object: copying `null`
+// gives `{}`, and an array would be written back as one with string keys
+// bolted on. Neither is a config the user wrote, so they fail the same way a
+// syntax error does.
+function parseObject(text) {
+    var parsed;
+    try {
+        parsed = JSON.parse(text);
+    } catch (e) {
+        return null;
+    }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
+        return null;
+    return parsed;
+}

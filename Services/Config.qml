@@ -511,15 +511,31 @@ Singleton {
     property bool _loaded: false
     property bool _writing: false
 
+    // True while config.json is on disk but could not be used: it does not
+    // parse, is not a JSON object, or could not be read. Every write rewrites
+    // the whole file from `data`, and in that state `data` is `{}` (startup)
+    // or whatever last parsed (mid-session) -- so one toggle in the settings
+    // app would replace the user's config with a single key. Writes are
+    // refused until the file parses again; the watcher reloads on the next
+    // save from their editor, which clears this.
+    property bool _unreadable: false
+
+    function _writable() {
+        return root._loaded && !root._unreadable;
+    }
+
+    // Refused before `data` changes, not just before the file does: otherwise
+    // the settings app would show a value that silently disappears on the
+    // next restart.
     function set(dottedPath, value) {
-        if (!root._loaded)
+        if (!root._writable())
             return;
         root.data = ConfigPath.setPath(root.data, dottedPath, value);
         _save();
     }
 
     function setWidgetSetting(widgetId, key, value) {
-        if (!root._loaded)
+        if (!root._writable())
             return;
         root.data = ConfigPath.setWidgetSetting(root.data, widgetId, key, value);
         _save();
@@ -540,6 +556,8 @@ Singleton {
     // The guard exists so an early write cannot truncate a config that has
     // not finished loading -- the same reason Prefs.qml carries one.
     function _save() {
+        if (!root._writable())
+            return;
         root._writing = true;
         configFile.setText(JSON.stringify(root.data, null, 2));
     }
@@ -574,18 +592,32 @@ Singleton {
             console.warn("pshell: could not write config.json —", error);
         }
 
+        // A bad file leaves `data` alone rather than emptying it: mid-session
+        // the bar keeps the last settings that parsed instead of collapsing
+        // to defaults over a typo.
         onLoaded: {
-            try {
-                root.data = JSON.parse(text());
-            } catch (e) {
-                console.warn("pshell: bad config.json —", e);
+            const parsed = ConfigPath.parseObject(text());
+            if (parsed === null) {
+                if (!root._unreadable)
+                    console.warn("pshell: config.json is not a valid JSON object — settings changes will not be saved until it is fixed");
+                root._unreadable = true;
+            } else {
+                root.data = parsed;
+                root._unreadable = false;
             }
             root._loaded = true;
         }
 
         // No config file yet is a normal first run, not an error -- but the
         // shell must still know loading finished, or the first write would be
-        // refused forever.
-        onLoadFailed: root._loaded = true
+        // refused forever. Any other failure means a file is there that we
+        // could not read, and writing over it is the thing to avoid.
+        onLoadFailed: error => {
+            const missing = error === FileViewError.FileNotFound;
+            if (!missing && !root._unreadable)
+                console.warn("pshell: could not read config.json —", FileViewError.toString(error), "— settings changes will not be saved");
+            root._unreadable = !missing;
+            root._loaded = true;
+        }
     }
 }

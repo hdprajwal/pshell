@@ -83,3 +83,19 @@ test("setWidgetSetting on an absent widget returns the config unchanged", () => 
   const next = Cfg.setWidgetSetting(LAYOUT, "bluetooth", "x", 1);
   assert.deepEqual(next, LAYOUT);
 });
+
+test("parseObject returns the object a valid file holds", () => {
+  assert.deepEqual(Cfg.parseObject('{"position": "top", "right": []}'), { position: "top", right: [] });
+  assert.deepEqual(Cfg.parseObject("{}"), {});
+});
+
+test("parseObject rejects text that is not JSON", () => {
+  assert.equal(Cfg.parseObject('{"position": "top",}'), null);
+  assert.equal(Cfg.parseObject(""), null);
+  assert.equal(Cfg.parseObject("{"), null);
+});
+
+test("parseObject rejects valid JSON that is not an object", () => {
+  for (const text of ["null", "42", '"top"', "true", "[]", '[{"type": "clock"}]'])
+    assert.equal(Cfg.parseObject(text), null, text);
+});
