@@ -45,8 +45,12 @@ Panel {
         // An adapter sitting off is the one state actually worth flagging.
         active: root.adapter !== null && !root.enabled
 
-        iconSource: root.iconSource
-        label: root.showCount ? "" : ""
+        // The connected variant only when something is actually connected,
+        // so the bar says more than "the radio is on".
+        iconSource: Icons.bluetooth(root.enabled, root.connectedDevices.length > 0)
+        // showCount is already false with nothing connected, so a "0" never
+        // takes up bar space.
+        label: root.showCount ? String(root.connectedDevices.length) : ""
 
         onPressed: b => {
             if (b === Qt.RightButton) {
