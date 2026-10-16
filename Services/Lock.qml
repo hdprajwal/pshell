@@ -34,7 +34,42 @@ Singleton {
     // `pshell.lock isLocked` reporting an unlocked machine to anything that
     // asked. Driving the protocol from a property this file owns means the
     // answer is whatever was last asked for, which is the truth.
-    property bool locked: false
+    //
+    // Held in `carry` below rather than here, so it survives a reload. The
+    // bar runs out of the repo it is developed in, so saving any .qml while
+    // the screen is locked rebuilds this singleton; a plain property would
+    // come back false, and the rebuilt WlSessionLock -- which takes over the
+    // old one's lock -- would read that as a request to release it. That is
+    // an unlock without a password.
+    property alias locked: carry.locked
+
+    // These two are the singleton's first children, in this order, and both
+    // halves of that matter.
+    //
+    // Singleton hands each child the old generation's child at the same
+    // index -- reloadableId is not consulted at this level -- so anything
+    // declared above them would shift the pairing whenever it was added or
+    // removed, and a PersistentProperties paired with something else
+    // restores nothing. Kept first, an edit anywhere else in this file
+    // cannot move them.
+    //
+    // And the carry comes first because children reload in order: the
+    // intent has to be back to true before WlSessionLock reloads, since that
+    // is the moment it decides whether to keep the old lock or let it go.
+    PersistentProperties {
+        id: carry
+
+        reloadableId: "pshellLockIntent"
+        property bool locked: false
+    }
+
+    WlSessionLock {
+        id: sessionLock
+
+        locked: root.locked
+
+        LockSurface {}
+    }
 
     // What the compositor confirms, as opposed to what we asked for. False
     // for the moment between the two, and the honest thing to report.
@@ -291,14 +326,6 @@ Singleton {
             pam.abort();
             root._fail("Authentication timed out");
         }
-    }
-
-    WlSessionLock {
-        id: sessionLock
-
-        locked: root.locked
-
-        LockSurface {}
     }
 
     // Behind a LazyLoader, like the settings window and for a sharper
