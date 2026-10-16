@@ -169,9 +169,9 @@ Panel {
         if (!root.opened)
             return;
         // Opening is the one moment the numbers are certainly being looked
-        // at, so it is worth a run of the updater on top of the timer.
+        // at. AgentUsage decides how much of a run that is worth.
         AgentUsage.rescan();
-        AgentUsage.refresh();
+        AgentUsage.refreshForPanel();
         root.tab = root.resolvedTab();
     }
 

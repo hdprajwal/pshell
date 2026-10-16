@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "AgentUsage.js" as Model
 
 // Coding-agent usage, read off the files `pshell-agents` leaves in the state
 // directory. Nothing here extracts anything: that program already walks Claude
@@ -31,8 +32,8 @@ Singleton {
     property var records: []
     readonly property bool available: records.length > 0
 
-    // Seconds between updater runs. The widget pushes its configured value
-    // in; the floor is here because the updater talks to three network
+    // Seconds between full updater runs. The widget pushes its configured
+    // value in; the floor is here because the updater talks to three network
     // endpoints and nobody wants that on a tight loop.
     property int refreshIntervalSec: 900
 
@@ -121,25 +122,87 @@ Singleton {
                 list.push(watcher.record);
         }
         root.records = list;
+        root.scheduleRetry();
     }
 
     // -------------------------------------------------------------- refresh
 
-    function refresh() {
-        // A run already in flight is left alone. Opening the panel three
-        // times in a row must not mean three overlapping updaters.
-        if (!updater.running)
-            updater.running = true;
+    // When the last run of any kind exited, for the panel-open throttle.
+    property double lastFinishedMs: 0
+    // A timer run that arrived while a cheaper one was in flight. Dropping it
+    // would leave the token counts a whole interval behind; it runs as soon
+    // as the cheap one is done instead.
+    property bool fullPending: false
+    // How many retries in a row have been spent on a provider that keeps
+    // advising one. Zero again the moment none does.
+    property int retryAttempt: 0
+
+    // `kind` is one of AgentUsage.js's three: "full" for the timer, "open"
+    // for the panel, "retry" for a provider that asked for one. A run already
+    // in flight is left alone -- opening the panel three times in a row must
+    // not mean three overlapping updaters -- and only a full run is worth
+    // queueing behind it, since the others are subsets of whatever is running.
+    function refresh(kind) {
+        const wanted = kind || "full";
+        if (updater.running) {
+            if (wanted === "full" && updater.kind !== "full")
+                root.fullPending = true;
+            return;
+        }
+        updater.targets = wanted === "retry" ? Model.retryTargets(root.records) : [];
+        updater.kind = wanted;
+        updater.running = true;
+    }
+
+    // Opening is the one moment the numbers are certainly being looked at, so
+    // it is worth a run on top of the timer -- but only the limits, and not
+    // again for a panel toggled shut and open a few seconds later. The full
+    // rescan stays on the timer, where its cost is spread out.
+    function refreshForPanel() {
+        if (Model.openRefreshDue(root.lastFinishedMs, Date.now()))
+            root.refresh("open");
+    }
+
+    // A collector sets retryAdvised when its probe failed for want of a
+    // network, which is what the first run after login usually meets. Without
+    // this the panel would say "limits unavailable" until the next timer run,
+    // fifteen minutes later by default.
+    //
+    // Called from both rebuild() and the updater's exit, because the records
+    // are rewritten while the run is still going and their watchers may fire
+    // on either side of it; whichever comes last sees the final state.
+    function scheduleRetry() {
+        if (Model.retryTargets(root.records).length === 0) {
+            root.retryAttempt = 0;
+            retryTimer.stop();
+            return;
+        }
+        if (retryTimer.running || updater.running)
+            return;
+        retryTimer.interval = Model.retryDelaySec(root.retryAttempt, Math.max(60, root.refreshIntervalSec)) * 1000;
+        retryTimer.start();
     }
 
     Process {
         id: updater
         running: false
+        property string kind: "full"
+        property var targets: []
         // Guarded by `command -v` so a machine that has not built the
         // collector gets an empty widget rather than a failed spawn every
-        // fifteen minutes.
-        command: ["sh", "-c", "command -v pshell-agents >/dev/null 2>&1 && exec pshell-agents"]
-        onExited: root.rescan()
+        // fifteen minutes. Through sh, which always starts, so `exited`
+        // always comes and `running` never sticks.
+        command: ["sh", "-c", "command -v pshell-agents >/dev/null 2>&1 && exec pshell-agents \"$@\"", "sh"].concat(Model.updaterArgs(kind, targets))
+        onExited: {
+            root.lastFinishedMs = Date.now();
+            root.rescan();
+            if (root.fullPending) {
+                root.fullPending = false;
+                root.refresh("full");
+                return;
+            }
+            root.scheduleRetry();
+        }
 
         stderr: StdioCollector {
             waitForEnd: true
@@ -156,7 +219,16 @@ Singleton {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: root.refresh()
+        onTriggered: root.refresh("full")
+    }
+
+    Timer {
+        id: retryTimer
+        repeat: false
+        onTriggered: {
+            root.retryAttempt += 1;
+            root.refresh("retry");
+        }
     }
 
     Component.onCompleted: root.rescan()
