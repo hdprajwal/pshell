@@ -73,6 +73,7 @@ Item {
                     anchors.left: parent.left
                     anchors.right: timeLabel.left
                     anchors.rightMargin: Style.spacing.md
+                    textFormat: Text.PlainText
                     text: row.record ? row.record.appName : ""
                     color: Commons.Color.muted
                     elide: Text.ElideRight
@@ -94,6 +95,9 @@ Item {
             Text {
                 width: parent.width
                 visible: text !== ""
+                // Only the body is markup (sanitized below); the summary, app
+                // name and action labels are shown as typed.
+                textFormat: Text.PlainText
                 text: row.record ? row.record.summary : ""
                 color: Commons.Color.popups.text
                 wrapMode: Text.WordWrap

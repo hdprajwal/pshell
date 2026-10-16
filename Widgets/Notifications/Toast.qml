@@ -174,6 +174,7 @@ Item {
                         Text {
                             width: parent.width
                             visible: text !== ""
+                            textFormat: Text.PlainText
                             text: toast.notification ? toast.notification.appName : ""
                             color: Commons.Color.muted
                             elide: Text.ElideRight
@@ -185,6 +186,9 @@ Item {
                         Text {
                             width: parent.width
                             visible: text !== ""
+                            // Only the body is markup, and it goes through Markup.sanitize;
+                            // the summary, app name and action labels are shown as typed.
+                            textFormat: Text.PlainText
                             text: toast.notification ? toast.notification.summary : ""
                             // Low urgency reads quieter than normal; the
                             // body below is muted for everyone already.

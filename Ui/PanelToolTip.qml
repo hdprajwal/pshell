@@ -37,6 +37,10 @@ ToolTip {
   }
 
   contentItem: Text {
+    // The privacy tooltip names whatever app holds the mic, as that app
+    // reports itself; plain text keeps markup in it from rendering or
+    // fetching an <img>.
+    textFormat: Text.PlainText
     text: root.text
     color: root.panelForeground
     font.family: root.fontFamily

@@ -218,6 +218,8 @@ Panel {
 
                                         Text {
                                             anchors.verticalCenter: parent.verticalCenter
+                                            // The sender names its own app.
+                                            textFormat: Text.PlainText
                                             text: group.modelData.appName + "  (" + group.modelData.entries.length + ")"
                                             color: Commons.Color.popups.text
                                             font.family: Style.font.family

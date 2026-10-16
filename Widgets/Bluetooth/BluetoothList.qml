@@ -65,6 +65,9 @@ Column {
                 anchors.left: parent.left
                 anchors.leftMargin: Style.spacing.md
                 anchors.verticalCenter: parent.verticalCenter
+                // Discovered devices name themselves, so markup in a name is
+                // shown as typed rather than rendered.
+                textFormat: Text.PlainText
                 text: devRow.label
                 color: Commons.Color.popups.text
                 opacity: devRow.modelData.paired ? 1 : 0.7

@@ -168,6 +168,9 @@ Column {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
+                    // Anyone in range picks the SSID, so markup in it is shown as
+                    // typed rather than rendered (AutoText would fetch an <img src>).
+                    textFormat: Text.PlainText
                     text: netRow.modelData.name
                     color: Commons.Color.popups.text
                     font.family: Style.font.family

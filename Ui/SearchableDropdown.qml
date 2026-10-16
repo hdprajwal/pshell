@@ -138,6 +138,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: trigger.borderLeft + Style.spacing.controlPaddingX
         anchors.rightMargin: trigger.borderRight + Style.spacing.md
+        textFormat: Text.PlainText
         text: root.currentLabel() || root.triggerLabel || root.placeholderText
         color: (root.currentLabel() || root.triggerLabel) ? root.foreground : Qt.darker(root.foreground, 1.5)
         font.family: root.fontFamily
@@ -314,6 +315,9 @@ Item {
                   spacing: Style.spacing.xxs
 
                   Text {
+                    // Options can be other people's strings (Tailscale exit nodes
+                    // name themselves), so they are shown as typed.
+                    textFormat: Text.PlainText
                     text: root.optionLabel(modelData)
                     color: index === resultList.currentIndex ? Style.hoverStateColor(root.foreground, root.accent) : root.foreground
                     font.family: root.fontFamily
@@ -323,6 +327,7 @@ Item {
                   }
                   Text {
                     visible: text !== ""
+                    textFormat: Text.PlainText
                     text: root.optionDescription(modelData)
                     color: Qt.darker(root.foreground, 1.5)
                     font.family: root.fontFamily

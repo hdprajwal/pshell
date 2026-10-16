@@ -81,6 +81,9 @@ Rectangle {
                 anchors.left: dot.right
                 anchors.leftMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
+                // Peers name themselves, and the owner and OS come from the
+                // tailnet: all shown as typed, never rendered as markup.
+                textFormat: Text.PlainText
                 text: root.hostName
                 color: Commons.Color.popups.text
                 opacity: root.online ? 1 : 0.6
@@ -92,6 +95,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 visible: root.isSelf || root.owner !== ""
+                textFormat: Text.PlainText
                 text: root.isSelf ? "This device" : root.owner
                 color: Commons.Color.muted
                 font.family: Style.font.family
@@ -151,6 +155,7 @@ Rectangle {
             // Relay is the DERP region traffic is bouncing through. It only
             // means something when there is no direct path, which is exactly
             // when you are wondering why a machine feels slow.
+            textFormat: Text.PlainText
             text: {
                 const parts = [];
                 if (root.os !== "")

@@ -67,6 +67,8 @@ Item {
 
             Text {
                 width: parent.width
+                // The SSID is a stranger's string; never render it as markup.
+                textFormat: Text.PlainText
                 text: "Connect to " + root.ssid
                 color: Commons.Color.popups.text
                 font.family: Style.font.family

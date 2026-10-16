@@ -523,6 +523,7 @@ Panel {
                             Text {
                                 width: column.panelWidth - Style.font.body - Style.spacing.sm
                                 wrapMode: Text.Wrap
+                                textFormat: Text.PlainText
                                 text: parent.modelData
                                 color: Commons.Color.urgent
                                 opacity: 0.85
@@ -537,6 +538,7 @@ Panel {
                     visible: root.lastError !== ""
                     width: column.panelWidth
                     wrapMode: Text.Wrap
+                    textFormat: Text.PlainText
                     text: root.lastError
                     color: Commons.Color.urgent
                     font.family: Style.font.family

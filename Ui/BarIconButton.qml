@@ -135,6 +135,9 @@ WidgetButton {
     Text {
       anchors.verticalCenter: parent.verticalCenter
       visible: root.label !== ""
+      // Labels carry SSIDs and the like, which anyone nearby can name;
+      // plain text keeps markup in them from rendering.
+      textFormat: Text.PlainText
       text: root.label
       color: root.foreground
       font.family: root.fontFamily

@@ -91,6 +91,8 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
+                    // App names come from the sender, so shown as typed.
+                    textFormat: Text.PlainText
                     text: chip.modelData.appName
                     color: Commons.Color.lock.text
                     font.family: Style.font.family
