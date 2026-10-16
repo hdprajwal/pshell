@@ -43,7 +43,8 @@ Singleton {
         keepOnReload: true
 
         // Advertised because they are true of what the widgets render:
-        // bodies draw as StyledText, so markup and clickable links work;
+        // bodies draw as StyledText, so markup and clickable links work
+        // (http, https and mailto only -- Services/NotificationMarkup.js);
         // `image` renders in the toast; actions render as buttons; inline
         // replies render as a text field. persistenceSupported is the load-
         // bearing one -- it tells applications their notification survives
@@ -57,8 +58,10 @@ Singleton {
         inlineReplySupported: true
 
         // Not advertised because nothing renders them: <img> tags inside a
-        // body are not drawn (bodyImagesSupported), and action buttons show
-        // their text, never an icon (actionIconsSupported). Advertising a
+        // body are not drawn (bodyImagesSupported -- an advertisement
+        // only; NotificationMarkup.js is what actually strips them), and
+        // action buttons show their text, never an icon
+        // (actionIconsSupported). Advertising a
         // capability you do not implement is a lie applications act on --
         // an app told icons work sends icon names as labels and its buttons
         // come out unreadable.

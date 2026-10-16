@@ -7,6 +7,7 @@ import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
 import "../../Services/NotificationHistory.js" as History
+import "../../Services/NotificationMarkup.js" as Markup
 
 // One history entry in the panel: icon, app, summary, body, a relative
 // timestamp, and action buttons for as long as the notification behind the
@@ -106,7 +107,10 @@ Item {
             Text {
                 width: parent.width
                 visible: text !== ""
-                text: row.record ? row.record.body : ""
+                // Saved bodies are sanitised on every draw, so a
+                // record written before the filter existed cannot fetch
+                // its <img> either -- Toast.qml does the same.
+                text: row.record ? Markup.sanitize(row.record.body) : ""
                 color: Commons.Color.muted
                 textFormat: Text.StyledText
                 wrapMode: Text.WordWrap
@@ -115,7 +119,10 @@ Item {
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
                 linkColor: Commons.Color.accent
-                onLinkActivated: link => Qt.openUrlExternally(link)
+                onLinkActivated: link => {
+                    if (Markup.isSafeLink(link))
+                        Qt.openUrlExternally(link);
+                }
             }
 
             Row {
