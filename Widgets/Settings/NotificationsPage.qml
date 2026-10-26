@@ -13,7 +13,6 @@ SettingsPage {
     id: page
 
     title: "Notifications"
-    subtitle: "pshell is the notification daemon; nothing else needs to run."
 
     // One write per edit, and always the whole timeout object: the three
     // urgencies live under one `timeout` key, and writing "the low value"
@@ -73,7 +72,9 @@ SettingsPage {
 
     FormSection {
         title: "Toasts"
-        help: "How long a toast stays up, in seconds, per urgency. Zero means it never leaves on its own -- the default for critical, because a critical notification that quietly vanishes defeats the urgency."
+        // Zero is the default for critical: a critical notification that quietly
+        // vanishes defeats the urgency.
+        help: "Seconds on screen per urgency; 0 stays until dismissed."
 
         Row {
             spacing: Style.spacing.xl
@@ -103,46 +104,59 @@ SettingsPage {
             }
         }
 
-        NumberField {
-            label: "Visible at once -- more than this waits behind a +N more row"
-            from: 1
-            to: 20
-            value: Config.notifications.maxVisible
-            onModified: v => Config.set("notifications.maxVisible", v)
+        // Spaced off the timeouts by hand: the card's column has no spacing
+        // of its own, and these rows would otherwise sit on the fields'
+        // bottom edge.
+        Item {
+            width: 1
+            height: Style.spacing.md
         }
 
-        Dropdown {
-            width: parent.width
+        // More than this waits behind a "+N more" row, which says so itself.
+        FormRow {
+            label: "Visible at once"
+
+            NumberField {
+                from: 1
+                to: 20
+                value: Config.notifications.maxVisible
+                onModified: v => Config.set("notifications.maxVisible", v)
+            }
+        }
+
+        FormRow {
             label: "Position"
-            options: [
-                {
-                    value: "auto",
-                    label: "Opposite the bar"
-                },
-                {
-                    value: "top",
-                    label: "Top"
-                },
-                {
-                    value: "bottom",
-                    label: "Bottom"
-                }
-            ]
-            value: Config.notifications.position
-            onChanged: v => Config.set("notifications.position", v)
+
+            Dropdown {
+                showLabel: false
+                options: [
+                    {
+                        value: "auto",
+                        label: "Opposite the bar"
+                    },
+                    {
+                        value: "top",
+                        label: "Top"
+                    },
+                    {
+                        value: "bottom",
+                        label: "Bottom"
+                    }
+                ]
+                value: Config.notifications.position
+                onChanged: v => Config.set("notifications.position", v)
+            }
         }
-    }
 
-    FormSection {
-        title: "History"
-        help: "How many notifications the panel remembers, across restarts."
+        FormRow {
+            label: "History kept"
 
-        NumberField {
-            label: "Depth"
-            from: 0
-            to: 1000
-            value: Config.notifications.historyDepth
-            onModified: v => Config.set("notifications.historyDepth", v)
+            NumberField {
+                from: 0
+                to: 1000
+                value: Config.notifications.historyDepth
+                onModified: v => Config.set("notifications.historyDepth", v)
+            }
         }
     }
 
@@ -151,19 +165,22 @@ SettingsPage {
     // page of its own. Writes the `volumeTone` group.
     FormSection {
         title: "Volume tone"
-        help: "A short click on the output once its volume stops changing, at the new level, so you hear how loud it is and which device will play. Silent when muted, at 0%, and when the output switches."
+        // It plays at the new level, so you hear how loud it is and which
+        // device will play; silent when muted, at 0%, and when the output
+        // switches.
+        help: "A short click once the volume stops changing."
 
         Toggle {
             width: parent.width
-            label: "Play a tone after a volume change"
+            label: "Tone after a volume change"
             checked: Config.volumeTone.enabled
             onClicked: Config.set("volumeTone.enabled", !Config.volumeTone.enabled)
         }
 
         Toggle {
             width: parent.width
-            label: "For the volume keys and other apps too"
-            description: "Off, only the control centre and pshell audio sound."
+            label: "Volume keys and other apps too"
+            description: "Off: only the control centre and pshell audio."
             // Inert, not hidden, while the tone is off; see ThemePage.
             enabled: Config.volumeTone.enabled
             opacity: Config.volumeTone.enabled ? 1 : 0.4
@@ -174,12 +191,12 @@ SettingsPage {
 
     FormSection {
         title: "Muted apps"
-        help: "A muted app's notifications still land in history; they just never toast. The list is every app history has seen."
+        help: "Muted apps still reach history, they just never toast."
 
         Text {
             width: parent.width
             visible: page.muteRows.length === 0
-            text: "Nothing has notified yet. Apps appear here once they do."
+            text: "No apps yet."
             color: Commons.Color.muted
             wrapMode: Text.WordWrap
             font.family: Style.font.family

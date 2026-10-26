@@ -6,7 +6,7 @@ pshell borrows ideas and code from other projects. This page says what came from
 
 [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) (MIT) is what I used before this. It is around 500 QML files on top of a Go daemon. Its AxisContext is the simplest way I have seen to support all four screen edges without writing every widget twice. One object holds the edge name and whether the bar is vertical, and each widget reads it to pick a row or a column. pshell copies that idea.
 
-Several layouts come from DMS too: the lockscreen's arrangement, the system monitor's pills, the wallpaper page's pages that slide sideways with arrow keys that walk off one page onto the next, and the choice of Material Symbols for icons. pshell draws them in its own flat style.
+Several layouts come from DMS too: the lockscreen's arrangement, the system monitor's pills, the theme page (an icon on each section, the theme in use stated first, and the choices centred under it), the wallpaper page's pages that slide sideways with arrow keys that walk off one page onto the next, and the choice of Material Symbols for icons. pshell draws them in its own flat style.
 
 [Omarchy](https://github.com/basecamp/omarchy) 4 (MIT) replaced Waybar, Walker, Mako, SwayOSD, hyprlock, hypridle and swaybg with one Quickshell process. Its bar hides by moving the window just past the screen edge instead of closing it. The comment in their `Bar.qml` explains why: closing the window frees everything drawn in it, so showing the bar again has to rebuild all of it. They measured about 150 ms to rebuild against 20 ms to close. pshell chose differently: hiding the bar unmaps its window, so the compositor also gives back the space the bar reserved and windows grow into it.
 

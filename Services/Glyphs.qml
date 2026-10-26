@@ -253,6 +253,12 @@ Singleton {
     readonly property string palette: "palette"
     readonly property string info: "info"
 
+    // The theme page's card headers, beside `palette` on its first card:
+    // the half-filled circle for light and dark, and paint pots for the
+    // swatches of the palette in use.
+    readonly property string contrast: "contrast"
+    readonly property string swatches: "colors"
+
     // The wallpaper page's toolbar and grid. `view_carousel` is the
     // three-cards-in-a-row picture, which is what the carousel overlay looks
     // like when it opens; `check` is the badge on the wallpaper that is up.

@@ -10,7 +10,6 @@ SettingsPage {
     id: page
 
     title: "About"
-    subtitle: "A Quickshell bar where widgets are programs."
 
     // The same facts neofetch prints, gathered here rather than by shelling
     // out to neofetch. Parsing another program's human-facing output would

@@ -23,7 +23,6 @@ SettingsPage {
     id: page
 
     title: "Weather"
-    subtitle: "Open-Meteo: no API key and no account. Only a bar with the weather widget in it polls on its own; the button below fetches on any bar."
 
     // The service's own words, on the page that caused them. A geocoding miss
     // names the string that missed, so a name that resolved to nothing says so
@@ -35,7 +34,9 @@ SettingsPage {
 
     FormSection {
         title: "Place"
-        help: "A name, resolved through Open-Meteo's geocoder once and then remembered. Only the name is sent, and only when it changes."
+        // Resolved through Open-Meteo's geocoder once and then remembered;
+        // only the name is sent, and only when it changes.
+        help: "Looked up once with Open-Meteo, which needs no API key."
 
         Column {
             width: parent.width
@@ -78,7 +79,7 @@ SettingsPage {
             Text {
                 width: parent.width
                 visible: page.fixed
-                text: "Coordinates below are set, so they decide where the forecast is for. This name is only the label the panel shows."
+                text: "Label only; the coordinates below decide."
                 color: Commons.Color.muted
                 wrapMode: Text.WordWrap
                 font.family: Style.font.family
@@ -88,14 +89,22 @@ SettingsPage {
     }
 
     FormSection {
-        title: "Exact coordinates"
-        help: "Set these and they beat the name above, and the geocoder is never contacted at all. There is more than one Springfield and the geocoder hands back the biggest; this is how you say which one you meant. Round them off if you would rather not hand over your street."
+        title: "Coordinates"
+        // There is more than one Springfield and the geocoder hands back the
+        // biggest; this is how you say which one you meant. Set, they beat
+        // the name and the geocoder is never contacted at all.
+        help: "Override the name. Round them off to keep your street private."
 
-        Column {
+        // Fields and buttons on one line: the buttons act on the two fields
+        // beside them, and a second line under them was only height.
+        Item {
             width: parent.width
-            spacing: Style.spacing.lg
+            height: coordRow.height + Style.spacing.md * 2
 
             Row {
+                id: coordRow
+
+                anchors.verticalCenter: parent.verticalCenter
                 spacing: Style.spacing.xl
 
                 Column {
@@ -162,12 +171,15 @@ SettingsPage {
             }
 
             Row {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Style.spacing.md
                 spacing: Style.spacing.md
 
                 Button {
                     id: applyButton
 
-                    text: "Use these coordinates"
+                    text: "Apply"
                     bordered: true
                     // Both halves or neither, because one of them is not a
                     // place: a latitude on its own leaves hasCoordinates false
@@ -180,7 +192,7 @@ SettingsPage {
                 Button {
                     id: clearButton
 
-                    text: "Use the place name"
+                    text: "Use name"
                     bordered: true
                     enabled: page.fixed
                     opacity: clearButton.enabled ? 1 : 0.4
@@ -198,68 +210,88 @@ SettingsPage {
         }
     }
 
+    // Three one-control settings on one card, a line each.
     FormSection {
-        title: "Units"
-        help: "Metric is °C and km/h, imperial is °F and mph. Open-Meteo converts at its end, so changing this refetches rather than rounding what is already on screen."
+        // Open-Meteo converts units at its end, so changing them refetches
+        // rather than rounding what is already on screen. The hours come in
+        // the same fetch as everything else, and twelve- or twenty-four-hour
+        // follows the clock widget's format.
+        title: "Forecast"
+        help: "Refresh is at least 5 minutes; 0 hours hides the hourly row."
 
-        ButtonGroup {
-            options: [
-                {
-                    value: "metric",
-                    label: "Metric"
-                },
-                {
-                    value: "imperial",
-                    label: "Imperial"
-                }
-            ]
-            value: Config.weather.units
-            onChanged: v => Config.set("weather.units", v)
+        FormRow {
+            label: "Units"
+
+            ButtonGroup {
+                options: [
+                    {
+                        value: "metric",
+                        label: "°C, km/h"
+                    },
+                    {
+                        value: "imperial",
+                        label: "°F, mph"
+                    }
+                ]
+                value: Config.weather.units
+                onChanged: v => Config.set("weather.units", v)
+            }
         }
-    }
 
-    FormSection {
-        title: "Refresh"
-        help: "Minutes between fetches. Five is the floor -- Open-Meteo is free and unauthenticated, and pointing tight loops at a service like that is how it stops being either. Fifteen is also as fine as the data gets: the forecast model itself moves in fifteen-minute steps."
-
+        // Five minutes is the floor -- Open-Meteo is free and
+        // unauthenticated, and pointing tight loops at a service like that
+        // is how it stops being either. Fifteen is also as fine as the data
+        // gets: the forecast model itself moves in fifteen-minute steps.
+        //
         // The spinbox range is the config's own clamp, so the page cannot
         // offer a number Config.weather.intervalMin would quietly rewrite. A
         // field that accepted 1 and then behaved like 5 reads as the setting
         // being ignored.
-        NumberField {
-            label: "Minutes"
-            from: 5
-            to: 1440
-            value: Config.weather.intervalMin
-            onModified: v => Config.set("weather.intervalMin", v)
-        }
-    }
+        FormRow {
+            label: "Refresh (minutes)"
 
-    FormSection {
-        title: "Hourly forecast"
-        help: "How many hours the panel shows, starting with the hour it is now where the forecast is for. 0 hides the row. The hours come in the same fetch as everything else, so this costs no extra requests. Twelve- or twenty-four-hour follows the clock widget's format."
+            NumberField {
+                from: 5
+                to: 1440
+                value: Config.weather.intervalMin
+                onModified: v => Config.set("weather.intervalMin", v)
+            }
+        }
 
         // The range is Config.weather.hourlyHours' own clamp, for the reason
         // the interval field above gives.
-        NumberField {
-            label: "Hours"
-            from: 0
-            to: 24
-            value: Config.weather.hourlyHours
-            onModified: v => Config.set("weather.hourlyHours", v)
+        FormRow {
+            label: "Hourly forecast (hours)"
+
+            NumberField {
+                from: 0
+                to: 24
+                value: Config.weather.hourlyHours
+                onModified: v => Config.set("weather.hourlyHours", v)
+            }
         }
     }
 
     FormSection {
+        // What the last fetch came back with. This is where a place you just
+        // typed is confirmed -- the settings window is usually sitting on top
+        // of the bar that would otherwise show it.
         title: "Right now"
-        help: "What the last fetch came back with. This is where a place you just typed is confirmed -- the settings window is usually sitting on top of the bar that would otherwise show it."
+        help: "Only bars with the weather widget poll; Refresh fetches anyway."
 
-        Column {
+        // The reading and its button on one line, the button on the right
+        // where FormRow puts controls.
+        Item {
             width: parent.width
-            spacing: Style.spacing.lg
+            height: Math.max(reading.height, refreshNow.height) + Style.spacing.md * 2
 
             Row {
-                width: parent.width
+                id: reading
+
+                anchors.left: parent.left
+                anchors.right: refreshNow.left
+                anchors.rightMargin: Style.spacing.lg
+                anchors.verticalCenter: parent.verticalCenter
                 spacing: Style.spacing.md
 
                 MaterialIcon {
@@ -297,6 +329,8 @@ SettingsPage {
             Button {
                 id: refreshNow
 
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 text: Weather.busy ? "Fetching…" : "Refresh now"
                 bordered: true
                 // Disabled rather than hidden while a fetch is in flight: the
