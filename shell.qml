@@ -230,6 +230,7 @@ ShellRoot {
             readonly property color background: Commons.Color.background
             readonly property color urgent: Commons.Color.urgent
             readonly property string fontFamily: Style.font.family
+            readonly property int fontSize: Config.barFontSize
             // Omarchy's widgets animate their foreground unless the bar says
             // not to. pshell has no setting for it, so it is simply on.
             readonly property bool foregroundAnimationEnabled: true

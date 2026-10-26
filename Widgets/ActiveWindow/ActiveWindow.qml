@@ -89,7 +89,7 @@ BarWidget {
             text: root.appName
             color: Commons.Color.foreground
             font.family: Style.font.family
-            font.pixelSize: Style.font.body
+            font.pixelSize: root.bar ? root.bar.fontSize : Style.font.body
         }
 
         Text {
@@ -98,7 +98,7 @@ BarWidget {
             text: "·"
             color: Commons.Color.muted
             font.family: Style.font.family
-            font.pixelSize: Style.font.body
+            font.pixelSize: root.bar ? root.bar.fontSize : Style.font.body
         }
 
         Text {
@@ -115,7 +115,7 @@ BarWidget {
             color: Commons.Color.foreground
             opacity: 0.75
             font.family: Style.font.family
-            font.pixelSize: Style.font.body
+            font.pixelSize: root.bar ? root.bar.fontSize : Style.font.body
         }
     }
 }

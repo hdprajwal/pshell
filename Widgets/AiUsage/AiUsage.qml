@@ -224,7 +224,7 @@ Panel {
                         text: root.readingFor(modelData)
                         color: parent.warn ? button.activeColor : button.foreground
                         font.family: button.fontFamily
-                        font.pixelSize: Style.font.body
+                        font.pixelSize: button.barFontSize
                         renderType: Text.NativeRendering
 
                         Behavior on color {

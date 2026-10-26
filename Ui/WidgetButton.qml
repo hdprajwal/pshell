@@ -8,7 +8,9 @@ Item {
   property var bar: null
   property string text: ""
   property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  property real fontSize: Style.font.body
+  // The bar's own text size, for labels that are not `fontSize` itself.
+  readonly property real barFontSize: bar && bar.fontSize ? bar.fontSize : Style.font.body
+  property real fontSize: barFontSize
   property color foreground: bar ? bar.barForeground : Commons.Color.foreground
   property color activeColor: bar ? bar.urgent : Commons.Color.urgent
   property bool active: false

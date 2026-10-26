@@ -142,7 +142,7 @@ Panel {
                     id: reserve
                     text: pill.p.reserve
                     font.family: pill.fontFamily
-                    font.pixelSize: Style.font.body
+                    font.pixelSize: pill.barFontSize
                 }
 
                 onPressed: b => {

@@ -141,7 +141,7 @@ WidgetButton {
       text: root.label
       color: root.foreground
       font.family: root.fontFamily
-      font.pixelSize: Style.font.body
+      font.pixelSize: root.barFontSize
       renderType: Text.NativeRendering
     }
   }

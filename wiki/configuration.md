@@ -55,7 +55,14 @@ Any other key on an entry is a setting for that widget.
 |---|---|---|
 | `font` | Font family for text | `monospace` |
 | `fontSize` | Base font size in pixels. Panels scale from this. | `12` |
+| `barFontSize` | Size of text in the bar itself. Panels and popouts keep `fontSize`. | `fontSize` |
 | `iconFont` | Font for glyph icons | `JetBrainsMono Nerd Font` |
+
+Glyph icons drawn from the Nerd Font in the bar size from `bar.icon-font` under `shell` instead:
+
+```json
+{ "barFontSize": 11, "barIconSize": 13, "shell": { "bar.icon-font": 12 } }
+```
 
 The control centre and most panels use [Material Symbols](https://fonts.google.com/icons), which pshell ships in `assets/fonts/`. You do not need to install it. See [Theming](theming.md#icons).
 

@@ -25,6 +25,8 @@ Singleton {
     readonly property string dim: data.dim || Theme.dim || "#6c7086"
     readonly property string fontFamily: data.font || "monospace"
     readonly property int fontSize: data.fontSize || 12
+    // Text in the bar itself. Panels and popouts stay on fontSize.
+    readonly property int barFontSize: data.barFontSize || fontSize
     // Glyph font for widget icons. Nerd Fonts are the least intrusive choice
     // here: they are usually already installed, so pshell ships no font of its own.
     // Size of icons drawn in the bar itself. Popout and panel icons size
