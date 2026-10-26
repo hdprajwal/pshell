@@ -16,16 +16,20 @@ BarWidget {
 
     property var cfg: ({})
 
-    // Fall back to a fixed 1..5 so empty workspaces still have somewhere to
-    // click, then add any live ones beyond that.
+    // Only workspaces with windows on them, plus the focused one even when
+    // it's empty — otherwise switching to a fresh workspace would leave the
+    // strip with nothing lit. Persistent-but-empty workspaces stay hidden.
     readonly property var ids: {
-        const base = [1, 2, 3, 4, 5];
+        const focusedId = Hyprland.focusedWorkspace !== null ? Hyprland.focusedWorkspace.id : -1;
+        const base = [];
         const live = Hyprland.workspaces.values;
         for (var i = 0; i < live.length; i++) {
-            const id = live[i].id;
-            if (id > 0 && base.indexOf(id) === -1)
-                base.push(id);
+            const ws = live[i];
+            if (ws.id > 0 && (ws.id === focusedId || ws.toplevels.values.length > 0))
+                base.push(ws.id);
         }
+        if (focusedId > 0 && base.indexOf(focusedId) === -1)
+            base.push(focusedId);
         base.sort((a, b) => a - b);
         return base;
     }
