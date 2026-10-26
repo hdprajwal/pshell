@@ -6,15 +6,15 @@ A bar widget is either a program that prints a line to stdout, or a QML file. Sc
 
 ## Install
 
-You need [Quickshell](https://quickshell.org) installed.
+On Arch or CachyOS, clone it and run the install script:
 
 ```sh
 git clone https://github.com/hdprajwal/pshell ~/.config/quickshell/pshell
-mkdir -p ~/.config/pshell ~/.local/bin
-cp ~/.config/quickshell/pshell/config.example.json ~/.config/pshell/config.json
-ln -s ~/.config/quickshell/pshell/bin/pshell ~/.local/bin/pshell
+~/.config/quickshell/pshell/install.sh
 pshell run
 ```
+
+The script installs Quickshell and the programs pshell's features use, from the repos or the AUR (through yay or paru). Then it writes `~/.config/pshell/config.json`, puts the `pshell` command in `~/.local/bin`, and builds the AI usage helper. It is safe to run again. `--core` installs only what pshell itself needs, `--dry-run` shows what it would do, and `--help` lists the rest.
 
 `~/.local/bin` must be on your `PATH` for the last line to work. `pshell run` starts the shell in the foreground; it is the same as `qs -p ~/.config/quickshell/pshell`.
 
@@ -24,7 +24,7 @@ To start it with Hyprland, add this to `hyprland.conf`:
 exec-once = qs -p ~/.config/quickshell/pshell
 ```
 
-[Getting started](wiki/getting-started.md) has the details, including a Lua config, the optional programs each feature uses, and what to do if another shell is already running.
+[Getting started](wiki/getting-started.md) has the details, including installing by hand, a Lua config, the optional programs each feature uses, and what to do if another shell is already running.
 
 ## What it does
 

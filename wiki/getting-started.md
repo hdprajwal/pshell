@@ -4,6 +4,34 @@ This page covers installing pshell, starting it, installing the `pshell` command
 
 ## Install
 
+On Arch or CachyOS, the install script does all of it:
+
+```sh
+git clone https://github.com/hdprajwal/pshell ~/.config/quickshell/pshell
+~/.config/quickshell/pshell/install.sh
+pshell run
+```
+
+It runs in two halves:
+
+1. **Packages.** Quickshell, git, and every program in [Other programs](#other-programs). Each comes from the repos when the repos have it, and from the AUR through yay or paru when they do not. Anything already installed is skipped. It leaves power-profiles-daemon out when TLP or auto-cpufreq is installed, since those do the same job.
+2. **Setup.** It writes `~/.config/pshell/config.json` from `config.example.json` (never over one you have), links the `pshell` command into `~/.local/bin`, builds the [AI usage](ai-usage.md) helper when Go 1.24 or newer is installed, and starts walker's elephant service.
+
+It does not start the bar, edit your Hyprland config, or enable system services such as NetworkManager or bluetooth. At the end it prints what is left for you: the line for your Hyprland config if it does not start pshell yet, services that are installed but off, and any other notification daemon or shell that is running.
+
+It is safe to run again.
+
+| Option | What it does |
+|---|---|
+| `-y`, `--yes` | Install without asking. |
+| `-n`, `--dry-run` | Show what it would do, and change nothing. |
+| `--core` | Install only Quickshell and git. Every feature that needs something else hides itself. |
+| `--no-aur` | Install only from the repos, and list what it could not get. |
+| `--skip-packages` | Only do the setup. |
+| `--skip-setup` | Only install packages. |
+
+### By hand
+
 You need [Quickshell](https://quickshell.org) installed. The command it gives you is `qs`.
 
 ```sh
@@ -25,6 +53,7 @@ pshell itself only needs Quickshell. Some features use other programs, and each 
 | `matugen` | Colours from the wallpaper. See [Theming](theming.md). |
 | `brightnessctl` | Screen and keyboard backlight. See [Control centre](control-centre.md). |
 | `wl-clipboard`, `wtype`, `perl`, `setpriv` | Clipboard history. See [Clipboard](clipboard.md). |
+| `fuser` (psmisc) | The privacy indicator for the microphone and camera. |
 | `hyprsunset` | Nightlight. See [Session](session.md#nightlight). |
 | `cachy-update` or `arch-update` | Update count. See [Session](session.md#system-updates). |
 | `walker` and `elephant` | The app launcher. See [Session](session.md#launcher). |
