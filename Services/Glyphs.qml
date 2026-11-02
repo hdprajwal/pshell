@@ -194,6 +194,9 @@ Singleton {
     readonly property string logout: "logout"
     readonly property string keyboard: "keyboard"
 
+    // An app in the mixer whose icon the theme does not have.
+    readonly property string audioApp: "music_note"
+
     // The other two session actions, named here rather than spelled at the
     // power menu's call site so the five icons are picked in one place.
     // `bedtime` is the crescent DMS uses for suspend -- a moon reads as

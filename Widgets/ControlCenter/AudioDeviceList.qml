@@ -5,9 +5,10 @@ import qs.Services
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
-import "../../Services/VolumeTone.js" as ToneModel
 
 // Output or input device picker. `input` switches which list is shown.
+// Under the outputs sits the mixer, a slider for each app playing; under the
+// inputs, what is recording.
 //
 // The active device is drawn as an outlined card rather than just tinted
 // text, so it stays obvious which one you are listening through when the
@@ -38,10 +39,9 @@ Column {
         return all;
     }
 
-    // Application streams, so you can see what is actually making noise.
-    // Not pshell's own volume tone, which would flash a row after every
-    // change made with this list open, whichever player plays it.
-    readonly property var streams: Pipewire.nodes.values.filter(n => n.isStream && n.isSink === !root.input && n.audio && !ToneModel.isToneStream(n.name, VolumeTone.player, VolumeTone.playing))
+    // What is recording, so you can see who has the microphone. The output
+    // side's apps are Audio.streams, which the mixer below draws.
+    readonly property var recordings: root.input ? Pipewire.nodes.values.filter(n => n.isStream && !n.isSink && n.audio) : []
 
     spacing: 8
 
@@ -240,7 +240,8 @@ Column {
     }
 
     Text {
-        text: root.input ? "Recording" : "Playback"
+        visible: root.input
+        text: "Recording"
         color: Commons.Color.foreground
         opacity: 0.55
         font.family: Style.font.family
@@ -248,8 +249,8 @@ Column {
     }
 
     Text {
-        visible: root.streams.length === 0
-        text: root.input ? "Nothing recording" : "Nothing playing"
+        visible: root.input && root.recordings.length === 0
+        text: "Nothing recording"
         color: Commons.Color.foreground
         opacity: 0.35
         font.family: Style.font.family
@@ -257,10 +258,11 @@ Column {
     }
 
     Column {
+        visible: root.input
         spacing: 4
 
         Repeater {
-            model: root.streams
+            model: root.recordings
 
             Item {
                 required property var modelData
@@ -293,6 +295,119 @@ Column {
                     opacity: 0.55
                     font.family: Style.font.family
                     font.pixelSize: Math.round(Style.font.body * 0.85)
+                }
+            }
+        }
+    }
+
+    // The mixer. Gone, caption and all, while nothing is playing: an empty
+    // section is a heading over nothing. Shown from root.input and the
+    // service's list, never from a child's visibility, so the detail pane's
+    // height stays an input rather than something this sets.
+    Column {
+        visible: !root.input && Audio.streams.length > 0
+        width: root.rowWidth
+        spacing: Style.spacing.md
+
+        PanelSectionHeader {
+            text: "Apps"
+        }
+
+        Repeater {
+            model: root.input ? [] : Audio.streams
+
+            Item {
+                id: appRow
+
+                required property var modelData
+                readonly property bool muted: modelData.audio ? modelData.audio.muted : false
+                readonly property real volume: modelData.audio ? modelData.audio.volume : 0
+                readonly property string iconSource: Audio.streamIcon(modelData)
+                readonly property int iconSize: Math.round(Style.font.body * 1.6)
+
+                width: root.rowWidth
+                height: appName.implicitHeight + appSlider.implicitHeight
+
+                // A plain Image, as ActiveWindow has it: an app logo is not
+                // tinted to the foreground like a symbolic icon.
+                Image {
+                    id: appIcon
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: appRow.iconSize
+                    height: appRow.iconSize
+                    visible: appRow.iconSource !== ""
+                    source: appRow.iconSource
+                    sourceSize.width: appRow.iconSize
+                    sourceSize.height: appRow.iconSize
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    opacity: appRow.muted ? 0.45 : 1
+                }
+
+                MaterialIcon {
+                    anchors.centerIn: appIcon
+                    visible: appRow.iconSource === ""
+                    name: Glyphs.audioApp
+                    size: Math.round(Style.font.body * 1.2)
+                    color: Commons.Color.foreground
+                    opacity: appRow.muted ? 0.45 : 0.85
+                }
+
+                Text {
+                    id: appName
+                    anchors.left: appIcon.right
+                    anchors.leftMargin: Style.spacing.lg
+                    anchors.right: muteButton.left
+                    anchors.rightMargin: Style.spacing.md
+                    anchors.top: parent.top
+                    text: Audio.streamName(appRow.modelData)
+                    color: Commons.Color.foreground
+                    opacity: appRow.muted ? 0.45 : 0.8
+                    font.family: Style.font.family
+                    font.pixelSize: Math.round(Style.font.body * 0.9)
+                    elide: Text.ElideRight
+                }
+
+                PanelSlider {
+                    id: appSlider
+                    bar: root.bar
+                    anchors.left: appName.left
+                    anchors.right: appName.right
+                    anchors.top: appName.bottom
+                    minimum: 0
+                    maximum: 1
+                    step: 0.05
+                    value: appRow.volume
+                    opacity: appRow.muted ? 0.45 : 1
+                    onMoved: v => Audio.setStreamVolume(appRow.modelData, v)
+                    onRightClicked: Audio.toggleStreamMute(appRow.modelData)
+                }
+
+                Rectangle {
+                    id: muteButton
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.round(Style.font.body * 1.9)
+                    height: width
+                    radius: Style.cornerRadius
+                    color: muteHover.containsMouse ? Style.selectedFill : (appRow.muted ? Style.normalFill : "transparent")
+
+                    MaterialIcon {
+                        anchors.centerIn: parent
+                        name: Glyphs.volume(appRow.muted, appRow.volume)
+                        size: Math.round(Style.font.body * 1.1)
+                        color: Commons.Color.foreground
+                        opacity: appRow.muted ? 0.45 : 0.7
+                    }
+
+                    MouseArea {
+                        id: muteHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Audio.toggleStreamMute(appRow.modelData)
+                    }
                 }
             }
         }

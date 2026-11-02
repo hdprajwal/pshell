@@ -43,7 +43,10 @@ Panel {
     property string detail: ""
     // Which row of tiles owns the open list: the top pair or the bottom one.
     readonly property int detailRow: detail === "sink" || detail === "source" ? 1 : 0
-    readonly property int detailHeight: detail === "" ? 0 : Math.min(Style.space(320), detailColumn.implicitHeight + Style.spacing.xxl)
+    // The list plus the Flickable's margins on both sides, exactly. Any less
+    // and a list that fits scrolls by the difference, and its last row --
+    // the active device's outline, with no apps playing -- is cut off.
+    readonly property int detailHeight: detail === "" ? 0 : Math.min(Style.space(320), detailColumn.implicitHeight + 2 * Style.spacing.lg)
 
     function showDetail(name) {
         detail = detail === name ? "" : name;

@@ -161,6 +161,21 @@ Singleton {
     // canberra-gtk-play stream only then.
     readonly property bool playing: tone.busy
 
+    // Handed to Audio, whose list of apps leaves the tone out. Pushed from
+    // here because this side already depends on Audio, and the reverse
+    // would make each singleton wait on the other.
+    Binding {
+        target: Audio
+        property: "tonePlayer"
+        value: root.player
+    }
+
+    Binding {
+        target: Audio
+        property: "tonePlaying"
+        value: root.playing
+    }
+
     // Why the last tone did not play, while it is still true: set when the
     // player could not be started, cleared when one starts. For `test`,
     // which answers before the player has had the chance to fail.

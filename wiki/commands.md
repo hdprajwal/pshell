@@ -38,7 +38,7 @@ Several targets have a `show` method. It cannot be called from the command line:
 
 ## audio
 
-The default output and input. Volume is in percent.
+The default output and input, and the apps playing through them. Volume is in percent. The `app` commands answer with an `error: ` line when no app by that name is playing.
 
 | Command | What it does |
 |---|---|
@@ -52,6 +52,11 @@ The default output and input. Volume is in percent.
 | `pshell audio micSetVolume 60` | Set the microphone to 60%. |
 | `pshell audio tone on` | The tone after a volume change. Takes `on`, `off`, `toggle`, `test` or `status`. `on` and `off` are saved to `config.json`. See [Session](session.md#volume-tone). |
 | `pshell audio status` | One line, for example `volume 40% sink "Speakers" mic 60% muted source "Mic"`. |
+| `pshell audio apps` | The apps playing right now, one per line, for example `"Firefox" 40% muted`. Prints nothing when nothing is playing. |
+| `pshell audio appSetVolume firefox 40` | Set an app to 40%. The name is the one `apps` prints, in any case. An app playing more than one stream, like a browser with two tabs, has all of them set. |
+| `pshell audio appMute firefox` | Mute an app. |
+| `pshell audio appUnmute firefox` | Unmute an app. |
+| `pshell audio appToggleMute firefox` | Mute or unmute an app. Prints `muted` or `unmuted`. |
 
 ## bar
 

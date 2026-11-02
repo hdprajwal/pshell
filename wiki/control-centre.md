@@ -69,7 +69,8 @@ The audio output and microphone tiles open a device picker. It shows:
 
 - the active device, outlined and labelled;
 - every other device;
-- what is playing or recording right now.
+- on the output side, a volume slider and a mute button for each app playing right now, under **Apps**. The section is gone while nothing is playing. Right click on a slider mutes that app too;
+- on the microphone side, what is recording right now.
 
 The microphone view has its own level slider, since setting the mic level is often why you opened it. Set `audioSettings` to add a gear that opens your mixer of choice.
 
