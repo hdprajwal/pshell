@@ -134,7 +134,7 @@ Set `showCamera` to `false` to stop checking the camera.
 
 ## idleInhibitor
 
-Keeps the screen awake while it is on. Click to switch. It is off after every restart.
+Keeps the screen awake while it is on. Click it for a panel: switch it on with no limit, or pick 15m, 30m, 1h, 2h, 4h, 8h or a clock time. Hover it to see the time left. It is off after every restart.
 
 The same switch is on the command line as `pshell idle`. See [Session](session.md#idle-inhibitor) for how it works and what it needs.
 

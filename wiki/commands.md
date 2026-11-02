@@ -30,7 +30,7 @@ A few commands have a bare form, so a keybind can stay short.
 
 - If the shell is not running, `pshell` says so and exits 1.
 - If the target does not exist, `pshell` says so and exits 1. A target that belongs to a widget only exists while that widget is on your bar.
-- The `nightlight`, `updates`, `weather` and `audio` targets answer with a line starting `error: ` when they cannot do what you asked. `pshell` prints that to stderr and exits 1, so `pshell nightlight on && ...` stops there. Other targets do not do this, because for them a line starting `error: ` can be normal output.
+- The `nightlight`, `updates`, `weather`, `audio` and `idle` targets answer with a line starting `error: ` when they cannot do what you asked. `pshell` prints that to stderr and exits 1, so `pshell nightlight on && ...` stops there. Other targets do not do this, because for them a line starting `error: ` can be normal output.
 
 ## A note on `show`
 
@@ -120,6 +120,9 @@ Keeps the screen awake. See [Session](session.md#idle-inhibitor).
 | `pshell idle on` | Keep the screen awake. |
 | `pshell idle off` | Let it sleep again. |
 | `pshell idle toggle` | Switch between the two. |
+| `pshell idle forMinutes 90` | Keep it awake for 90 minutes, then let it sleep. `0` means no limit, as `on`. |
+| `pshell idle until 18:30` | Keep it awake until 18:30. A time already past today means tomorrow. Prints `until 18:30`. |
+| `pshell idle remaining` | `off`, `on` when there is no limit, or the time left, for example `47m until 18:30`. |
 | `pshell idle isInhibited` | `true` or `false`. |
 
 ## keybinds

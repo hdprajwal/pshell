@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "IdleInhibit.js" as Clock
 
 // Keep the screen awake.
 //
@@ -26,19 +27,79 @@ Singleton {
     id: root
 
     // Off after a restart, always. A machine that silently refuses to sleep
-    // because of something you turned on last week is a bad surprise.
+    // because of something you turned on last week is a bad surprise. A timer
+    // is not restored either, for the same reason.
     property bool inhibited: false
 
+    // When it switches itself off, in ms since the epoch; 0 for no limit.
+    property real endsAt: 0
+    // What started it, so the panel can light the right chip: minutes for a
+    // preset, 0 for no limit, -1 for a clock time.
+    property int preset: 0
+    // Wall-clock now, refreshed by the tick below while a timer runs, so the
+    // countdowns that bind to it move.
+    property real now: Date.now()
+
+    readonly property bool timed: inhibited && endsAt > 0
+    readonly property string leftText: timed ? Clock.formatLeft(endsAt - now) : ""
+    readonly property string endsAtText: timed ? Qt.formatTime(new Date(endsAt), "HH:mm") : ""
+
     function on() {
-        root.inhibited = true;
+        root.start(0, 0);
     }
 
     function off() {
         root.inhibited = false;
+        root.endsAt = 0;
+        root.preset = 0;
     }
 
     function toggle() {
-        root.inhibited = !root.inhibited;
+        if (root.inhibited)
+            root.off();
+        else
+            root.on();
+    }
+
+    // Zero or less is no limit, as `on`.
+    function forMinutes(minutes) {
+        if (minutes <= 0)
+            root.on();
+        else
+            root.start(Date.now() + minutes * 60000, minutes);
+    }
+
+    // False for text that is not a 24-hour HH:MM, so the caller can say so.
+    function untilClock(text) {
+        const end = Clock.endOfClock(text, Date.now());
+        if (end < 0)
+            return false;
+        root.start(end, -1);
+        return true;
+    }
+
+    function start(end, preset) {
+        root.now = Date.now();
+        root.endsAt = end;
+        root.preset = preset;
+        root.inhibited = true;
+    }
+
+    // A repeating check against the wall clock rather than one Timer set to
+    // the whole duration: Qt's timers run on the monotonic clock, which stops
+    // while the machine is suspended, so a single 2h timer started before a
+    // suspend would end late by however long the lid was shut.
+    Timer {
+        running: root.timed
+        repeat: true
+        interval: 5000
+        onTriggered: {
+            root.now = Date.now();
+            if (root.now >= root.endsAt) {
+                root.off();
+                Quickshell.execDetached(["notify-send", "-a", "pshell", "Keep awake ended", "The screen can sleep again."]);
+            }
+        }
     }
 
     Loader {
@@ -84,6 +145,27 @@ Singleton {
 
         function toggle(): void {
             root.toggle();
+        }
+
+        // Minutes rather than a "1h30m" string: a script does its own sums,
+        // and a number is the one thing qs checks before calling.
+        function forMinutes(minutes: int): void {
+            root.forMinutes(minutes);
+        }
+
+        // A 24-hour clock time; one already past today means tomorrow.
+        function until(time: string): string {
+            if (!root.untilClock(time))
+                return "error: expected a 24-hour time like 18:30, got \"" + time + "\"";
+            return "until " + root.endsAtText;
+        }
+
+        // "off", "on" with no limit, or "47m until 18:30".
+        function remaining(): string {
+            if (!root.inhibited)
+                return "off";
+            root.now = Date.now();
+            return root.timed ? root.leftText + " until " + root.endsAtText : "on";
         }
 
         function isInhibited(): bool {

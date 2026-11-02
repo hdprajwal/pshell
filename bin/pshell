@@ -241,8 +241,11 @@ call() {
     #
     # pshell.audio is listed because `tone` answers that way, and its only
     # other free text is `status`, which starts with `volume`.
+    #
+    # pshell.idle is listed for `until`, which refuses a time it cannot read;
+    # its other answers are `until`, `on`, `off`, a duration or true/false.
     case $1 in
-    pshell.nightlight | pshell.updates | pshell.weather | pshell.audio)
+    pshell.nightlight | pshell.updates | pshell.weather | pshell.audio | pshell.idle)
         case $out in
         "error: "*)
             printf 'pshell: %s\n' "${out#error: }" >&2

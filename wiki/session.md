@@ -97,11 +97,14 @@ Keeps the screen awake while it is on, for example while you watch a video.
 
 ```sh
 pshell idle toggle        # also: on, off, isInhibited
+pshell idle forMinutes 90 # then it lets the screen sleep again
+pshell idle until 18:30   # a time already past today means tomorrow
+pshell idle remaining     # off, on, or eg. 47m until 18:30
 ```
 
-Or add `{ "type": "idleInhibitor" }` to your bar and click it.
+Or add `{ "type": "idleInhibitor" }` to your bar and click it. The panel has a switch for no limit, and buttons for 15m, 30m, 1h, 2h, 4h, 8h, no limit, and a clock time. Click a lit button again to stop. When a timer runs out you get a notification.
 
-It is off after every restart. A machine that will not sleep because of something you pressed last week is a bad surprise.
+It is off after every restart, and a running timer is not restored. A machine that will not sleep because of something you pressed last week is a bad surprise.
 
 On Wayland, an idle inhibitor only counts while the window that holds it is visible. One held by the bar would stop working as soon as a fullscreen window covered the bar, which is exactly when you want it. So pshell holds it on its own tiny transparent window, on the layer above fullscreen windows, which only exists while the inhibitor is on.
 
