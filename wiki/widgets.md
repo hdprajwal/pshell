@@ -238,6 +238,8 @@ Charge and time remaining, with a power profile picker in the panel.
 
 Left click opens the panel. Right click shows or hides the percentage until the next restart.
 
+A low battery sends a notification at 20%, then again at 15%, 10% and 5%. Each one is sent once, and plugging in the charger starts it over. From 10% down the notification stays up until you dismiss it. This works with or without the widget on the bar.
+
 ## network
 
 Wi-Fi signal, or wired.

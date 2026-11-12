@@ -92,6 +92,11 @@ ShellRoot {
     // inactive while `inhibited` is false, which it is after every start.
     readonly property var idleInhibit: IdleInhibit
 
+    // And for the low-battery warning, which has no widget of its own and
+    // would otherwise never be built. Costs nothing on a desktop: with no
+    // battery present it never sends anything.
+    readonly property var batteryAlert: BatteryAlert
+
     // And again for the notifications service, with the most at stake: this
     // access is what builds the NotificationServer, and building it is what
     // claims org.freedesktop.Notifications on DBus. Left to lazy
